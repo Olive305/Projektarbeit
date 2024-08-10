@@ -1,0 +1,13 @@
+.canvas-container {
+    width: 80vw;
+    height: 85vh; /* Set height to 80% of the viewport height */
+    overflow: auto;
+    margin: 10px;
+    border: 1px solid grey;
+}
+
+.canvas-content {
+    width: 3000px;
+    height: 3000px;
+    overflow: hidden;
+}

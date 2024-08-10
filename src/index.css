@@ -1,0 +1,9 @@
+/* src/styles.css */
+@Tailwind base;
+@Tailwind components;
+@Tailwind utilities;
+
+body
+{
+    font-family: Arial, Helvetica, sans-serif;
+}

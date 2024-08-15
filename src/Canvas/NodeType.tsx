@@ -21,10 +21,10 @@ class MyNode {
 
 
     static readonly h_val = 3;
-    static readonly w_val = 7;
+    static readonly w_val = 5;
     static readonly circleSize = 10;
 
-    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function) {
+    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -35,7 +35,7 @@ class MyNode {
         this.w = gridSize * MyNode.w_val;
         this.isDragging = false;
         this.isSelected = false;
-        this.isPreview = false;
+        this.isPreview = preview ? preview : false;
     }
 }
 export default MyNode;

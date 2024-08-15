@@ -24,8 +24,8 @@ const App: React.FC = () => {
   useEffect(() => {
     // Update the active graph controller whenever the active tab index changes
     const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null;
-    setActiveGraphController(activeController ? new GraphController(gridSize, activeController.nodes, activeController.edges) : null);
-  }, [multiController, activeTabIndex, gridSize]);
+    setActiveGraphController(activeController);
+  }, [multiController, activeTabIndex]);
 
   const handleTabClick = (index: number) => {
     setActiveTabIndex(index);

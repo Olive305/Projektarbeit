@@ -212,27 +212,38 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
             {Array.from(nodes.values()).map((node) => (
               <Group
                 key={node.id}
-                draggable={!draggingEdge}
+                draggable={!node.isPreview && !draggingEdge}
                 x={node.x}
                 y={node.y}
-                onDragStart={() => setIsDraggingNode(true)}
-                onDragMove={(e) => handleDragMove(e, node.id)}
-                onDragEnd={(e) => handleDragEnd(e, node.id)}
+                onDragStart={() => node.isPreview ? {} : setIsDraggingNode(true)}
+                onDragMove={(e) => node.isPreview ? {} : handleDragMove(e, node.id)}
+                onDragEnd={(e) => node.isPreview ? {} : handleDragEnd(e, node.id)}
                 onClick={(e) => {
                   e.cancelBubble = true; // Prevent the click event from bubbling up to the stage
                   const id = node.id;
-
+              
                   const targetNode = nodes.get(id);
                   if (!targetNode) return;
-
+              
+                  if (targetNode.isPreview) {
+                      // Convert preview node to a regular node
+                      targetNode.isPreview = false;
+                      setNodes(new Map(nodes));
+              
+                      // Recalculate preview nodes
+                      controller.get_preview_nodes();
+                      return;
+                  }
+              
+                  // Toggle selection state
                   targetNode.isSelected = !targetNode.isSelected;
                   if (targetNode.isSelected) {
-                    controller.selectedNodes.push(id);
+                      controller.selectedNodes.push(id);
                   } else {
-                    controller.selectedNodes.splice(controller.selectedNodes.indexOf(id), 1);
+                      controller.selectedNodes.splice(controller.selectedNodes.indexOf(id), 1);
                   }
                   setNodes(new Map(nodes));
-                }}
+              }}
               >
                 <Rect
                   ref={(n) => {
@@ -240,7 +251,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
                   }}
                   width={node.w}
                   height={node.h}
-                  fill={node.isSelected ? "lightblue" : "lightgray"}
+                  fill={node.isPreview ? "lightgreen" : (node.isSelected ? "lightblue" : "lightgray")}
                   cornerRadius={5}
                   stroke={'gray'}
                   strokeWidth={0.5}
@@ -267,7 +278,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
 
                   fill="gray"
 
-                  onMouseDown={(e) => handleCircleMouseDown(e, node)} // Handle mouse down on the right circle
+                  onMouseDown={(e) => node.isPreview ? {} : handleCircleMouseDown(e, node)} // Handle mouse down on the right circle
                 />
                 <Text
                   ref={(n) => {

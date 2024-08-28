@@ -73,6 +73,36 @@ class GraphController {
     this.notifyListeners();
   }
 
+  public selectNodesInRect(rect: { x: number, y: number, width: number, height: number }) {
+    this.unselectAllNodes(); // First, unselect all nodes
+  
+    this.nodes.forEach((node) => {
+      const nodeRect = {
+        x: node.x,
+        y: node.y,
+        width: node.w,
+        height: node.h,
+      };
+  
+      if (this.rectsIntersect(rect, nodeRect)) {
+        node.isSelected = true;
+        this.selectedNodes.push(node.id);
+      } else {
+        node.isSelected = false;
+      }
+    });
+  
+    this.notifyListeners();
+  }
+  
+  private rectsIntersect(rect1: { x: number, y: number, width: number, height: number }, rect2: { x: number, y: number, width: number, height: number }): boolean {
+    return !(rect2.x > rect1.x + rect1.width ||
+              rect2.x + rect2.width < rect1.x ||
+              rect2.y > rect1.y + rect1.height ||
+              rect2.y + rect2.height < rect1.y);
+  }
+  
+
   public addNode(edge_start: string, isPreview?: boolean, num_pre?: number) {
     const oldNode = this.nodes.get(edge_start);
     if (!oldNode) {
@@ -154,6 +184,15 @@ class GraphController {
     }
   }
 
+  public removeNode(key: string) {
+    this.edges = this.edges.filter(edge => edge[0] !== key && edge[1] !== key);
+    this.nodes.delete(key);
+    this.deletedKeys.push(key); // Add the deleted key to the list
+
+    this.get_preview_nodes();
+    this.notifyListeners();
+  }
+
   public deleteSelectedNodes() {
     this.selectedNodes.forEach((key) => {
       this.edges = this.edges.filter(edge => edge[0] !== key && edge[1] !== key);
@@ -164,6 +203,17 @@ class GraphController {
 
     this.get_preview_nodes();
     this.notifyListeners();
+  }
+
+  public removeEdge(start: string, end: string) {
+    this.edges = this.edges.filter(edge => 
+      !(edge[0] === start && edge[1] === end) &&
+      !(edge[0] === end && edge[1] === start)
+    );
+
+    this.get_preview_nodes();
+    this.notifyListeners();
+
   }
 
   public deleteSelectedEdges() {

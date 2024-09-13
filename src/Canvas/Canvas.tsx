@@ -5,13 +5,15 @@ import MyNode from './NodeType';
 import GraphController from '../ControlBar/GraphController';
 import { KonvaEventObject } from 'konva/lib/Node';
 import Konva from 'konva';
+import MultiGraphs from '../ControlBar/MultiGraphs';
 
 interface CanvasProps {
   grid: boolean;
   controller: GraphController;
+  multiController: MultiGraphs;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
+const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) => {
   const gridSize = controller.gridSize;
   const stageRef = useRef<Konva.Stage>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -126,7 +128,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
         scrollContainer.removeEventListener('scroll', repositionStage);
       };
     }
-  }, [controller]);
+  }, [controller]);       
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
     if (isDraggingNode) {
@@ -147,7 +149,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
       node.x -= node.x % gridSize;
       node.y -= node.y % gridSize;
       if (node.x < 0) node.x = 0;
-      if (node.y < 0) node.y = 0;
+      if (node.y < 0) node.y = 0;       
       setNodes(new Map(nodes));
       setIsDraggingNode(false);
     }
@@ -238,7 +240,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
       event.evt.preventDefault();
       // update visibility in timeout, so we can check it in click event
       selectionRecRef.current?.visible(false);
-      var shapes = stageRef.current?.find('.rect');
       var box = selectionRecRef.current.getClientRect();
     
       // Call the new method to select nodes within the rectangle
@@ -248,6 +249,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
     }
     
   };
+
 
   const handleBackgroundClick = (event: KonvaEventObject<MouseEvent>) => {
     const targetNode = Array.from(nodes.values()).find(n =>
@@ -395,21 +397,9 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller }) => {
                   const targetNode = nodes.get(id);
                   if (!targetNode) return;
 
-                  if (targetNode.isPreview) {
-                    targetNode.isPreview = false;
-                    setNodes(new Map(nodes));
+                  controller.nodeOnClick(targetNode);
 
-                    controller.get_preview_nodes();
-                    return;
-                  }
-
-                  targetNode.isSelected = !targetNode.isSelected;
-                  if (targetNode.isSelected) {
-                    controller.selectedNodes.push(id);
-                  } else {
-                    controller.selectedNodes.splice(controller.selectedNodes.indexOf(id), 1);
-                  }
-                  setNodes(new Map(nodes));
+                  setNodes(controller.nodes);
                 }}
               >
 

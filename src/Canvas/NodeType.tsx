@@ -1,7 +1,3 @@
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import React from "react";
-import { Circle, Rect } from "react-konva";
-
 class MyNode {
     id: string;
     x: number;
@@ -18,13 +14,14 @@ class MyNode {
     circleLeft: any;
     text:any;
     isPreview: boolean;
+    actualKey: string;
 
 
     static readonly h_val = 3;
     static readonly w_val = 5;
     static readonly circleSize = 10;
 
-    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean) {
+    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean, actualKey?: string) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -36,6 +33,7 @@ class MyNode {
         this.isDragging = false;
         this.isSelected = false;
         this.isPreview = preview ? preview : false;
+        this.actualKey = actualKey ? actualKey : id;
     }
 }
 export default MyNode;

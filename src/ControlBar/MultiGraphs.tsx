@@ -15,30 +15,19 @@ class MultiController {
     const index = this.graphs.push([new GraphController(this.gridSize), name]) - 1;
 
     const text = await file.text();
-    const lines = text.split('\n');
-    for (const line of lines) {
-      const splitLine = line.split(' ');
-      if (splitLine[0] === "E") {
-        this.graphs[index][0].addEdge(splitLine[1], splitLine[2]);
-        continue;
-      }
-      if (splitLine[0] === "N") {
-        this.graphs[index][0].addMyRect(new MyNode(splitLine[1], Number(splitLine[2]), Number(splitLine[3]), this.gridSize, splitLine[4], this.graphs[index][0].nodeOnClick));
-        continue;
-      }
-      this.graphs[index][1] = splitLine[0];
-    }
+    this.graphs[index][0].deserializeGraph(text);
+    this.graphs[index][1] = name;
   }
 
   async saveGraphAs(index: number) {
     const fileName = prompt("Enter the file name:");
     if (fileName) {
-      const fileContent = this.generateFileContent(index);
-      const blob = new Blob([fileContent], { type: 'text/plain' });
+      const graphData = this.graphs[index][0].serializeGraph();
+      const blob = new Blob([graphData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = `${fileName}.json`; // Save as .json file
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -54,6 +43,23 @@ class MultiController {
     this.graphs.push([new GraphController(this.gridSize), name]);
   }
 
+  // Function to copy selected nodes from a specific graph
+  public copySelectedNodes(index: number) {
+    const graph = this.graphs[index][0];
+    const selectedNodesData = graph.serializeGraph();
+    localStorage.setItem('copiedNodes', selectedNodesData); // Store in localStorage
+    navigator.clipboard.writeText(selectedNodesData); // Optionally copy to clipboard
+  }
+
+  // Function to paste nodes into a specific graph
+  public pasteNodesIntoGraph(index: number) {
+    const graph = this.graphs[index][0];
+    const copiedNodesData = localStorage.getItem('copiedNodes');
+    if (copiedNodesData) {
+      graph.deserializeGraph(copiedNodesData);
+    }
+  }
+
   private generateFileContent(index: number): string {
     let content = this.graphs[index][1] + "\n";
     this.graphs[index][0].edges.forEach(edge => {
@@ -63,6 +69,10 @@ class MultiController {
       content += "N " + node.id + " " + node.x + " " + node.y + " " + node.caption + "\n";
     });
     return content;
+  }
+
+  public getIndexOf(controller: GraphController): number {
+    return this.graphs.findIndex(([graphController]) => graphController === controller);
   }
 }
 

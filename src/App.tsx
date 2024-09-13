@@ -28,7 +28,15 @@ const App: React.FC = () => {
   }, [multiController, activeTabIndex]);
 
   const handleTabClick = (index: number) => {
+    // Directly update the active graph controller before setting the active tab index
+    const controller = multiController.graphs[index][0];
+    setActiveGraphController(controller);
+  
+    // Set the active tab index
     setActiveTabIndex(index);
+  
+    // Notify listeners immediately after the state update
+    controller.notifyListeners();
   };
 
   return (
@@ -48,7 +56,7 @@ const App: React.FC = () => {
       />
       <section>
         <div className='left-bar-div'>
-          {activeGraphController && <ControlBar controller={activeGraphController} />}
+          {activeGraphController && <ControlBar controller={activeGraphController} multi={multiController} />}
         </div>
         <section className='workspace-section'>
           <div className='tabs-div'>
@@ -63,7 +71,7 @@ const App: React.FC = () => {
             ))}
           </div>
           <div className='canvas-div'>
-            {activeGraphController && <Canvas grid={true} controller={activeGraphController} />}
+            {activeGraphController && <Canvas grid={true} controller={activeGraphController} multiController={multiController} />}
           </div>
         </section>
       </section>

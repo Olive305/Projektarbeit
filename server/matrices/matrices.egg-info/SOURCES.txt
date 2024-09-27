@@ -1,0 +1,5 @@
+setup.py
+matrices.egg-info/PKG-INFO
+matrices.egg-info/SOURCES.txt
+matrices.egg-info/dependency_links.txt
+matrices.egg-info/top_level.txt

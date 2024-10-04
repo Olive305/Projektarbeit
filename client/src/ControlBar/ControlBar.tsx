@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import GraphController from './GraphController';
 import './ControlBar.css'
 import MultiGraphs from './MultiGraphs';
@@ -10,10 +10,37 @@ import axios from 'axios';
 interface ControlsProps {
   controller: GraphController
   multi: MultiGraphs;
+  handleConvertToPetriNet: (index: number) => void;
 }
 
-const ControlBar: React.FC<ControlsProps> = ({ controller, multi }) => (
-  <div>
+const ControlBar: React.FC<ControlsProps> = ({ controller, multi, handleConvertToPetriNet }) => {
+  // State to hold the slider value
+  const [sliderValue, setSliderValue] = useState(controller.probabilityMin * 100);
+
+  // Function to handle slider value changes
+  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSliderValue(Number(event.target.value));
+    // You can pass the value to controller if needed here
+    controller.probabilityMin = sliderValue / 100;
+    controller.get_preview_nodes();
+  };
+
+  return (
+    <div>
+      {/* Slider */}
+      <div className="slidecontainer">
+        <input
+          type="range"
+          min="1"
+          max="100"
+          value={sliderValue}
+          className="slider"
+          id="myRange"
+          onChange={handleSliderChange}
+        />
+        <p>Slider Value: {sliderValue}</p> {/* Display the current slider value */}
+      </div>
+
     <button className='test-Button' onClick={() => {}}>
       <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-plus-circle" viewBox="0 0 16 16">
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
@@ -50,6 +77,11 @@ const ControlBar: React.FC<ControlsProps> = ({ controller, multi }) => (
     <button className='test-Button' onClick={async () => console.log(controller.preview_nodes)}>
       TestNew
     </button>
+
+    <button className='test-Button' onClick={async () => console.log(handleConvertToPetriNet(multi.getIndexOf(controller)))}>
+      To PetriNet
+    </button>
   </div>);
+}
 
 export default ControlBar;

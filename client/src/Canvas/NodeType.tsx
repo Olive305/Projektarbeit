@@ -17,6 +17,7 @@ class MyNode {
     text:any;
     isPreview: boolean;
     actualKey: string;
+    isCircle: boolean
     private real_x: number;
     private real_y: number;
 
@@ -24,8 +25,9 @@ class MyNode {
     static readonly h_val = 3;
     static readonly w_val = 5;
     static readonly circleSize = 10;
+    static readonly nodeOpacity = 1.0;
 
-    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean, actualKey?: string) {
+    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean, actualKey?: string, circle ?: boolean) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -40,6 +42,7 @@ class MyNode {
         this.actualKey = actualKey ? actualKey : id;
         this.real_x = 0
         this.real_y = 0
+        this.isCircle = circle ? circle : false;
 
         this.calculateRealPos()
     }

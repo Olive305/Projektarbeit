@@ -38,6 +38,57 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     node: null
   });
 
+  
+  // useEffect functions
+  
+  useEffect(() => {
+    const stage = stageRef.current;
+    const scrollContainer = scrollContainerRef.current;
+
+    if (stage && scrollContainer) {
+      const repositionStage = () => {
+        const dx = scrollContainer.scrollLeft;
+        const dy = scrollContainer.scrollTop;
+        stage.container().style.transform = `translate(${dx}px, ${dy}px)`;
+        stage.x(-dx);
+        stage.y(-dy);
+      };
+
+      scrollContainer.addEventListener('scroll', repositionStage);
+      repositionStage();
+
+      return () => {
+        scrollContainer.removeEventListener('scroll', repositionStage);
+      };
+    }
+  }, [controller]);
+
+  useEffect(() => {
+    const handleControllerChange = () => {
+      setNodes(new Map(controller.nodes));
+      setEdges([...controller.edges]);
+    };
+
+    controller.addListener(handleControllerChange);
+
+    return () => {
+      controller.removeListener(handleControllerChange);
+    };
+  }, [controller]);
+  
+  // Prevent the default context menu from showing when right-clicking
+  useEffect(() => {
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('contextmenu', preventContextMenu);
+
+    return () => {
+      window.removeEventListener('contextmenu', preventContextMenu);
+    };
+  }, []);
+  
   const handleWheel = (e: any) => {
     e.evt.preventDefault(); // Prevent default browser scroll behavior
 
@@ -91,57 +142,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     }
     return gridLines;
   };
-
-  // Handle right mouse down for scrolling
-  const handleRightMouseDown = (e: any) => {
-    // Check if right mouse button is pressed
-    if (e.evt.button === 2) {
-      setIsPanning(true);
-    }
-  };
-
-  // Handle right mouse up to stop scrolling
-  const handleRightMouseUp = () => {
-    setIsPanning(false);
-  };
-
-  // Handle canvas movement based on right mouse dragging
-  const handleRightMouseMove = (e: any) => {
-    if (!isPanning) return;
-
-    const stage = e.target.getStage();
-    const pointer = stage?.getPointerPosition();
-    
-    if (stage && pointer) {
-      const newPos = {
-        x: stage.x() + (pointer.x - stage.width() / 2),
-        y: stage.y() + (pointer.y - stage.height() / 2),
-      };
-      setStagePos(newPos);
-    }
-  };
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    const scrollContainer = scrollContainerRef.current;
-
-    if (stage && scrollContainer) {
-      const repositionStage = () => {
-        const dx = scrollContainer.scrollLeft;
-        const dy = scrollContainer.scrollTop;
-        stage.container().style.transform = `translate(${dx}px, ${dy}px)`;
-        stage.x(-dx);
-        stage.y(-dy);
-      };
-
-      scrollContainer.addEventListener('scroll', repositionStage);
-      repositionStage();
-
-      return () => {
-        scrollContainer.removeEventListener('scroll', repositionStage);
-      };
-    }
-  }, [controller]);
 
   const drawLineWithHitbox = (connection: [string, string]) => {
     const start = nodes.get(connection[0]);
@@ -217,45 +217,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
       </Group>
     );
   };
-  
-  
-  
-
-
-  useEffect(() => {
-    const handleControllerChange = () => {
-      setNodes(new Map(controller.nodes));
-      setEdges([...controller.edges]);
-    };
-
-    controller.addListener(handleControllerChange);
-
-    return () => {
-      controller.removeListener(handleControllerChange);
-    };
-  }, [controller]);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    const scrollContainer = scrollContainerRef.current;
-
-    if (stage && scrollContainer) {
-      const repositionStage = () => {
-        const dx = scrollContainer.scrollLeft;
-        const dy = scrollContainer.scrollTop;
-        stage.container().style.transform = `translate(${dx}px, ${dy}px)`;
-        stage.x(-dx);
-        stage.y(-dy);
-      };
-
-      scrollContainer.addEventListener('scroll', repositionStage);
-      repositionStage();
-
-      return () => {
-        scrollContainer.removeEventListener('scroll', repositionStage);
-      };
-    }
-  }, [controller]);       
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
     if (isDraggingNode) {
@@ -279,10 +240,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
       // Set the new real positions rounded to the nearest grid
       node.set_real_x(Math.round(x / gridSize) * gridSize);
       node.set_real_y(Math.round(y / gridSize) * gridSize);
-  
-      // Ensure the node doesn't go negative
-      if (node.get_real_x() < 0) node.set_real_x(0);
-      if (node.get_real_y() < 0) node.set_real_y(0);
   
       // Update the state with the modified node
       setNodes(new Map(nodes));
@@ -325,13 +282,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     if (selecting) {
       event.evt.preventDefault();
 
-      if (event === null) {
-        return "event is null indicator"
-      }
-      else {
-        
-      }
-
       const pos = stageRef.current?.getPointerPosition();
 
       x2 = pos?.x ? pos?.x : 0;
@@ -349,8 +299,11 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
   };
 
   const handleMouseUp = (event: KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (stage) {
+      stage.draggable(true); // Re-enable the default dragging behavior
+    }
     if (draggingEdge) {
-      const stage = stageRef.current;
       if (!stage) return;
 
       const pointerPosition = stage.getPointerPosition();
@@ -410,6 +363,9 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
   };
 
   const handleBackgroundMouseDown = (event: KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (stage) stage.draggable(false); // Disable default dragging behavior
+
     if (event.target !== stageRef.current) {
       return;
     }
@@ -425,6 +381,8 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     selectionRecRef.current?.width(0);
     selectionRecRef.current?.height(0);
     selecting = true;
+
+    console.log("selecting")
   }
 
   const handleLineRightClick = (event: KonvaEventObject<MouseEvent>, edge: [string, string]) => {
@@ -452,22 +410,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
         edge: edge,
         node: null
     });
-};
-
-// Prevent the default context menu from showing when right-clicking
-useEffect(() => {
-  const preventContextMenu = (e: MouseEvent) => {
-    e.preventDefault();
   };
-
-  window.addEventListener('contextmenu', preventContextMenu);
-
-  return () => {
-    window.removeEventListener('contextmenu', preventContextMenu);
-  };
-}, []);
-
-
 
   const handleNodeRightClick = (event: KonvaEventObject<MouseEvent>, node: MyNode) => {
     event.evt.preventDefault(); // Prevent the default context menu from appearing
@@ -520,155 +463,191 @@ useEffect(() => {
     <div className="canvas-container" ref={scrollContainerRef} onClick={handleCanvasClick}>
       <div className="canvas-content">
 
-        <Stage
-          ref={stageRef}
-          width={window.innerWidth}
-          height={window.innerHeight}
-          onMouseMove={(e) => {e.evt.button === 0 ? handleMouseMove(e) : handleRightMouseMove(e)}}
-          onMouseUp={(e) => {e.evt.button === 0 ? handleMouseUp(e) : handleRightMouseUp()}}
-          onMouseDown={(e) => {e.evt.button === 0 ? handleBackgroundMouseDown(e) : handleRightMouseDown(e)}}
-          onClick={handleBackgroundClick}
-          draggable
-          onWheel={handleWheel} // Add zoom functionality
-          scaleX={scale}
-          scaleY={scale}
-          x={stagePos.x}
-          y={stagePos.y}
-        >
+      <Stage
+        ref={stageRef}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseDown={(e) => {
+          if (e.evt.button === 2) {
+            handleBackgroundMouseDown(e);   // Left mouse button
+          }
+        }}
+
+        draggable={true}
+        onClick={handleBackgroundClick}
+        onContextMenu={(e) => e.evt.preventDefault()} // Prevent default context menu on right-click
+        onWheel={handleWheel} // Add zoom functionality
+        scaleX={scale}
+        scaleY={scale}
+        x={stagePos.x}  // Bind updated stage position
+        y={stagePos.y}  // Bind updated stage position
+      >
 
           <Layer>{grid && drawGrid()}</Layer>
 
+          <Layer>
+          {(
+              Array.from(nodes.values()).map((node) => (
+                <Group
+                  key={node.id}
+                  draggable={!node.isPreview && !draggingEdge}
+                  x={node.get_real_x()}
+                  y={node.get_real_y()}
+                  onDragStart={() => (node.isPreview ? {} : setIsDraggingNode(true))}
+                  onDragMove={(e) => (node.isPreview ? {} : handleDragMove(e, node.id))}
+                  onDragEnd={(e) => (node.isPreview ? {} : handleDragEnd(e, node.id))}
+                  onContextMenu={(e) => handleNodeRightClick(e, node)}
+                  onClick={(e) => {
+                    e.cancelBubble = true;
+                    const id = node.id;
+
+                    const targetNode = nodes.get(id);
+                    if (!targetNode) return;
+
+                    controller.nodeOnClick(targetNode);
+
+                    setNodes(controller.nodes);
+                  }}
+                >
+                  {(!node.isCircle) ? (
+                    <Rect
+                      ref={(n) => {
+                        node.rect = n;
+                      }}
+                      width={node.w}
+                      height={node.h}
+                      fill={
+                        node.isPreview
+                          ? "lightgreen"
+                          : node.isSelected
+                          ? "lightblue"
+                          : "lightgray"
+                      }
+                      cornerRadius={5}
+                      stroke={"gray"}
+                      strokeWidth={0.8}
+                      opacity={MyNode.nodeOpacity}
+                    />
+                  ) : (
+                    <Circle
+                      ref={(n) => {
+                        node.rect = n;
+                      }}
+
+                      // fix here
+                      x = {gridSize * MyNode.w_val / 2}
+                      y = {gridSize * MyNode.h_val / 2}
+
+                      width={node.w}
+                      height={node.w}
+                      fill={
+                        node.isPreview
+                          ? "lightgreen"
+                          : node.isSelected
+                          ? "ligthblue"
+                          : "lightgray"
+                      }
+                      cornerRadius={5}
+                      stroke={"gray"}
+                      strokeWidth={0.8}
+                      opacity={MyNode.nodeOpacity}
+                    />
+                  )}
+                  <Circle
+                    ref={(n) => {
+                      node.circleLeft = n;
+                    }}
+                    x={0}
+                    y={node.h / 2}
+                    width={MyNode.circleSize}
+                    height={MyNode.circleSize}
+                    stroke={"gray"}
+                    strokeWidth={0.8}
+                  />
+                  <Circle
+                    ref={(n) => {
+                      node.circleRight = n;
+                    }}
+                    x={node.w}
+                    y={node.h / 2}
+                    width={MyNode.circleSize}
+                    height={MyNode.circleSize}
+                    onMouseDown={(e) =>
+                      node.isPreview ? {} : handleCircleMouseDown(e, node)
+                    }
+                    stroke={"gray"}
+                    strokeWidth={0.8}
+                  />
+                  <Text
+                    ref={(n) => {
+                      node.text = n;
+                    }}
+                    text={node.caption}
+                    fill="black"
+                    x={node.w / 2}
+                    y={node.h / 2}
+                    offsetX={node.text ? node.text.width() / 2 : 0}
+                    offsetY={node.text ? node.text.height() / 2 : 0}
+                    listening={true}
+                  />
+                </Group>
+              ))
+            )
+          }
+
+          {edges.map(edge => drawLineWithHitbox(edge))}
+          
+          {draggingEdge && (
+            <Line
+              points={[
+                draggingEdge.startNode.get_real_x() + draggingEdge.startNode.w,
+                draggingEdge.startNode.get_real_y() + draggingEdge.startNode.h / 2,
+                draggingEdge.endX,
+                draggingEdge.endY
+              ]}
+              stroke="black"
+              strokeWidth={2}
+            />
+          )}
+          </Layer>
 
           <Layer>
-
-            {Array.from(nodes.values()).map((node) => (
-
-              <Group
-                key={node.id}
-                draggable={!node.isPreview && !draggingEdge}
-                x={node.get_real_x()}
-                y={node.get_real_y()}
-                onDragStart={() => node.isPreview ? {} : setIsDraggingNode(true)}
-                onDragMove={(e) => node.isPreview ? {} : handleDragMove(e, node.id)}
-                onDragEnd={(e) => node.isPreview ? {} : handleDragEnd(e, node.id)}
-                onContextMenu={(e) => handleNodeRightClick(e, node)}
-                onClick={(e) => {
-                  e.cancelBubble = true;
-                  const id = node.id;
-
-                  const targetNode = nodes.get(id);
-                  if (!targetNode) return;
-
-                  controller.nodeOnClick(targetNode);
-
-                  setNodes(controller.nodes);
-                }}
-              >
-
-                <Rect
-                  ref={(n) => {
-                    node.rect = n;
-                  }}
-                  width={node.w}
-                  height={node.h}
-                  fill={node.isPreview ? "lightgreen" : (node.isSelected ? "lightblue" : "lightgray")}
-                  cornerRadius={5}
-                  stroke={'gray'}
-                  strokeWidth={0.5}
-                />
-
-                <Circle
-                  ref={(n) => {
-                    node.circleLeft = n;
-                  }}
-                  x={0}
-                  y={node.h / 2}
-                  width={MyNode.circleSize}
-                  height={MyNode.circleSize}
-                  fill="gray"
-                />
-
-                <Circle
-                  ref={(n) => {
-                    node.circleRight = n;
-                  }}
-                  x={node.w}
-                  y={node.h / 2}
-                  width={MyNode.circleSize}
-                  height={MyNode.circleSize}
-                  fill="gray"
-                  onMouseDown={(e) => node.isPreview ? {} : handleCircleMouseDown(e, node)}
-                />
-
-                <Text
-                  ref={(n) => {
-                    node.text = n;
-                  }}
-                  text={node.caption}
-                  fill="black"
-                  x={node.w / 2}
-                  y={node.h / 2}
-                  offsetX={node.text ? node.text.width() / 2 : 0}
-                  offsetY={node.text ? node.text.height() / 2 : 0}
-                  listening={true}
-                />
-
-              </Group>
-            ))}
-
-
-            {edges.map(edge => drawLineWithHitbox(edge))}
-
-
-            {draggingEdge && (
-              <Line
-                points={[
-                  draggingEdge.startNode.get_real_x() + draggingEdge.startNode.w,
-                  draggingEdge.startNode.get_real_y() + draggingEdge.startNode.h / 2,
-                  draggingEdge.endX,
-                  draggingEdge.endY
-                ]}
-                stroke="black"
-                strokeWidth={2}
-              />
-            )}
-            </Layer>
-
-            <Layer>
-              <Rect
-                ref={selectionRecRef}
-                fill='lightblue'
-                visible={false}
-                listening={false}
-                opacity={0.5}
-              />
-            </Layer>
+            <Rect
+              ref={selectionRecRef}
+              fill='lightblue'
+              visible={false}
+              listening={false}
+              opacity={0.5}
+            />
+          </Layer>
 
 
 
-        </Stage>
+      </Stage>
 
-        {contextMenu.visible && contextMenu.node && (
-          <div
-            className="popover"
-            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
-          >
-            <button onClick={handleDeleteNode}>Delete Node</button>
-          </div>
-        )}
+      {contextMenu.visible && contextMenu.node && (
+        <div
+          className="popover"
+          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+        >
+          <button onClick={handleDeleteNode}>Delete Node</button>
+        </div>
+      )}
 
 
-        {contextMenu.visible && contextMenu.edge && (
-          <div
-            className="popover"
-            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
-          >
-            <button onClick={handleDeleteEdge}>Delete Edge</button>
-          </div>
-        )}
+      {contextMenu.visible && contextMenu.edge && (
+        <div
+          className="popover"
+          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+        >
+          <button onClick={handleDeleteEdge}>Delete Edge</button>
+        </div>
+      )}
 
-      </div>
     </div>
+  </div>
   );
 };
 

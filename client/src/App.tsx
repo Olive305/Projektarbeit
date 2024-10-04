@@ -39,6 +39,12 @@ const App: React.FC = () => {
     controller.notifyListeners();
   };
 
+  const handleConvertToPetriNet = (index: number) => {
+    const newIndex = multiController.convertToPetriNet(index);
+    setActiveTabIndex(newIndex); // Set the new Petri Net tab as the active tab
+  };
+  
+
   return (
     <>
       <Header
@@ -53,10 +59,11 @@ const App: React.FC = () => {
         saveGraphAs={(index: number) => multiController.saveGraphAs(index)}
         saveAllGraphs={() => multiController.saveAllGraphs()}
         activeTabIndex={activeTabIndex}
+        handleConvertToPetriNet={handleConvertToPetriNet}
       />
       <section>
         <div className='left-bar-div'>
-          {activeGraphController && <ControlBar controller={activeGraphController} multi={multiController} />}
+          {activeGraphController && <ControlBar controller={activeGraphController} multi={multiController} handleConvertToPetriNet={handleConvertToPetriNet}/>}
         </div>
         <section className='workspace-section'>
           <div className='tabs-div'>

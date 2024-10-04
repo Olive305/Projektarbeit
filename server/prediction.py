@@ -1,5 +1,9 @@
 from flask import json
 from matrices.openMatrix import MyCsv
+from pm4py.objects.conversion.dfg.variants import to_petri_net_invisibles_no_duplicates
+from pm4py.objects.petri_net.obj import PetriNet, Marking
+import networkx as nx
+
 
 class Node:
     def __init__(self, id, x, y, actualKey, isPreview) -> None:
@@ -8,6 +12,7 @@ class Node:
         self.y = y
         self.actualKey = actualKey
         self.isPreview = isPreview
+        self.isCircle = False
         
     def to_dict(self):
         return {
@@ -32,38 +37,106 @@ class Prediction:
 
         self.graph = None
         self.matrix = matrix
+        
+        self.probMin = 0.3
+        
+    def convert_to_petri_net(self):
+    
+        # Create DFG from edges
+        dfg = {}
+        for start_node in self.edges:
+            for end_node in self.edges[start_node]:
+                if (start_node in self.preview_nodes or end_node in self.preview_nodes):
+                    continue
+                dfg[(start_node, end_node)] = dfg.get((start_node, end_node), 0) + 1
+
+        # Parameters (optional, start/end activities can be inferred)
+        parameters = {
+            to_petri_net_invisibles_no_duplicates.Parameters.START_ACTIVITIES: {'start_activity': 1},
+            to_petri_net_invisibles_no_duplicates.Parameters.END_ACTIVITIES: {'end_activity': 1}
+        }
+
+        # Convert DFG to Petri net
+        net, im, fm = to_petri_net_invisibles_no_duplicates.apply(dfg, parameters)
+
+        # Serialize the initial marking
+        im_dict = {place.name: im[place] for place in im}
+
+        # Serialize the final marking
+        fm_dict = {place.name: fm[place] for place in fm}
+        
+        # Extract all nodes (places and transitions)
+        all_nodes = list(net.places) + list(net.transitions)
+
+        # Create a mapping from nodes to integers for NetworkX
+        node_mapping = {node.name: i for i, node in enumerate(all_nodes)}
+        
+        # Build the edge list for NetworkX using integer indices
+        edges = [(node_mapping[arc.source.name], node_mapping[arc.target.name]) for arc in net.arcs]
+
+        # Create a NetworkX graph and add edges
+        G = nx.Graph()
+        G.add_edges_from(edges)
+
+        # Calculate positions using NetworkX's spring layout
+        pos = nx.spring_layout(G)
+
+        # Initialize position dictionary for places and transitions
+        getPos = {node.name: pos[node_mapping[node.name]] for node in all_nodes}
+
+        # Serialize the Petri net components with positions
+        net_dict = {
+            'places': [{
+                'id': place.name,
+                'x': round(getPos[place.name][0] * 8),
+                'y': round(getPos[place.name][1] * 8)
+            } for place in net.places],  # List of place names and positions
+            'transitions': [{
+                'id': trans.name,
+                'label': trans.label,
+                'x': round(getPos[trans.name][0] * 8),
+                'y': round(getPos[trans.name][1] * 8)
+            } for trans in net.transitions],  # List of transitions (name, label, positions)
+            'arcs': [{
+                'source': arc.source.name,
+                'target': arc.target.name
+            } for arc in net.arcs]  # List of arcs (source and target place names)
+        }
+
+        # Return serialized Petri net with positions, initial marking, and final marking
+        return json.dumps({
+            'net': net_dict,
+            'initial_marking': im_dict,
+            'final_marking': fm_dict
+        })
+
+
 
 
     def getPredictions(self, graph):
         # graph is the list of nodes and edges. preview nodes will be added by this code
         self.deserializeGraph(graph)
-        print("actual", self.actualKeySet)
 
         [sequences, keySeq] = self.getAllSequences()
         i = 0
 
         for sequence in sequences:
-            predictions = self.matrix.predict(sequence)
-            print("seq", sequence, sequences)
+            predictions = self.matrix.predict(sequence, self.probMin)
 
             for [node, probability] in predictions:
                 lastNodeId = "0" if len(keySeq[i]) == 0 else keySeq[i][len(keySeq[i]) - 1]
-                print("pred", node, "lastNode", lastNodeId)
 
                 # if the edge to the node from lastNodeId exist, we do not add anything
                 if (lastNodeId in self.edges and node in self.edges[lastNodeId]):
-                    print("1")
                     continue
                 
                 # if the node exists, but there is no edge to it from lastNode, we add it
                 if (node in self.nodes):
-                    print("2")
                     self.addNode(lastNodeId, True, node)
                     continue
                 
                 # we add the node with edge from lastNode
                 if (lastNodeId in self.nodes):
-                    print("3")
                     self.addNode(lastNodeId, True, node)
 
             i += 1
@@ -180,10 +253,6 @@ class Prediction:
             keySeq.append(["0"])
         
         return [sequences, keySeq]
-                
-
-            
-
 
     def getAvailableKey(self):
         # get the smallest key from the deleted keys list if possible
@@ -204,6 +273,8 @@ class Prediction:
         nodes = graph.get('nodes', [])
         edges = graph.get('edges', [])
         self.deletedKeys = graph.get('deletedKeys', [])
+        
+        self.probMin = graph.get('probability', 0.3)
 
         # add nodes
         for node in nodes:
@@ -239,9 +310,14 @@ class Prediction:
                         'node': self.nodes[edgeEnd].to_dict()  # Convert Node to dict
                     })
     
-        return json.dumps({
-            'returnNodes': returnNodes,
-            'deletedKeys': self.deletedKeys
-        })
+        serialized_graph = {
+            'dfg': {
+                'returnNodes': returnNodes,
+                'deletedKeys': self.deletedKeys
+            },
+            'PetriNet': json.loads(self.convert_to_petri_net())  # Convert string to dict
+        }
+        
+        return json.dumps(serialized_graph)
 
 

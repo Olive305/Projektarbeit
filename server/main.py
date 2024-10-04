@@ -8,7 +8,7 @@ CORS(app)
 
 matrix = MyCsv()
 # Adjusted file path
-matrix.openCsv(r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\PDC_2020_1211111_TrainTest_nsp_matrix.csv")
+matrix.openCsv(r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\SimpleIORChoice_nsp_matrix.csv")
 
 @app.route("/api/test", methods=['GET'])
 def test():
@@ -22,11 +22,14 @@ def predict():
 
     input_value = data['input_value']
     prediction = Prediction(matrix)
+    
+    print("hi")
 
     # function call for the prediction (to be added)
     result = prediction.getPredictions(input_value)
+    print("bye")
 
-    return jsonify({"predicted_value": result})
+    return jsonify(result)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=8081)

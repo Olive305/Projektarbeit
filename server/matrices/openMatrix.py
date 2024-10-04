@@ -3,7 +3,7 @@ import pandas as pd
 class MyCsv:
     def __init__(self):
         self.df = None
-        self.PROBABILITY_MIN = 0.1  # Minimum probability threshold
+        self.PROBABILITY_MIN = 0.3  # Minimum probability threshold
 
     def openCsv(self, name: str):
         """
@@ -26,7 +26,7 @@ class MyCsv:
         else:
             print("DataFrame is not loaded. Please open the CSV first.")
 
-    def predict(self, input_sequence: str):
+    def predict(self, input_sequence: str, probMin: float):
         """
         Predicts the possible next nodes based on the input sequence.
         :param input_sequence: A string representing the sequence of prefixes to predict from.
@@ -34,6 +34,8 @@ class MyCsv:
         """
         if self.df is None:
             raise ValueError("DataFrame is not loaded. Please open the CSV file first.")
+        
+        self.PROBABILITY_MIN = probMin
 
         # Ensure the 'prefixes' column exists
         if 'prefixes' not in self.df.columns:

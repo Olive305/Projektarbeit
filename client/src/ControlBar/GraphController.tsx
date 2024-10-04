@@ -9,13 +9,19 @@ class GraphController {
   public selectedNodes: string[];
   public listeners: (() => void)[];
   public deletedKeys: string[]; // List to store keys of deleted nodes
+  public probabilityMin: number;
+  public petriNet: any;
+  public showPreview;
 
   public calls: number;
 
   static readonly node_distance: number = 3; // distance between two nodes
 
+  // Add a class-level flag to track if the function is already running
+  public isGettingPreviewNodes: boolean;
+
   // constructor for the GraphController
-  public constructor(gridSize: number) {
+  public constructor(gridSize: number, showPreview?: boolean) {
     this.nodes = new Map();
     this.preview_nodes = [];
     this.gridSize = gridSize;
@@ -25,12 +31,19 @@ class GraphController {
     this.deletedKeys = []; // Initialize the deleted keys list
     this.addMyRect(new MyNode("0", 1, 3, gridSize, "Start", this.nodeOnClick.bind(this)));
     this.calls = 0;
-  }
+    this.probabilityMin = 0.3;
+    this.petriNet = null;
+    this.showPreview = (showPreview === undefined) ? true : false;
+    this.isGettingPreviewNodes = false;
+
+    this.get_preview_nodes();
+}
+
 
   // get the prediction from the backend / server
   public handleSubmit = async (inputValue: any) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8080/api/predict", {
+      const response = await axios.post("http://127.0.0.1:8081/api/predict", {
         input_value: inputValue,
       });
       return response;
@@ -38,6 +51,11 @@ class GraphController {
       console.error("Error occurred while submitting data:", error);
       throw error;  // You can rethrow if needed
     }
+  }
+
+  public toPetriNet = () => {
+    return this.petriNet;
+
   }
 
   // add a node to the selected nodes
@@ -74,7 +92,6 @@ class GraphController {
   public nodeOnClick(n: MyNode) {
     // If node is not selected, select it
 
-    console.log("clickclack")
     if (!this.nodes.has(n.id)) return
     
     if (this.nodes.get(n.id)?.isPreview) {
@@ -87,7 +104,6 @@ class GraphController {
       // Update node id back to actual key
       n.id = n.actualKey;
 
-      console.log("Click, actualKey:", n.actualKey, n.id)
       n.isPreview = false;
       
       // If node exists in the collection, update edges that reference the old key
@@ -187,93 +203,6 @@ class GraphController {
               rect2.y > rect1.y + rect1.height ||
               rect2.y + rect2.height < rect1.y);
   }
-  
-  // outdated do not use !!!
-  /*
-  public addNode(edge_start: string, isPreview?: boolean, num_pre?: number, givenKey?: string) {
-    const oldNode = this.nodes.get(edge_start);
-    if (!oldNode) {
-      throw new Error("GraphController: The key of the old node does not point to an existing node");
-    }
-
-    let new_x = 0;
-    let new_y = 0;
-
-    if (!isPreview || num_pre == 1)
-    {
-      new_x = oldNode.x + this.gridSize * (MyNode.w_val + GraphController.node_distance);
-      new_y = oldNode.y;
-      let overlapping = false;
-      do {
-        overlapping = false;
-        this.nodes.forEach((val) => {
-          if (val.x === new_x && val.y === new_y) {
-            overlapping = true;
-          }
-        });
-        if (overlapping) {
-          new_x += this.gridSize * (MyNode.w_val + GraphController.node_distance);
-        }
-      } while (overlapping);
-    }
-    else
-    {
-      if (num_pre == 2)
-      {
-        new_x = oldNode.x + this.gridSize * (MyNode.w_val + GraphController.node_distance);
-        new_y = oldNode.y - this.gridSize * GraphController.node_distance;
-
-        let overlapping = false;
-        do {
-          overlapping = false;
-          this.nodes.forEach((val) => {
-            if (val.x === new_x && val.y === new_y) {
-              overlapping = true;
-            }
-          });
-          if (overlapping) {
-            new_y += this.gridSize * (MyNode.h_val + GraphController.node_distance);
-          }
-        } while (overlapping);
-      }
-      else
-      {
-        new_x = oldNode.x + this.gridSize * (MyNode.w_val + GraphController.node_distance);
-        new_y = oldNode.y - this.gridSize * (MyNode.h_val + GraphController.node_distance);
-
-        let overlapping = false;
-        do {
-          overlapping = false;
-          this.nodes.forEach((val) => {
-            if (val.x === new_x && val.y === new_y) {
-              overlapping = true;
-            }
-          });
-          if (overlapping) {
-            new_y += this.gridSize * (MyNode.h_val + GraphController.node_distance);
-          }
-        } while (overlapping);
-      }
-    }
-
-    const key = (givenKey ? givenKey : this.getAvailableKey());
-    const newNode = new MyNode(!isPreview ? key : this.getAvailableKey(), new_x, new_y, this.gridSize, key, this.nodeOnClick.bind(this), isPreview, key);
-    this.addMyRect(newNode, isPreview);
-    this.edges.push([edge_start, newNode.id]);
-    if (isPreview) this.preview_nodes.push(newNode.id)
-    this.notifyListeners();
-
-    return key;
-  }
-*/
-  // outdated do not use !!!
-  /*
-  public addNodeWithEdgeFromSelected() {
-    if (this.selectedNodes.length > 0) {
-      this.addNode(this.selectedNodes[0]);
-    }
-  }
-    */
 
   public removeNode(key: string) {
     this.edges = this.edges.filter(edge => edge[0] !== key && edge[1] !== key);
@@ -328,42 +257,51 @@ class GraphController {
   }
 
   public async get_preview_nodes() {
-    // First, delete only the old preview nodes
-    this.preview_nodes.forEach((nodeKey) => {
-      const currentNode = this.nodes.get(nodeKey);
+    // Check if the function is already running
+    if (this.isGettingPreviewNodes) return;
+
+    // If not, set the flag to indicate that the function is now running
+    this.isGettingPreviewNodes = true;
+
+    try {
+        if (!this.showPreview) return;
+
+        // First, delete only the old preview nodes
+        this.preview_nodes.forEach((nodeKey) => {
+          const currentNode = this.nodes.get(nodeKey);
+          
+          if (currentNode?.isPreview) {
+            // Remove node from the nodes map
+            this.nodes.delete(nodeKey);
       
-      if (currentNode?.isPreview) {
-        // Remove node from the nodes map
-        this.nodes.delete(nodeKey);
-  
-        // Remove all edges associated with the preview node
-        this.edges = this.edges.filter((edge) => edge[0] !== nodeKey && edge[1] !== nodeKey);
-  
-        // Track deleted nodes
-        this.deletedKeys.push(nodeKey);
-      }
-    });
-  
-    // Reset the preview_nodes array since we just deleted all previews
-    this.preview_nodes = [];
-  
-    // Notify listeners after the preview nodes are deleted
-    this.notifyListeners();
-  
-    // Fetch new preview nodes from the backend
-    const response = await this.handleSubmit(this.serializeGraph());
-  
-    if (!(response && response.data)) return;
-  
-    console.log("prediction: ", response.data.predicted_value, "\nedges: ", this.edges, "\nnodes: ", this.nodes, "\npreview: ", this.preview_nodes);
-  
-    // Now deserialize the new preview nodes
-    this.deserializePredictNodes(response.data.predicted_value);
-  
-    // Notify listeners after adding the new preview nodes
-    this.notifyListeners();
+            // Remove all edges associated with the preview node
+            this.edges = this.edges.filter((edge) => edge[0] !== nodeKey && edge[1] !== nodeKey);
+      
+            // Track deleted nodes
+            this.deletedKeys.push(nodeKey);
+          }
+        });
+
+        // Reset the preview_nodes array since we just deleted all previews
+        this.preview_nodes = [];
+
+        // Fetch new preview nodes from the backend
+        const response = await this.handleSubmit(this.serializeGraph());
+
+        if (!(response && response.data)) throw new Error("Response does not exist");
+
+        // Now deserialize the new preview nodes
+        this.deserializePredictNodes(response.data);
+
+        // Notify listeners after adding the new preview nodes
+        this.notifyListeners();
+    } catch (error) {
+        console.error("Error in get_preview_nodes:", error);
+    } finally {
+        // Always reset the flag after the function completes, whether it succeeds or fails
+        this.isGettingPreviewNodes = false;
+    }
   }
-  
 
 
   public serializeGraph(): string {
@@ -389,7 +327,8 @@ class GraphController {
 
       ),
 
-      deletedKeys: this.deletedKeys
+      deletedKeys: this.deletedKeys,
+      probability: this.probabilityMin
     };
     return JSON.stringify(graphData);
   }
@@ -437,42 +376,127 @@ class GraphController {
   }
 
   public deserializePredictNodes(data: string) {
-    const parsedData = JSON.parse(data);
+    if (!data) throw new Error("Parsed data does not exist")
 
+    const parsedData = JSON.parse(data).dfg;
+    const petriNetData = JSON.parse(data).PetriNet;
+  
+    if (!parsedData || !petriNetData) {
+      throw new Error("Parsed data is missing 'dfg' or 'PetriNet'.");
+    }
+
+    // create this.petriNet
+    this.petriNet = new GraphController(this.gridSize, false);
+    this.petriNet.nodes = new Map();
+    this.petriNet.deserializePetriNet(petriNetData);
+  
+  
     const prevNodes = parsedData.returnNodes;
     this.deletedKeys = [];
-
+  
     // Iterate over deletedKeys and check if they exist in parsedData
     for (const delKey of parsedData.deletedKeys) {
-        if (parsedData.hasOwnProperty(delKey)) this.deletedKeys.push(delKey);
+      if (parsedData.hasOwnProperty(delKey)) {
+        this.deletedKeys.push(delKey);
+      }
     }
-
+  
     // Iterate over the keys of the object
     for (const id in prevNodes) {
-        if (prevNodes.hasOwnProperty(id)) {
-            const nodeData = prevNodes[id];  // Get the node data for each edgeEnd
-            const previous = nodeData.edgeStart;  // Extract the edgeStart
-            const node = nodeData.node;  // Extract the node details
-
-            // Add to preview nodes
-            this.preview_nodes.push(id);
-
-            // Add node to the grid (assuming addMyRect takes parameters: MyNode instance and a boolean flag)
-            this.addMyRect(
-                new MyNode(id, node.x, node.y, this.gridSize, node.actualKey, this.nodeOnClick, true, node.actualKey),
-                true
-            );
-
-            // Add the edge information
-            this.edges.push([previous, id]);
-        }
-    }
-
-    this.notifyListeners();
-}
-
-
+      if (prevNodes.hasOwnProperty(id)) {
+        const nodeData = prevNodes[id];  // Get the node data for each edgeEnd
+        const previous = nodeData.edgeStart;  // Extract the edgeStart
+        const node = nodeData.node;  // Extract the node details
   
+        // Add to preview nodes
+        this.preview_nodes.push(id);
+  
+        // Add node to the grid (assuming addMyRect takes parameters: MyNode instance and a boolean flag)
+        this.addMyRect(
+          new MyNode(id, node.x, node.y, this.gridSize, node.actualKey, this.nodeOnClick, true, node.actualKey),
+          true
+        );
+  
+        // Add the edge information
+        this.edges.push([previous, id]);
+      }
+    }
+  
+    this.notifyListeners();
+  }
+  
+
+  public deserializePetriNet(petriNet: any) {
+    // First, ensure this.petriNet and this.petriNet.net are defined
+    console.log("petri net", petriNet)
+    if (!petriNet || !petriNet.net) {
+      throw new Error("petriNet data is missing or malformed.");
+    }
+  
+    const netData = petriNet.net;  // Access the `net` object
+    const new_ids: [string, string][] = [];  // Store old-to-new ID mappings
+  
+    // Now, check for the existence of `places`, `transitions`, and `arcs`
+    if (!netData.places || !netData.transitions || !netData.arcs) {
+      throw new Error("netData is missing one or more properties: 'places', 'transitions', or 'arcs'.");
+    }
+  
+    // Deserialize places
+    netData.places.forEach((place: any) => {
+      const placeNode: MyNode = new MyNode(
+        place.id,              // Place ID
+        place.x + MyNode.w_val, // Adjusted X-coordinate
+        place.y + MyNode.h_val, // Adjusted Y-coordinate
+        this.gridSize,         // Grid size
+        place.id,              // Label (using place ID as label for places)
+        this.nodeOnClick.bind(this) // Click handler
+      );
+  
+      // Map old ID to new ID
+      new_ids.push([place.id, placeNode.id]);
+  
+      // Add the place node to the graph
+      this.addMyRect(placeNode);
+    });
+  
+    // Deserialize transitions
+    netData.transitions.forEach((transition: any) => {
+      const transitionNode: MyNode = new MyNode(
+        transition.id,         // Transition ID
+        transition.x + MyNode.w_val, // Adjusted X-coordinate
+        transition.y + MyNode.h_val, // Adjusted Y-coordinate
+        this.gridSize,         // Grid size
+        transition.label,      // Label (using transition label)
+        this.nodeOnClick.bind(this), // Click handler
+        false,                 // Transition is not a place
+        undefined,             // Custom options (if any)
+        true                   // Mark as a transition
+      );
+  
+      // Map old ID to new ID
+      new_ids.push([transition.id, transitionNode.id]);
+  
+      // Add the transition node to the graph
+      this.addMyRect(transitionNode);
+    });
+  
+    // Deserialize arcs (edges between places and transitions)
+    netData.arcs.forEach((arc: any) => {
+      // Find the corresponding new IDs for the arc
+      const sourceId = new_ids.find((x) => x[0] === arc.source)?.[1];
+      const targetId = new_ids.find((x) => x[0] === arc.target)?.[1];
+  
+      if (!sourceId || !targetId) {
+        console.warn(`Missing source or target for arc: ${arc.source} -> ${arc.target}`);
+        return; // Skip this arc if mapping is not found
+      }
+  
+      // Add the arc (edge) to the graph
+      this.addEdge(sourceId, targetId);
+    });
+  }
+  
+
 }
 
 export default GraphController;

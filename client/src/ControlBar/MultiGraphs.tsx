@@ -66,7 +66,7 @@ class MultiController {
       content += "E " + edge[0] + " " + edge[1] + "\n";
     });
     this.graphs[index][0].nodes.forEach(node => {
-      content += "N " + node.id + " " + node.x + " " + node.y + " " + node.caption + "\n";
+      content += "N " + node.id + " " + node.get_real_x + " " + node.get_real_y + " " + node.caption + "\n";
     });
     return content;
   }
@@ -74,6 +74,12 @@ class MultiController {
   public getIndexOf(controller: GraphController): number {
     return this.graphs.findIndex(([graphController]) => graphController === controller);
   }
+
+  public convertToPetriNet(index: number): number {
+    this.graphs.push([this.graphs[index][0].toPetriNet(), this.graphs[index][1] + " Petri Net"]);
+    return this.graphs.length - 1; // Return the index of the newly added graph
+  }
+  
 }
 
 export default MultiController;

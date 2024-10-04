@@ -12,6 +12,7 @@ interface HeaderProps {
   saveGraphAs: (index: number) => Promise<void>;
   saveAllGraphs: () => Promise<void>;
   activeTabIndex: number;
+  handleConvertToPetriNet: (index: number) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({

@@ -328,7 +328,8 @@ class GraphController {
       ),
 
       deletedKeys: this.deletedKeys,
-      probability: this.probabilityMin
+      probability: this.probabilityMin,
+      auto: true
     };
     return JSON.stringify(graphData);
   }

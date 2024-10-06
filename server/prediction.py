@@ -1,4 +1,5 @@
 from flask import json
+import numpy as np
 from matrices.openMatrix import MyCsv
 from pm4py.objects.conversion.dfg.variants import to_petri_net_invisibles_no_duplicates
 from pm4py.objects.petri_net.obj import PetriNet, Marking
@@ -39,6 +40,7 @@ class Prediction:
         self.matrix = matrix
         
         self.probMin = 0.3
+        self.nodeProbSet =  {}
         
     def convert_to_petri_net(self):
     
@@ -119,9 +121,14 @@ class Prediction:
 
         [sequences, keySeq] = self.getAllSequences()
         i = 0
+        
+        numNodes = len(self.nodes)
+        
+        # calculate the maximal Number of nodes that should be added (for auto mode)
+        numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
         for sequence in sequences:
-            predictions = self.matrix.predict(sequence, self.probMin)
+            predictions = self.matrix.predict(sequence, 0.0 if self.auto else self.probMin)
 
             for [node, probability] in predictions:
                 lastNodeId = "0" if len(keySeq[i]) == 0 else keySeq[i][len(keySeq[i]) - 1]
@@ -132,19 +139,92 @@ class Prediction:
                 
                 # if the node exists, but there is no edge to it from lastNode, we add it
                 if (node in self.nodes):
-                    self.addNode(lastNodeId, True, node)
+                    self.addNode(lastNodeId, True, node, probability)
                     continue
                 
                 # we add the node with edge from lastNode
                 if (lastNodeId in self.nodes):
-                    self.addNode(lastNodeId, True, node)
+                    self.addNode(lastNodeId, True, node, probability)
 
             i += 1
+            
+        if self.auto:
+            print("auto, numNodes", numNodes, "numNodesToAdd", numNodesToAdd, "preview", self.preview_nodes, "prob", self.nodeProbSet)
+            
+            # Collect nodes to remove based on their probability (< 0.1)
+            nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < 0.1]
+            
+            # Remove nodes with small probability and track deleted nodes
+            for node in nodes_to_remove:
+                print(f"Deleting node {node} with probability {self.nodeProbSet[node]}")
+                del self.nodeProbSet[node]
+                self.nodes.pop(node, None)  # Safely remove from nodes
+                self.preview_nodes.pop(node, None)  # Safely remove from preview nodes
+                self.deletedKeys.append(node)  # Track deleted node keys
+                
+                # Remove node from all edges
+                for edge, edge_nodes in self.edges.items():
+                    if node in edge_nodes:
+                        edge_nodes.remove(node)
+            
+            # If the number of preview nodes exceeds the allowed number
+            if len(self.preview_nodes) > numNodesToAdd:
+                # Find the minimum probability needed to keep `numNodesToAdd` nodes
+                calculatedProbMin = sorted(self.nodeProbSet.values())[numNodesToAdd]
+                print("min", calculatedProbMin)
+
+                # Collect nodes to remove that have probabilities lower than the calculated threshold
+                nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < calculatedProbMin]
+                
+                # Remove these nodes and track them in deletedKeys
+                for node in nodes_to_remove:
+                    print(f"Deleting node {node} due to calculated probability threshold {calculatedProbMin}")
+                    del self.nodeProbSet[node]
+                    self.nodes.pop(node, None)
+                    self.preview_nodes.pop(node, None)
+                    self.deletedKeys.append(node)
+                    
+                    # Remove node from all edges
+                    for edge, edge_nodes in self.edges.items():
+                        if node in edge_nodes:
+                            edge_nodes.remove(node)
+
+                # Ensure that no more than three preview nodes are connected to the same edge
+                for edge, edge_nodes in self.edges.items():
+                    numPreview = sum(1 for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes)
+                    
+                    # If more than three preview nodes, delete the ones with the smallest probability
+                    while numPreview > 3:
+                        # Find the node with the smallest probability on this edge
+                        smallestEdge = min(
+                            (edgeEnd for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes),
+                            key=lambda edgeEnd: self.nodeProbSet[edgeEnd],
+                            default=None
+                        )
+
+                        if smallestEdge is None:
+                            break
+
+                        print(f"Deleting node {smallestEdge} from edge due to over-preview")
+                        del self.nodeProbSet[smallestEdge]
+                        self.nodes.pop(smallestEdge, None)
+                        self.preview_nodes.pop(smallestEdge, None)
+                        self.deletedKeys.append(smallestEdge)
+
+                        # Remove smallestEdge from all edges
+                        for edge_, edge_nodes_ in self.edges.items():
+                            if smallestEdge in edge_nodes_:
+                                edge_nodes_.remove(smallestEdge)
+
+                        # Decrease the preview count for the current edge
+                        numPreview -= 1
+
+            # TODO: reposition the preview Nodes after deleting (there can be gaps)
 
         return self.serializeGraph()
 
 
-    def addNode(self, edge_start, isPreview, givenKey):
+    def addNode(self, edge_start, isPreview, givenKey, probability):
         oldNode = self.nodes[edge_start]
         
         new_x = oldNode.x + 1
@@ -175,6 +255,7 @@ class Prediction:
         
         # Add the new node to nodes and establish the edge
         self.nodes[newNode.id] = newNode
+        self.nodeProbSet[newNode.id] = probability
         self.addEdge(edge_start, newNode.id)
 
         if isPreview:
@@ -191,15 +272,6 @@ class Prediction:
             self.edges[start].append(end)
         else:
             self.edges[start] = [end]
-
-    def removeNode(self, key):
-        del self.edges[key]
-
-    def removeEdge(self, start, end):
-        if (not start in self.edges):
-            return
-        
-        self.edges[start].remove(end)
 
     def getAllSequences(self):
         visited = {}
@@ -269,6 +341,8 @@ class Prediction:
 
     def deserializeGraph(self, graph_json_str):
         graph = json.loads(graph_json_str)  # Convert JSON string to Python dict
+        
+        self.auto = graph.get('auto', False)
 
         nodes = graph.get('nodes', [])
         edges = graph.get('edges', [])

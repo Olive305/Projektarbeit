@@ -8,7 +8,7 @@ CORS(app)
 
 matrix = MyCsv()
 # Adjusted file path
-matrix.openCsv(r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\SimpleIORChoice_nsp_matrix.csv")
+matrix.openCsv(r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\PDC_2020_1211111_TrainTest_nsp_matrix.csv")
 
 @app.route("/api/test", methods=['GET'])
 def test():

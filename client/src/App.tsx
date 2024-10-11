@@ -24,7 +24,9 @@ const App: React.FC = () => {
   useEffect(() => {
     // Update the active graph controller whenever the active tab index changes
     const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null;
+    console.log("active Tab:", activeController)
     setActiveGraphController(activeController);
+    activeController.notifyListeners();
   }, [multiController, activeTabIndex]);
 
   const handleTabClick = (index: number) => {
@@ -34,9 +36,8 @@ const App: React.FC = () => {
   
     // Set the active tab index
     setActiveTabIndex(index);
-  
-    // Notify listeners immediately after the state update
-    controller.notifyListeners();
+
+    controller.notifyListeners()
   };
 
   const handleConvertToPetriNet = (index: number) => {

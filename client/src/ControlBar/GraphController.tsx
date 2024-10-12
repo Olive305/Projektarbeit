@@ -380,16 +380,14 @@ class GraphController {
     if (!data) throw new Error("Parsed data does not exist")
 
     const parsedData = JSON.parse(data).dfg;
-    const petriNetData = JSON.parse(data).PetriNet;
+    //const petriNetData = JSON.parse(data).PetriNet;
   
-    if (!parsedData || !petriNetData) {
-      throw new Error("Parsed data is missing 'dfg' or 'PetriNet'.");
-    }
+    
 
     // create this.petriNet
-    this.petriNet = new GraphController(this.gridSize, false);
-    this.petriNet.nodes = new Map();
-    this.petriNet.deserializePetriNet(petriNetData);
+    //this.petriNet = new GraphController(this.gridSize, false);
+    //this.petriNet.nodes = new Map();
+    //this.petriNet.deserializePetriNet(petriNetData);
   
   
     const prevNodes = parsedData.returnNodes;

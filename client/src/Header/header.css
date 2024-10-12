@@ -4,11 +4,11 @@
     text-decoration: none;
 }
 
-  /* Custom styles for the menu */
+/* Custom styles for the menu */
 .dropdown-menu {
     position: absolute;
     z-index: 10;
-    width: 14rem; /* 56px in tailwind */
+    width: 14rem; /* Same as before */
     margin-top: 0.5rem;
     border-radius: 0.375rem; /* rounded-md */
     background-color: white;
@@ -20,10 +20,17 @@
 .dropdown-menu-item {
     text-align: left;
     cursor: pointer;
-
-    @apply align-baseline block
+    padding: 0.5rem 1rem; /* Add some padding for better spacing */
+    display: block;
 }
 
 .dropdown-menu-item:hover {
     background-color: #f3f4f6; /* bg-gray-100 */
+}
+
+nav.container {
+    display: flex;
+    justify-content: start; /* Align items at the start of the nav */
+    align-items: center;
+    gap: 1rem; /* Space between menu buttons */
 }

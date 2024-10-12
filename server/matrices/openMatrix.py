@@ -26,6 +26,13 @@ class MyCsv:
         else:
             print("DataFrame is not loaded. Please open the CSV first.")
 
+    def preprocess_df(self):
+        """ Preprocesses the DataFrame by normalizing the 'prefixes' column and setting it as an index. """
+        if 'prefixes' not in self.df.columns:
+            raise KeyError("'prefixes' column not found in the DataFrame")
+        self.df['prefixes'] = self.df['prefixes'].str.strip().str.lower()
+        self.df.set_index('prefixes', inplace=True, drop=False)
+
     def predict(self, input_sequence: str, probMin: float):
         """
         Predicts the possible next nodes based on the input sequence.
@@ -34,47 +41,34 @@ class MyCsv:
         """
         if self.df is None:
             raise ValueError("DataFrame is not loaded. Please open the CSV file first.")
-        
+
         self.PROBABILITY_MIN = probMin
 
-        # Ensure the 'prefixes' column exists
-        if 'prefixes' not in self.df.columns:
-            raise KeyError("'prefixes' column not found in the DataFrame")
-
-        # Normalize 'prefixes' and 'input_sequence' (remove spaces, standardize case, etc.)
-        self.df['prefixes'] = self.df['prefixes'].str.strip().str.lower()
+        # Normalize and use the input_sequence
         input_sequence = input_sequence.strip().lower()
 
-        # Filter the DataFrame to rows where the 'prefixes' column matches the input sequence
-        filtered_df = self.df[self.df['prefixes'] == input_sequence]
-
-        # Debugging: Check if any rows match the input sequence
-        if filtered_df.empty:
+        # Filter the DataFrame using the index
+        if input_sequence not in self.df.index:
             return []  # Return an empty list if no matching sequence is found
 
-        # Use only the first row from the filtered DataFrame
-        first_row = filtered_df.iloc[0]
+        # Retrieve the row directly by index
+        first_row = self.df.loc[input_sequence]
 
-        # Identify the indices of the 'targets' and '[EOC]' columns
+        # Identify the columns between 'targets' and '[EOC]' (assuming continuous columns)
         target_col_index = self.df.columns.get_loc('targets')
         eoc_col_index = self.df.columns.get_loc('[EOC]')
-        
-        # Extract all columns containing probabilities between 'targets' and '[EOC]'
         probability_columns = self.df.columns[target_col_index + 1:eoc_col_index]
-        
-        # Initialize an empty list to store the possible predictions
-        predictions = []
-        predicted = []
 
-        # Check each probability column in the first row
-        for col in probability_columns:
-            if first_row[col] >= self.PROBABILITY_MIN:  # Check if the probability meets the threshold
-                if col not in predicted:
-                    predictions.append([col, first_row[col]])  # Append (node, probability)
-                    predicted.append(col)
-        
-        # Check if the [EOC] column has a value of 1, indicating the end of the chain
+        # Filter probability columns with vectorized operations
+        prob_values = first_row[probability_columns]
+        valid_probs = prob_values[prob_values >= self.PROBABILITY_MIN]
+
+        # Collect predictions
+        predictions = list(valid_probs.items())
+
+        # Check if the [EOC] column has a value that meets the threshold
         if first_row['[EOC]'] >= self.PROBABILITY_MIN:
-            predictions.append(['EOC', first_row['[EOC]']])  # Predict 'EOC' with probability 1.0
+            predictions.append(('EOC', first_row['[EOC]']))
 
         return predictions
+

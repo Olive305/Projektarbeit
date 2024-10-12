@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './header.css';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 
@@ -22,6 +22,60 @@ const Header: React.FC<HeaderProps> = ({
   saveAllGraphs,
   activeTabIndex,
 }) => {
+  const [selectedMatrix, setSelectedMatrix] = useState(''); // Default selected matrix
+  const [matrices, setMatrices] = useState<string[]>([]);   // Matrices fetched from API
+  const [loading, setLoading] = useState(true);  // Loading state to indicate API call
+
+  useEffect(() => {
+    const fetchMatrices = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8081/api/getMatrices'); // Ensure correct API endpoint
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`); // Handle bad responses
+        }
+        const data = await response.json();
+  
+        // Check if the data is correctly formatted
+        if (data && data.available_matrices && data.current_matrix) {
+          setMatrices(data.available_matrices);  // Set available matrices
+          setSelectedMatrix(data.current_matrix); // Set selected matrix
+        } else {
+          throw new Error("Invalid data structure from API");
+        }
+      } catch (error) {
+        console.error("Error fetching matrices:", error instanceof Error ? error.message : error);
+        alert("Failed to fetch matrices. Please check the console for details.");
+      }
+    };
+  
+    fetchMatrices();
+  }, []); // Empty dependency array ensures this runs on component mount
+
+  // Handle matrix change
+  const handleMatrixChange = async (matrix: string) => {
+    try {
+      const response = await fetch('/api/switchMatrix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matrix_name: matrix }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSelectedMatrix(matrix);
+      } else {
+        alert(`Failed to switch matrix: ${data.error}`);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error switching matrix:", error.message);
+        alert(`Error switching matrix: ${error.message}`);
+      } else {
+        alert("An unexpected error occurred while switching matrix.");
+      }
+    }
+  };
+
   const handleCreateNew = () => {
     const newName = prompt("Enter the name for the new graph:");
     if (newName) {
@@ -42,7 +96,8 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-white shadow">
-      <nav className="container mx-auto p-4">
+      <nav className="container mx-auto p-4 flex space-x-4">
+        {/* File Menu */}
         <Menu as="div" className="relative inline-block text-left">
           <div>
             <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
@@ -94,6 +149,40 @@ const Header: React.FC<HeaderProps> = ({
                   </a>
                 )}
               </MenuItem>
+            </div>
+          </MenuItems>
+        </Menu>
+
+        {/* Matrix Menu */}
+        <Menu as="div" className="relative inline-block text-left">
+          <div>
+            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+              {loading ? "Loading..." : selectedMatrix || "Select Matrix"}
+            </MenuButton>
+          </div>
+          <MenuItems className="dropdown-menu">
+            <div className="py-1">
+              {matrices.length > 0 ? (
+                matrices.map((matrix) => (
+                  <MenuItem key={matrix}>
+                    {({ active }) => (
+                      <a
+                        href="#"
+                        onClick={() => handleMatrixChange(matrix)}
+                        className={`${
+                          active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                        } block px-4 py-2 text-sm cursor-pointer`}
+                      >
+                        {matrix}
+                      </a>
+                    )}
+                  </MenuItem>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-sm text-gray-500">
+                  No matrices available
+                </div>
+              )}
             </div>
           </MenuItems>
         </Menu>

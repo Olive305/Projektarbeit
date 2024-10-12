@@ -1,3 +1,4 @@
+import time
 from flask import json
 import numpy as np
 from matrices.openMatrix import MyCsv
@@ -42,6 +43,8 @@ class Prediction:
         self.probMin = 0.3
         self.nodeProbSet =  {}
         self.auto = False
+        
+        self.startTime = time.time()
         
         
     def positionNodes(self):
@@ -161,8 +164,6 @@ class Prediction:
                     
         addEnd = []
         
-        print(self.edges)
-        
         for trans in transitions:
             if (trans not in self.edges):
                 addEnd.append(trans)
@@ -190,13 +191,11 @@ class Prediction:
                 addStart.append(trans)  
                 
         for place in addEnd:
-            print(place)
             place_name = "place_from_" + place
             places[place_name] = Node(place_name, 0, 0, place_name, False)
             arcs.append((place, place_name))    
             
         for place in addStart:
-            print(place)
             place_name = "place_to_" + place
             places[place_name] = Node(place_name, 0, 0, place_name, False)
             arcs.append((place_name, place))          
@@ -256,25 +255,47 @@ class Prediction:
 
 
     def getPredictions(self, graph):
+        print("start getting Predictions:", self.startTime - time.time())
         # graph is the list of nodes and edges. preview nodes will be added by this code
         self.deserializeGraph(graph)
+        
+        print("finnished deserialization", self.startTime - time.time())
 
         [sequences, keySeq] = self.getAllSequences()
         i = 0
+        
+        print("finnished sequences", self.startTime - time.time(), "num seq", len(sequences))
         
         numNodes = len(self.nodes)
         
         # calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
+        
+        t = 0
 
         for sequence in sequences:
+            startTime = time.time()
             predictions = self.matrix.predict(sequence, 0.0 if self.auto else self.probMin)
+            endTime = time.time()
+            t += endTime - startTime
 
             for [node, probability] in predictions:
                 lastNodeId = "0" if len(keySeq[i]) == 0 else keySeq[i][len(keySeq[i]) - 1]
 
                 # if the edge to the node from lastNodeId exist, we do not add anything
                 if (lastNodeId in self.edges and node in self.edges[lastNodeId]):
+                    continue
+                
+                # check if a preview node with the actual key already exists
+                existsKey = False
+                
+                if lastNodeId in self.edges:
+                    for edgeEnd in self.edges[lastNodeId]:
+                        if node == self.nodes[edgeEnd].actualKey:
+                            existsKey = True
+                            break
+                
+                if existsKey:
                     continue
                 
                 # if the node exists, but there is no edge to it from lastNode, we add it
@@ -288,10 +309,12 @@ class Prediction:
 
             i += 1
             
+        print("finnished adding preview", self.startTime - time.time(), "time for getting predictions:", t)
+            
         if self.auto:
             
             # Collect nodes to remove based on their probability (< 0.1)
-            nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < 0.1]
+            nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < 0.001]
             
             # Remove nodes with small probability and track deleted nodes
             for node in nodes_to_remove:
@@ -354,8 +377,11 @@ class Prediction:
                     # Decrease the preview count for the current edge
                     numPreview -= 1
 
+        print("finnished auto", self.startTime - time.time())
         
         self.positionNodes()
+        
+        print("finnished position", self.startTime - time.time())
 
         return self.serializeGraph()
 
@@ -503,8 +529,7 @@ class Prediction:
             'dfg': {
                 'returnNodes': returnNodes,
                 'deletedKeys': self.deletedKeys
-            },
-            'PetriNet': json.loads(self.convert_to_petri_net())  # Convert string to dict
+            }
         }
         
         return json.dumps(serialized_graph)

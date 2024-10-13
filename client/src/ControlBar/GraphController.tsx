@@ -19,6 +19,7 @@ class GraphController {
 
   // Add a class-level flag to track if the function is already running
   public isGettingPreviewNodes: boolean;
+  public auto: boolean;
 
   // constructor for the GraphController
   public constructor(gridSize: number, showPreview?: boolean) {
@@ -35,6 +36,7 @@ class GraphController {
     this.petriNet = null;
     this.showPreview = (showPreview === undefined) ? true : false;
     this.isGettingPreviewNodes = false;
+    this.auto = true;
 
     this.get_preview_nodes();
 }
@@ -329,7 +331,7 @@ class GraphController {
 
       deletedKeys: this.deletedKeys,
       probability: this.probabilityMin,
-      auto: true
+      auto: this.auto
     };
     return JSON.stringify(graphData);
   }
@@ -380,14 +382,14 @@ class GraphController {
     if (!data) throw new Error("Parsed data does not exist")
 
     const parsedData = JSON.parse(data).dfg;
-    //const petriNetData = JSON.parse(data).PetriNet;
+    const petriNetData = JSON.parse(data).PetriNet;
   
     
 
     // create this.petriNet
-    //this.petriNet = new GraphController(this.gridSize, false);
-    //this.petriNet.nodes = new Map();
-    //this.petriNet.deserializePetriNet(petriNetData);
+    this.petriNet = new GraphController(this.gridSize, false);
+    this.petriNet.nodes = new Map();
+    this.petriNet.deserializePetriNet(petriNetData);
   
   
     const prevNodes = parsedData.returnNodes;

@@ -529,7 +529,8 @@ class Prediction:
             'dfg': {
                 'returnNodes': returnNodes,
                 'deletedKeys': self.deletedKeys
-            }
+            },
+            'PetriNet': json.loads(self.convert_to_petri_net())  # Convert string to dict
         }
         
         return json.dumps(serialized_graph)

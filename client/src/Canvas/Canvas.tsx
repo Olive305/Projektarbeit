@@ -488,6 +488,9 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
           <Layer>{grid && drawGrid()}</Layer>
 
           <Layer>
+
+          {edges.map(edge => drawLineWithHitbox(edge))}
+          
           {(
               Array.from(nodes.values()).map((node) => (
                 <Group
@@ -596,8 +599,6 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
               ))
             )
           }
-
-          {edges.map(edge => drawLineWithHitbox(edge))}
           
           {draggingEdge && (
             <Line

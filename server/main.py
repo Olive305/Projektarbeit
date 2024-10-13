@@ -2,14 +2,20 @@ from matrices.openMatrix import MyCsv
 from prediction import Prediction
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import os
+
+# Define the project folder (current working directory in this case)
+project_folder = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 CORS(app)
 
 # Multiple matrices usable
-matrixPaths = [(r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\Helpdesk_nsp_matrix.csv", "Helpdesk"),
-               (r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\PDC_2020_1211111_TrainTest_nsp_matrix.csv", "PDC_2020_1211111_TrainTest"),
-               (r"C:\Users\olive\Coding\Projektarbeit\Code\server\matrices\SimpleIORChoice_nsp_matrix.csv", "Simple IOR Choice")]
+matrixPaths = [
+    (os.path.join(project_folder, r"matrices\Helpdesk_nsp_matrix.csv"), "Helpdesk"),
+    (os.path.join(project_folder, r"matrices\PDC_2020_1211111_TrainTest_nsp_matrix.csv"), "PDC_2020_1211111_TrainTest"),
+    (os.path.join(project_folder, r"matrices\SimpleIORChoice_nsp_matrix.csv"), "Simple IOR Choice")
+]
 
 matrices = {}
 

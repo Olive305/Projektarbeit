@@ -10,8 +10,6 @@ npm run dev ausführen
 
 # kaputte Funktionen
 
-Matrix wechseln
-
 copy / paste
 
 Umbenennen von Knoten
@@ -40,4 +38,6 @@ Rechtsklick auf Knoten oder Kanten öffnet ein Menü, dass es erlaubt diese zu l
 Über dem Kanvas auf dem die Graphen abgebildet werden befinden sich buttons. Die Seite öffnet immer mit einem "New" button. Dieses sind Tabs (Design wird wie im Rest der Seite noch überarbeitet), die erlauben, dass man mehrere Graphen gleichzeitig öffnen kann. Im File tab (oben links) lassen sich neue Tabs öffnen, bestehende Dateien öffnen, oder den Graph als Datei speichern.
 
 Der "To Petri net" button öffnet einen neuen Tab, in dem der Graph als Petri Netz dargestellt wird. Für das Petri Netz werden keine Vorschläge, also Vorhersagen gemacht.
+
+Oben im header befindet sich ein Button, auf dem der Name der aktuell verwendeten Prediction Matrix angezeigt wird (wird später verändert, sodass die Funktion des Knopfes dort steht). Klickt man auf diesen Knopf, werden alle verfügbaren Matrizen angezeigt und man kann die verwendete Matrix wechseln. Dadurch werden andere Knoten vorgeschlagen
 

@@ -8,7 +8,7 @@
 .dropdown-menu {
     position: absolute;
     z-index: 10;
-    width: 14rem; /* Same as before */
+    width: 14rem; /* Menu width */
     margin-top: 0.5rem;
     border-radius: 0.375rem; /* rounded-md */
     background-color: white;
@@ -17,20 +17,32 @@
     transition: transform 0.1s ease-out, opacity 0.1s ease-out;
 }
 
+/* Ensure menu items are block elements and take full width */
 .dropdown-menu-item {
+    display: block;
+    width: 100%; /* Full width */
     text-align: left;
     cursor: pointer;
-    padding: 0.5rem 1rem; /* Add some padding for better spacing */
-    display: block;
+    padding: 0.5rem 1rem; /* Padding for spacing */
 }
 
+/* Hover effect for menu items */
 .dropdown-menu-item:hover {
     background-color: #f3f4f6; /* bg-gray-100 */
 }
 
+/* Styling for the nav container to align items horizontally */
 nav.container {
     display: flex;
     justify-content: start; /* Align items at the start of the nav */
     align-items: center;
     gap: 1rem; /* Space between menu buttons */
+}
+
+/* Added rule to ensure the anchor tags inside dropdown-menu behave correctly */
+.dropdown-menu-item a {
+    display: block;
+    width: 100%; /* Ensures the link takes full width */
+    padding: 8px; /* Adjust spacing */
+    text-align: left; /* Aligns text to the left */
 }

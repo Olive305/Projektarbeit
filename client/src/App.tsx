@@ -12,6 +12,7 @@ const App: React.FC = () => {
   const [multiController] = useState(new MultiController(gridSize));
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [activeGraphController, setActiveGraphController] = useState<GraphController | null>(null);
+  const [setActiveMatrixFn, setSetActiveMatrixFn] = useState<((matrix: string) => void) | null>(null);
 
   useEffect(() => {
     // Initialize with a default graph if no graphs exist
@@ -23,28 +24,42 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Update the active graph controller whenever the active tab index changes
-    const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null;
-    console.log("active Tab:", activeController)
+    const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null; // Optional chaining
+    console.log("active Tab:", activeController);
     setActiveGraphController(activeController);
-    activeController.notifyListeners();
+
+    if (activeController) {
+      activeController.notifyListeners();
+    }
   }, [multiController, activeTabIndex]);
 
-  const handleTabClick = (index: number) => {
-    // Directly update the active graph controller before setting the active tab index
-    const controller = multiController.graphs[index][0];
-    setActiveGraphController(controller);
-  
-    // Set the active tab index
-    setActiveTabIndex(index);
+  // Update setActiveMatrix only when activeGraphController changes
+  useEffect(() => {
+    if (activeGraphController && activeGraphController.setActiveMatrix) {
+      // If there's an active controller and setActiveMatrix exists, set the function
+      setSetActiveMatrixFn(() => activeGraphController.setActiveMatrix);
+    } else {
+      // Fallback to an empty function to avoid null or undefined errors
+      setSetActiveMatrixFn(() => {});
+    }
+  }, [activeGraphController]);
 
-    controller.notifyListeners()
+  const handleTabClick = (index: number) => {
+    // Safely access the controller, using optional chaining
+    const controller = multiController.graphs[index]?.[0];
+    if (controller) {
+      setActiveGraphController(controller);
+      setActiveTabIndex(index);
+      controller.notifyListeners();
+    } else {
+      console.error('Controller is undefined or null');
+    }
   };
 
   const handleConvertToPetriNet = (index: number) => {
     const newIndex = multiController.convertToPetriNet(index);
     setActiveTabIndex(newIndex); // Set the new Petri Net tab as the active tab
   };
-  
 
   return (
     <>
@@ -57,14 +72,20 @@ const App: React.FC = () => {
           await multiController.readGraphFromFile(file);
           setActiveTabIndex(multiController.graphs.length - 1); // Set new tab as active
         }}
-        saveGraphAs={(index: number) => multiController.saveGraphAs(index)}
-        saveAllGraphs={() => multiController.saveAllGraphs()}
+        saveGraphAs={multiController.saveGraphAs}
+        saveAllGraphs={multiController.saveAllGraphs}
         activeTabIndex={activeTabIndex}
-        handleConvertToPetriNet={handleConvertToPetriNet}
+        setActiveMatrix={setActiveMatrixFn || (() => {})} // Fallback to empty function
       />
       <section>
         <div className='left-bar-div'>
-          {activeGraphController && <ControlBar controller={activeGraphController} multi={multiController} handleConvertToPetriNet={handleConvertToPetriNet}/>}
+          {activeGraphController && (
+            <ControlBar
+              controller={activeGraphController}
+              multi={multiController}
+              handleConvertToPetriNet={handleConvertToPetriNet}
+            />
+          )}
         </div>
         <section className='workspace-section'>
           <div className='tabs-div'>
@@ -79,7 +100,9 @@ const App: React.FC = () => {
             ))}
           </div>
           <div className='canvas-div'>
-            {activeGraphController && <Canvas grid={true} controller={activeGraphController} multiController={multiController} />}
+            {activeGraphController && (
+              <Canvas grid={true} controller={activeGraphController} multiController={multiController} />
+            )}
           </div>
         </section>
       </section>

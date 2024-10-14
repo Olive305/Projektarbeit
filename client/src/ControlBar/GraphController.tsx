@@ -15,6 +15,8 @@ class GraphController {
 
   public calls: number;
 
+  public activeMatrix: string;
+
   static readonly node_distance: number = 3; // distance between two nodes
 
   // Add a class-level flag to track if the function is already running
@@ -38,6 +40,8 @@ class GraphController {
     this.isGettingPreviewNodes = false;
     this.auto = true;
 
+    this.activeMatrix = "Simple IOR Choice";
+
     this.get_preview_nodes();
 }
 
@@ -53,6 +57,11 @@ class GraphController {
       console.error("Error occurred while submitting data:", error);
       throw error;  // You can rethrow if needed
     }
+  }
+
+  public setActiveMatrix = (matrix: string) => {
+    this.activeMatrix = matrix;
+    this.get_preview_nodes();
   }
 
   public toPetriNet = () => {
@@ -265,6 +274,9 @@ class GraphController {
     // If not, set the flag to indicate that the function is now running
     this.isGettingPreviewNodes = true;
 
+
+    console.log("matrix", this.activeMatrix)
+
     try {
         if (!this.showPreview) return;
 
@@ -331,7 +343,8 @@ class GraphController {
 
       deletedKeys: this.deletedKeys,
       probability: this.probabilityMin,
-      auto: this.auto
+      auto: this.auto,
+      matrix: this.activeMatrix
     };
     return JSON.stringify(graphData);
   }

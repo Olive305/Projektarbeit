@@ -12,7 +12,7 @@ interface HeaderProps {
   saveGraphAs: (index: number) => Promise<void>;
   saveAllGraphs: () => Promise<void>;
   activeTabIndex: number;
-  handleConvertToPetriNet: (index: number) => void;
+  setActiveMatrix: (matrix: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,6 +21,7 @@ const Header: React.FC<HeaderProps> = ({
   saveGraphAs,
   saveAllGraphs,
   activeTabIndex,
+  setActiveMatrix,
 }) => {
   const [selectedMatrix, setSelectedMatrix] = useState(''); // Default selected matrix
   const [matrices, setMatrices] = useState<string[]>([]);   // Matrices fetched from API
@@ -36,15 +37,18 @@ const Header: React.FC<HeaderProps> = ({
         const data = await response.json();
   
         // Check if the data is correctly formatted
-        if (data && data.available_matrices && data.current_matrix) {
+        if (data && data.available_matrices) {
+          console.log(data.available_matrices);
           setMatrices(data.available_matrices);  // Set available matrices
-          setSelectedMatrix(data.current_matrix); // Set selected matrix
+          setSelectedMatrix(data.default_matrix || ''); // Set selected matrix if available
         } else {
           throw new Error("Invalid data structure from API");
         }
       } catch (error) {
         console.error("Error fetching matrices:", error instanceof Error ? error.message : error);
         alert("Failed to fetch matrices. Please check the console for details.");
+      } finally {
+        setLoading(false); // End loading state
       }
     };
   
@@ -53,27 +57,8 @@ const Header: React.FC<HeaderProps> = ({
 
   // Handle matrix change
   const handleMatrixChange = async (matrix: string) => {
-    try {
-      const response = await fetch('/api/switchMatrix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matrix_name: matrix }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setSelectedMatrix(matrix);
-      } else {
-        alert(`Failed to switch matrix: ${data.error}`);
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error switching matrix:", error.message);
-        alert(`Error switching matrix: ${error.message}`);
-      } else {
-        alert("An unexpected error occurred while switching matrix.");
-      }
-    }
+    setSelectedMatrix(matrix);
+    setActiveMatrix(matrix); // Trigger the callback for matrix change
   };
 
   const handleCreateNew = () => {
@@ -171,7 +156,7 @@ const Header: React.FC<HeaderProps> = ({
                         onClick={() => handleMatrixChange(matrix)}
                         className={`${
                           active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                        } block px-4 py-2 text-sm cursor-pointer`}
+                        } block w-full px-4 py-2 text-sm cursor-pointer`} // Ensures each item takes full width
                       >
                         {matrix}
                       </a>
@@ -185,6 +170,7 @@ const Header: React.FC<HeaderProps> = ({
               )}
             </div>
           </MenuItems>
+
         </Menu>
       </nav>
       <hr />

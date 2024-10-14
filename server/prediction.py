@@ -27,7 +27,7 @@ class Node:
 
 class Prediction:
 
-    def __init__(self, matrix) -> None:
+    def __init__(self, matrices) -> None:
         self.nodes = {}
         self.preview_nodes = {}
         self.edges = {}
@@ -38,7 +38,8 @@ class Prediction:
         self.deletedKeys = []
 
         self.graph = None
-        self.matrix = matrix
+        self.matrices = matrices
+        self.matrix = matrices["Simple IOR Choice"]
         
         self.probMin = 0.3
         self.nodeProbSet =  {}
@@ -483,6 +484,10 @@ class Prediction:
         graph = json.loads(graph_json_str)  # Convert JSON string to Python dict
         
         self.auto = graph.get('auto', False)
+        
+        m = graph.get('matrix', '')
+        if m != '' and m in self.matrices:
+            self.matrix = self.matrices[m]
 
         nodes = graph.get('nodes', [])
         edges = graph.get('edges', [])

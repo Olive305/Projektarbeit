@@ -92,6 +92,50 @@ class GraphController {
     this.listeners.push(listener);
   }
 
+  public addNode = (edgeStart: string, isPreview?: boolean, givenKey?: string) => {
+    // if no key is given, we create a new key
+    if (!givenKey) {
+      if (this.deletedKeys.length === 0) {
+        givenKey = "New" + this.nodes.size.toString();
+      }
+      else {
+        this.deletedKeys.sort();
+        givenKey = this.deletedKeys[0];
+      }
+    }
+
+    // get the position of the new node
+    let new_x = this.nodes.get(edgeStart)?.get_x();
+    let new_y = this.nodes.get(edgeStart)?.get_y();
+
+    new_x = new_x ? new_x : 0;
+    new_y = new_y ? new_y : 0;
+
+    // check if the location is already occupied
+    let occupied = true;
+    while (occupied){
+      occupied = false;
+
+      for (const node of this.nodes) {
+        if (node[1].get_x() === new_x && node[1].get_y() === new_y) {
+          occupied = true;
+          break;
+        }
+      }
+
+      if (occupied) new_x += 1;
+
+    }
+
+    let newNode = new MyNode(givenKey, new_x, new_y, this.gridSize, givenKey, this.nodeOnClick, isPreview ? isPreview : false, givenKey, false);
+
+    this.nodes.set(newNode.id, newNode);
+    this.edges.push([edgeStart, newNode.id])
+
+    this.notifyListeners();
+
+  }
+
   public notifyListeners() {
     this.listeners.forEach(listener => listener());
   }

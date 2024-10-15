@@ -469,6 +469,21 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     setContextMenu({ visible: false, x: 0, y: 0, edge: null, node: null }); // Close the context menu when clicking on the canvas
   };
 
+  const handleAddNode = () => {
+    if (contextMenu.node) {
+        // Use the node ID from the context menu as the starting point for the new node
+        controller.addNode(contextMenu.node.id); 
+
+        // Update the state with the new set of nodes and edges
+        setNodes(new Map(controller.nodes)); 
+        setEdges([...controller.edges]); 
+    }
+
+    // Close the context menu after the node is added
+    setContextMenu({ visible: false, x: 0, y: 0, edge: null, node: null });
+  };
+
+
   return (
     <div className="canvas-container" ref={scrollContainerRef} onClick={handleCanvasClick}>
       <div className="canvas-content">
@@ -644,6 +659,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
           style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
         >
           <button onClick={handleDeleteNode}>Delete Node</button>
+          <button onClick={handleAddNode}>Add Node</button>
         </div>
       )}
 

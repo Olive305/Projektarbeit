@@ -263,40 +263,50 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
   };
 
   const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+  
+    const pointerPosition = stage.getPointerPosition();
+    if (!pointerPosition) return;
+  
+    // Get stage position and scale
+    const stagePos = stage.position();
+    const scale = stage.scaleX(); // assuming uniform scaling (same scale for X and Y)
+  
     if (draggingEdge) {
-      const stage = stageRef.current;
-      if (!stage) return;
-
-      const pointerPosition = stage.getPointerPosition();
-      if (!pointerPosition) return;
-
+      // Adjust pointer position to account for stage position and scaling
+      const adjustedX = (pointerPosition.x - stagePos.x) / scale;
+      const adjustedY = (pointerPosition.y - stagePos.y) / scale;
+  
       setDraggingEdge({
         ...draggingEdge,
-        endX: pointerPosition.x,
-        endY: pointerPosition.y
+        endX: adjustedX,
+        endY: adjustedY,
       });
-
+  
       return;
     }
-
+  
     if (selecting) {
       event.evt.preventDefault();
-
-      const pos = stageRef.current?.getPointerPosition();
-
-      x2 = pos?.x ? pos?.x : 0;
-      y2 = pos?.y ? pos?.y : 0;
-
-      selectionRecRef.current?.setAttrs({
-        visible: true,
+  
+      const pos = stage.getPointerPosition();
+  
+      if (pos) {
+        x2 = (pos.x - stagePos.x) / scale;
+        y2 = (pos.y - stagePos.y) / scale;
+  
+        selectionRecRef.current?.setAttrs({
+          visible: true,
           x: Math.min(x1, x2),
           y: Math.min(y1, y2),
           width: Math.abs(x2 - x1),
           height: Math.abs(y2 - y1),
-
-      })
+        });
+      }
     }
   };
+  
 
   const handleMouseUp = (event: KonvaEventObject<MouseEvent>) => {
     const stage = stageRef.current;
@@ -373,10 +383,10 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
 
     const pos = stageRef.current?.getPointerPosition();
 
-    x1 = pos?.x ? pos?.x : 0;
-    y1 = pos?.y ? pos?.y : 0;
-    x2 = pos?.x ? pos?.x : 0;
-    y2 = pos?.y ? pos?.y : 0;
+    x1 = pos?.x ? (pos.x - stagePos.x) / scale : 0;
+    y1 = pos?.y ? (pos.y - stagePos.y) / scale : 0;
+    x2 = pos?.x ? (pos.x - stagePos.x) / scale : 0;
+    y2 = pos?.y ? (pos.y - stagePos.y) / scale : 0;
 
     selectionRecRef.current?.width(0);
     selectionRecRef.current?.height(0);

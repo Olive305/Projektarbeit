@@ -18,10 +18,6 @@ Selbständiges Erzeugen von Knoten
 
 # teilweise kaputt
 
-Funktionen auf dem Canvas, die keine voreingebaute drag / drop behaviour haben:
-    Erstellen eigener Kanten
-    Gleichzeitige Auswahl mehrerer Knoten
-
 (möglicherweise) speichern und laden von Graphen als Datei
 
 # kurze Erklärung der wichtigsten Funktionen

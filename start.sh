@@ -9,7 +9,7 @@ pip install -r requirements.txt
 
 # Start Backend (Python Flask)
 echo "Starting the backend..."
-python main.py &
+python3 main.py &
 
 # Navigate to the frontend directory and install npm dependencies
 echo "Installing frontend dependencies..."

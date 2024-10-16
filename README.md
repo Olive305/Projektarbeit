@@ -1,6 +1,6 @@
 # Starten
 
-Auf Linux: start.sh ausführen
+Auf Linux und MacOs: start.sh ausführen (nicht vollkommen getestet)
 
 Auf Windows: start.bat ausführen
 
@@ -17,6 +17,8 @@ Selbständiges Erzeugen von Knoten
 # teilweise kaputt
 
 (möglicherweise) speichern und laden von Graphen als Datei
+
+Vorhersagen mit nur einem Knoten von einem anderen Knoten werden zu tief positioniert
 
 # kurze Erklärung der wichtigsten Funktionen
 

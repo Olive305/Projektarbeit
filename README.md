@@ -1,12 +1,10 @@
-# Server starten
+# Starten
 
-In ./server/ starte die main.py Datei
+Auf Linux: start.sh ausführen
 
-# Frontend starten
+Auf Windows: start.bat ausführen
 
-In der Commandline den client Ordner öffnen
-
-npm run dev ausführen
+Diese Dateien installieren die dependencies und starten das Frontend und das Backend
 
 # kaputte Funktionen
 

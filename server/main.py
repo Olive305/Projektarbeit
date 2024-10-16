@@ -12,10 +12,12 @@ CORS(app)
 
 # Multiple matrices usable
 matrixPaths = [
-    (os.path.join(project_folder, r"matrices\Helpdesk_nsp_matrix.csv"), "Helpdesk"),
-    (os.path.join(project_folder, r"matrices\PDC_2020_1211111_TrainTest_nsp_matrix.csv"), "PDC_2020_1211111_TrainTest"),
-    (os.path.join(project_folder, r"matrices\SimpleIORChoice_nsp_matrix.csv"), "Simple IOR Choice")
+    (os.path.join(project_folder, r"matrices", "Helpdesk_nsp_matrix.csv"), "Helpdesk"),
+    (os.path.join(project_folder, r"matrices", "PDC_2020_1211111_TrainTest_nsp_matrix.csv"), "PDC_2020_1211111_TrainTest"),
+    (os.path.join(project_folder, r"matrices", "SimpleIORChoice_nsp_matrix.csv"), "Simple IOR Choice")
 ]
+
+# test test
 
 matrices = {}
 
@@ -25,6 +27,8 @@ for path in matrixPaths:
     matrix.openCsv(path[0])
     matrix.preprocess_df()
     matrices[path[1]] = matrix
+    
+print("change")
 
 @app.route("/api/test", methods=['GET'])
 def test():

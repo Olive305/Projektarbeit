@@ -63,6 +63,7 @@ class Prediction:
             curr_y = self.nodes[edgeStart].y # Haha curry
             curr_x = self.nodes[edgeStart].x + 1
             
+            
             # we try finding a gap, where we can put all the preview nodes which start from one node
             gapStart = curr_y
             gapFound = False
@@ -71,6 +72,10 @@ class Prediction:
                 # first check the standart gap (placing the nodes nearly aligned such that the middle is next to the starting node)
                 gapSize = 0
                 i = round(len(nodesToPosition) / 2)
+                
+                if (len(nodesToPosition) == 1):
+                    i = 1
+                
                 if (curr_x, curr_y - i) not in self.posMatrix:
                     # if we have found a free place, we check, if it borders to enough free places such that 
                     curr_curr_y = curr_y - i + 1 # recursive current XD

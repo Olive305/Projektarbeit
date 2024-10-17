@@ -18,8 +18,6 @@ Selbständiges Erzeugen von Knoten
 
 (möglicherweise) speichern und laden von Graphen als Datei
 
-Vorhersagen mit nur einem Knoten von einem anderen Knoten werden zu tief positioniert
-
 # kurze Erklärung der wichtigsten Funktionen
 
 Auf dem Kanvas wird der Graph als Kanten und Knoten angezeigt. Der Server schickt die Vorhersagen für die Knoten, die angehängt werden sollen, welche als grüne Knoten mit blauen, gestrichelten Kanten angezeigt werden. Klickt man solch eine Vorhersage an, wird diese ausgewählt.

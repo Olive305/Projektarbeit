@@ -32,7 +32,7 @@ const ControlBar: React.FC<ControlsProps> = ({ controller, multi, handleConvertT
       <div className="slidecontainer">
         <input
           type="range"
-          min="1"
+          min="0"
           max="100"
           value={sliderValue}
           className="slider"

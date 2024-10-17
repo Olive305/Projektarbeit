@@ -339,9 +339,9 @@ class Prediction:
                     if node in edge_nodes:
                         edge_nodes.remove(node)
             '''
-            
             # Ensure that no more than three preview nodes are connected to the same edge
             for edge, edge_nodes in self.edges.items():
+                print("no more than 3", edge)
                 numPreview = sum(1 for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes)
                 print(edge, numPreview)
                 
@@ -356,6 +356,8 @@ class Prediction:
 
                     if smallestEdge is None:
                         break
+                    
+                    print("smallestEdge", smallestEdge)
 
                     del self.nodeProbSet[smallestEdge]
                     self.nodes.pop(smallestEdge, None)
@@ -370,28 +372,32 @@ class Prediction:
                     # Decrease the preview count for the current edge
                     numPreview -= 1
                     
-                    
-            # If the number of preview nodes exceeds the allowed number
-            if len(self.preview_nodes) > numNodesToAdd:
-                
-                print("\nnum nodes to add too big, nodes to add", numNodesToAdd, "num preview", len(self.preview_nodes))
-                # Find the minimum probability needed to keep `numNodesToAdd` nodes
-                calculatedProbMin = sorted(self.nodeProbSet.values())[numNodesToAdd]
+        # If the number of preview nodes exceeds the allowed number
+        if len(self.preview_nodes) > numNodesToAdd:
+            
+            print("\nnum nodes to add too big, nodes to add", numNodesToAdd, "num preview", len(self.preview_nodes))
+            # Find the minimum probability needed to keep `numNodesToAdd` nodes
+            calculatedProbMin = sorted(self.nodeProbSet.values(), reverse=True)[numNodesToAdd]
 
-                # Collect nodes to remove that have probabilities lower than the calculated threshold
-                nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < calculatedProbMin]
+            
+            print("prob min", calculatedProbMin)
+
+            # Collect nodes to remove that have probabilities lower than the calculated threshold
+            nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < calculatedProbMin]
+            
+            print("nodes_to_remove", nodes_to_remove)
+            
+            # Remove these nodes and track them in deletedKeys
+            for node in nodes_to_remove:
+                del self.nodeProbSet[node]
+                self.nodes.pop(node, None)
+                self.preview_nodes.pop(node, None)
+                self.deletedKeys.append(node)
                 
-                # Remove these nodes and track them in deletedKeys
-                for node in nodes_to_remove:
-                    del self.nodeProbSet[node]
-                    self.nodes.pop(node, None)
-                    self.preview_nodes.pop(node, None)
-                    self.deletedKeys.append(node)
-                    
-                    # Remove node from all edges
-                    for edge, edge_nodes in self.edges.items():
-                        if node in edge_nodes:
-                            edge_nodes.remove(node)
+                # Remove node from all edges
+                for edge, edge_nodes in self.edges.items():
+                    if node in edge_nodes:
+                        edge_nodes.remove(node)
 
             
                     

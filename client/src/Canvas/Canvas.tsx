@@ -282,8 +282,8 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
 
     setDraggingEdge({
       startNode: node,
-      endX: pointerPosition.x,
-      endY: pointerPosition.y
+      endX: (pointerPosition.x - stagePos.x) / scale,
+      endY: (pointerPosition.y - stagePos.y) / scale
     });
   };
 
@@ -338,25 +338,38 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     if (stage) {
       stage.draggable(true); // Re-enable the default dragging behavior
     }
+
+    // Get current stage position and scale (for panning and zooming)
+    const stagePos = stage ? stage.position() : { x: 0, y: 0 }; // Default to {x: 0, y: 0} if no stage
+    const scale = stage ? stage.scaleX() : 1; // Default to scale 1 if no stage (no zoom)
+
     if (draggingEdge) {
       if (!stage) return;
 
+      // Get the current pointer position relative to the stage
       const pointerPosition = stage.getPointerPosition();
       if (!pointerPosition) return;
 
+      // Adjust pointer position to the stage's local coordinate system, accounting for zoom and pan
+      const adjustedPointerX = (pointerPosition.x - stagePos.x) / scale;
+      const adjustedPointerY = (pointerPosition.y - stagePos.y) / scale;
+
+      // Find the target node by comparing the adjusted pointer position with node boundaries
       const targetNode = Array.from(nodes.values()).find(n =>
         n.rect &&
-        pointerPosition.x >= n.get_real_x() &&
-        pointerPosition.x <= n.get_real_x() + n.w &&
-        pointerPosition.y >= n.get_real_y() &&
-        pointerPosition.y <= n.get_real_y() + n.h
+        adjustedPointerX >= n.get_real_x() &&  // Adjusted pointer X compared to node's real X
+        adjustedPointerX <= n.get_real_x() + n.w && // Adjusted pointer X compared to node width
+        adjustedPointerY >= n.get_real_y() && // Adjusted pointer Y compared to node's real Y
+        adjustedPointerY <= n.get_real_y() + n.h // Adjusted pointer Y compared to node height
       );
 
       if (targetNode) {
+        // Add the edge to the controller if a target node is found
         controller.addEdge(draggingEdge.startNode.id, targetNode.id);
         setEdges([...controller.edges]);
       }
 
+      // Reset dragging state
       setDraggingEdge(null);
 
       return;
@@ -369,17 +382,29 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
         return;
       }
       event.evt.preventDefault();
-      // update visibility in timeout, so we can check it in click event
+
+      // Hide the selection rectangle
       selectionRecRef.current?.visible(false);
-      var box = selectionRecRef.current.getClientRect();
+
+      // Get the bounding box of the selection rectangle, adjust for panning and zooming
+      const box = selectionRecRef.current.getClientRect();
+
+      // Adjust the selection box to account for the current pan and zoom
+      const adjustedBox = {
+        x: (box.x - stagePos.x) / scale,
+        y: (box.y - stagePos.y) / scale,
+        width: box.width / scale,
+        height: box.height / scale
+      };
+
+      // Call the method to select nodes within the adjusted rectangle
+      controller.selectNodesInRect(adjustedBox);
     
-      // Call the new method to select nodes within the rectangle
-      controller.selectNodesInRect(box);
-    
+      // Update the nodes state after selection
       setNodes(new Map(controller.nodes));
     }
-    
-  };
+};
+
 
 
   const handleBackgroundClick = (event: KonvaEventObject<MouseEvent>) => {

@@ -99,7 +99,7 @@ class Prediction:
                         while (curr_x, curr_curr_y) not in self.posMatrix:
                             gapSizeTop += 1
                             curr_curr_y += 1
-                            if (gapSizeTop > len(nodesToPosition)):
+                            if (gapSizeTop > len(nodesToPosition) + 1):
                                 gapFound = True
                                 gapStart = curr_y - i + 1
                                 break
@@ -114,7 +114,7 @@ class Prediction:
                         while (curr_x, curr_curr_y) not in self.posMatrix:
                             gapSizeBottom += 1
                             curr_curr_y += 1
-                            if (gapSizeBottom > len(nodesToPosition)):
+                            if (gapSizeBottom > len(nodesToPosition) + 1):
                                 gapFound = True
                                 gapStart = curr_y + i + 1
                                 break

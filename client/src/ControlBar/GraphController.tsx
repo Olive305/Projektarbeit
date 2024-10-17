@@ -465,13 +465,14 @@ class GraphController {
         const nodeData = prevNodes[id];  // Get the node data for each edgeEnd
         const previous = nodeData.edgeStart;  // Extract the edgeStart
         const node = nodeData.node;  // Extract the node details
+        const probability = nodeData.probability
   
         // Add to preview nodes
         this.preview_nodes.push(id);
   
         // Add node to the grid (assuming addMyRect takes parameters: MyNode instance and a boolean flag)
         this.addMyRect(
-          new MyNode(id, node.x, node.y, this.gridSize, node.actualKey, this.nodeOnClick, true, node.actualKey),
+          new MyNode(id, node.x, node.y, this.gridSize, node.actualKey, this.nodeOnClick, true, node.actualKey, false, probability),
           true
         );
   

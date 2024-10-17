@@ -49,7 +49,6 @@ class Prediction:
         
         
     def positionNodes(self):
-        #TODO fix the positioning algoritm to do what it was supposed to
         # do this for each node (by getting the edge_starts)
         for edgeStart in self.edges: 
             nodesToPosition = []  
@@ -92,7 +91,7 @@ class Prediction:
                 
                 gapSizeTop = 0
                 gapSizeBottom = 0
-                for i in range(round(np.sqrt(len(self.preview_nodes)))):
+                for i in range(max(round(np.sqrt(len(self.preview_nodes))), 5)):
                     # we start by going up
                     if (curr_x, curr_y - i) not in self.posMatrix:
                         # if we have found a free place, we check, if it borders to enough free places such that 
@@ -277,20 +276,26 @@ class Prediction:
         # calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
         
+        print("numNodes", numNodes, "add", numNodesToAdd)
+        
         t = 0
 
         for sequence in sequences:
-            startTime = time.time()
             predictions = self.matrix.predict(sequence, 0.0 if self.auto else self.probMin)
-            endTime = time.time()
-            t += endTime - startTime
 
             for [node, probability] in predictions:
+                if probability < 0.001:
+                    continue
+                
                 lastNodeId = "0" if len(keySeq[i]) == 0 else keySeq[i][len(keySeq[i]) - 1]
 
                 # if the edge to the node from lastNodeId exist, we do not add anything
                 if (lastNodeId in self.edges and node in self.edges[lastNodeId]):
+                    print("exists")
                     continue
+                
+                
+                print(lastNodeId, node, probability)
                 
                 # check if a preview node with the actual key already exists
                 existsKey = False
@@ -302,28 +307,28 @@ class Prediction:
                             break
                 
                 if existsKey:
-                    continue
-                
-                # if the node exists, but there is no edge to it from lastNode, we add it
-                if (node in self.nodes):
-                    self.addNode(lastNodeId, True, node, probability)
+                    print("exists and change probability")
+                    if (self.nodeProbSet[self.actualKeySet[node]] < probability):
+                        self.nodeProbSet[self.actualKeySet[node]] = probability
                     continue
                 
                 # we add the node with edge from lastNode
                 if (lastNodeId in self.nodes):
-                    self.addNode(lastNodeId, True, node, probability)
+                    print("add node")
+                    print(self.addNode(lastNodeId, True, node, probability))
 
             i += 1
             
-        print("finnished adding preview", self.startTime - time.time(), "time for getting predictions:", t)
             
         if self.auto:
             
             # Collect nodes to remove based on their probability (< 0.1)
-            nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < 0.001]
+            # nodes_to_remove_prob = [node for node in self.nodeProbSet if self.nodeProbSet[node] < 0.001]
             
+            
+            '''
             # Remove nodes with small probability and track deleted nodes
-            for node in nodes_to_remove:
+            for node in nodes_to_remove_prob:
                 del self.nodeProbSet[node]
                 self.nodes.pop(node, None)  # Safely remove from nodes
                 self.preview_nodes.pop(node, None)  # Safely remove from preview nodes
@@ -333,30 +338,12 @@ class Prediction:
                 for edge, edge_nodes in self.edges.items():
                     if node in edge_nodes:
                         edge_nodes.remove(node)
+            '''
             
-            # If the number of preview nodes exceeds the allowed number
-            if len(self.preview_nodes) > numNodesToAdd:
-                # Find the minimum probability needed to keep `numNodesToAdd` nodes
-                calculatedProbMin = sorted(self.nodeProbSet.values())[numNodesToAdd]
-
-                # Collect nodes to remove that have probabilities lower than the calculated threshold
-                nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < calculatedProbMin]
-                
-                # Remove these nodes and track them in deletedKeys
-                for node in nodes_to_remove:
-                    del self.nodeProbSet[node]
-                    self.nodes.pop(node, None)
-                    self.preview_nodes.pop(node, None)
-                    self.deletedKeys.append(node)
-                    
-                    # Remove node from all edges
-                    for edge, edge_nodes in self.edges.items():
-                        if node in edge_nodes:
-                            edge_nodes.remove(node)
-
             # Ensure that no more than three preview nodes are connected to the same edge
             for edge, edge_nodes in self.edges.items():
                 numPreview = sum(1 for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes)
+                print(edge, numPreview)
                 
                 # If more than three preview nodes, delete the ones with the smallest probability
                 while numPreview > 3:
@@ -382,12 +369,36 @@ class Prediction:
 
                     # Decrease the preview count for the current edge
                     numPreview -= 1
+                    
+                    
+            # If the number of preview nodes exceeds the allowed number
+            if len(self.preview_nodes) > numNodesToAdd:
+                
+                print("\nnum nodes to add too big, nodes to add", numNodesToAdd, "num preview", len(self.preview_nodes))
+                # Find the minimum probability needed to keep `numNodesToAdd` nodes
+                calculatedProbMin = sorted(self.nodeProbSet.values())[numNodesToAdd]
 
-        print("finnished auto", self.startTime - time.time())
-        
+                # Collect nodes to remove that have probabilities lower than the calculated threshold
+                nodes_to_remove = [node for node in self.nodeProbSet if self.nodeProbSet[node] < calculatedProbMin]
+                
+                # Remove these nodes and track them in deletedKeys
+                for node in nodes_to_remove:
+                    del self.nodeProbSet[node]
+                    self.nodes.pop(node, None)
+                    self.preview_nodes.pop(node, None)
+                    self.deletedKeys.append(node)
+                    
+                    # Remove node from all edges
+                    for edge, edge_nodes in self.edges.items():
+                        if node in edge_nodes:
+                            edge_nodes.remove(node)
+
+            
+                    
+        print(self.preview_nodes)
+                    
         self.positionNodes()
         
-        print("finnished position", self.startTime - time.time())
 
         return self.serializeGraph()
 
@@ -410,6 +421,7 @@ class Prediction:
             self.preview_nodes[newNode.id] = True
             
         self.actualKeySet[newNode.actualKey] = newNode.id
+        return newNode.id
 
         
 
@@ -532,7 +544,8 @@ class Prediction:
                     returnNodes[edgeEnd] = ({
                         'nodeId': edgeEnd,
                         'edgeStart': edgeStart,
-                        'node': self.nodes[edgeEnd].to_dict()  # Convert Node to dict
+                        'node': self.nodes[edgeEnd].to_dict(),  # Convert Node to dict
+                        'probability': self.nodeProbSet[edgeEnd]
                     })
     
         serialized_graph = {

@@ -143,59 +143,79 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     return gridLines;
   };
 
+  // Function to calculate the point on a cubic bezier curve at a given t (0 <= t <= 1)
+  const getCubicBezierPoint = (t: any, p0: any, p1: any, p2: any, p3: any) => {
+    const x = Math.pow(1 - t, 3) * p0.x +
+              3 * Math.pow(1 - t, 2) * t * p1.x +
+              3 * (1 - t) * Math.pow(t, 2) * p2.x +
+              Math.pow(t, 3) * p3.x;
+
+    const y = Math.pow(1 - t, 3) * p0.y +
+              3 * Math.pow(1 - t, 2) * t * p1.y +
+              3 * (1 - t) * Math.pow(t, 2) * p2.y +
+              Math.pow(t, 3) * p3.y;
+
+    return { x, y };
+  };
+
+  // Main function to draw the line with hitbox and text
   const drawLineWithHitbox = (connection: [string, string]) => {
     const start = nodes.get(connection[0]);
     const target = nodes.get(connection[1]);
     if (!start || !target) return null;
-  
+
     const startX = start.get_real_x() + start.w;
     const startY = start.get_real_y() + start.h / 2;
     const endX = target.get_real_x();
     const endY = target.get_real_y() + target.h / 2;
-  
+
     let controlPoint1X, controlPoint1Y, controlPoint2X, controlPoint2Y;
-    
+
     if (startX > endX) {
-      // Case 1: startX > endX (The line should go a little further before curving backwards)
       if (startY === endY) {
-        // Special case: Nodes are horizontally aligned (same Y values)
-        // Create an arc that curves above the nodes
+        // Case: Nodes are horizontally aligned
         const midX = (startX + endX) / 2;
-        const arcHeight = (GraphController.node_distance + MyNode.h_val / 2) * gridSize; // Height of the curve
+        const arcHeight = (GraphController.node_distance + MyNode.h_val / 2) * gridSize;
         controlPoint1X = midX;
         controlPoint1Y = startY - arcHeight;
         controlPoint2X = midX;
         controlPoint2Y = endY - arcHeight;
       } else {
-        // General case when startX > endX but Y values are different
-        controlPoint1X = startX + gridSize * 2.5; // Push control point further to the right of the start
+        // General case when startX > endX and Y values differ
+        controlPoint1X = startX + gridSize * 2.5;
         controlPoint1Y = startY;
-        controlPoint2X = endX - gridSize * 2.5; // Pull control point further to the left of the end
+        controlPoint2X = endX - gridSize * 2.5;
         controlPoint2Y = endY;
       }
     } else {
-      // Case 2: startX <= endX (The default curve behavior)
-      controlPoint1X = startX + gridSize * 2.5; // 50px right of the start
+      // Case: startX <= endX
+      controlPoint1X = startX + gridSize * 2.5;
       controlPoint1Y = startY;
-      controlPoint2X = endX - gridSize * 2.5; // 50px left of the end
+      controlPoint2X = endX - gridSize * 2.5;
       controlPoint2Y = endY;
     }
-  
+
     const points = [
-      startX, startY,           // P0 - Starting point
-      controlPoint1X, controlPoint1Y, // P1 - Control point 1
-      controlPoint2X, controlPoint2Y, // P2 - Control point 2
-      endX, endY                // P3 - Ending point
+      { x: startX, y: startY },       // P0 - Starting point
+      { x: controlPoint1X, y: controlPoint1Y }, // P1 - Control point 1
+      { x: controlPoint2X, y: controlPoint2Y }, // P2 - Control point 2
+      { x: endX, y: endY },           // P3 - Ending point
     ];
-  
+
     const isPreviewEdge = start.isPreview || target.isPreview;
-  
+
+    // Calculate the midpoint at t = 0.5 (midpoint of the bezier curve)
+    const midPoint = getCubicBezierPoint(0.5, points[0], points[1], points[2], points[3]);
+
     return (
       <Group key={`edge_${start.id}_${target.id}`}>
         {/* Hitbox - Invisible but interactive */}
         <Line
           bezier
-          points={points}
+          points={[
+            startX, startY, controlPoint1X, controlPoint1Y,
+            controlPoint2X, controlPoint2Y, endX, endY
+          ]}
           stroke={isPreviewEdge ? "blue" : "transparent"}
           strokeWidth={15} // Wider hitbox for easy interaction
           lineCap="round"
@@ -203,10 +223,14 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
           opacity={0}
           onContextMenu={(e) => handleLineRightClick(e, connection)}
         />
+
         {/* Visible line */}
         <Line
           bezier
-          points={points}
+          points={[
+            startX, startY, controlPoint1X, controlPoint1Y,
+            controlPoint2X, controlPoint2Y, endX, endY
+          ]}
           stroke={isPreviewEdge ? "blue" : "black"}
           strokeWidth={1.5}
           lineCap="round"
@@ -217,6 +241,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
       </Group>
     );
   };
+
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
     if (isDraggingNode) {
@@ -551,7 +576,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
                           ? "lightgreen"
                           : node.isSelected
                           ? "lightblue"
-                          : "lightgray"
+                          : ""
                       }
                       cornerRadius={5}
                       stroke={"gray"}
@@ -575,7 +600,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
                           ? "lightgreen"
                           : node.isSelected
                           ? "ligthblue"
-                          : "lightgray"
+                          : ""
                       }
                       cornerRadius={5}
                       stroke={"gray"}
@@ -620,6 +645,18 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
                     offsetY={node.text ? node.text.height() / 2 : 0}
                     listening={true}
                   />
+                  {node.isPreview ? <Text
+                    ref={(n) => {
+                      node.text = n;
+                    }}
+                    text={Math.max(node.probability, 0.01).toFixed(2)}
+                    fill="black"
+                    x={16}
+                    y={9}
+                    offsetX={node.text ? node.text.width() / 2 : 0}
+                    offsetY={node.text ? node.text.height() / 2 : 0}
+                    listening={true}
+                  /> : <></>}
                 </Group>
               ))
             )

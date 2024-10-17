@@ -18,6 +18,7 @@ class MyNode {
     isPreview: boolean;
     actualKey: string;
     isCircle: boolean
+    probability: number;
     private real_x: number;
     private real_y: number;
 
@@ -27,7 +28,7 @@ class MyNode {
     static readonly circleSize = 10;
     static readonly nodeOpacity = 1.0;
 
-    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean, actualKey?: string, circle ?: boolean) {
+    constructor(id: string, x: number, y: number, gridSize: number, caption: string, onClick: Function, preview?: boolean, actualKey?: string, circle ?: boolean, probability?: number) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -43,6 +44,7 @@ class MyNode {
         this.real_x = 0
         this.real_y = 0
         this.isCircle = circle ? circle : false;
+        this.probability = probability ? probability : 0;
 
         this.calculateRealPos()
     }

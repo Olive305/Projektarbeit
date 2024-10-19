@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from './Header/Header';
 import Canvas from './Canvas/Canvas';
 import { createRoot } from 'react-dom/client';
@@ -6,13 +6,31 @@ import ControlBar from './ControlBar/ControlBar';
 import GraphController from './ControlBar/GraphController';
 import MultiController from './ControlBar/MultiGraphs';
 import './App.css';
+import { View } from './Header/view';
 
 const App: React.FC = () => {
   const gridSize = 20;
   const [multiController] = useState(new MultiController(gridSize));
+  const [view, setView] = useState<View | undefined>(new View()); // Allow null or fallback
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [activeGraphController, setActiveGraphController] = useState<GraphController | null>(null);
   const [setActiveMatrixFn, setSetActiveMatrixFn] = useState<((matrix: string) => void) | null>(null);
+
+  // Function to trigger a re-render whenever the view changes
+  const updateView = useCallback(() => {
+    setView(new View(view)); // Create a new instance or force state update
+  }, [view]);
+
+  useEffect(() => {
+    if (!view) return; // Check if view is valid before adding listeners
+    // Subscribe to changes in view, if View has event listeners for updates
+    view.onChange(updateView);
+
+    return () => {
+      // Clean up the subscription if View has such an API
+      view.offChange(updateView);
+    };
+  }, [view, updateView]);
 
   useEffect(() => {
     // Initialize with a default graph if no graphs exist
@@ -23,9 +41,12 @@ const App: React.FC = () => {
   }, [multiController]);
 
   useEffect(() => {
+    activeGraphController?.notifyListeners();
+  }, [view, activeGraphController]);
+
+  useEffect(() => {
     // Update the active graph controller whenever the active tab index changes
-    const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null; // Optional chaining
-    console.log("active Tab:", activeController);
+    const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null;
     setActiveGraphController(activeController);
 
     if (activeController) {
@@ -45,7 +66,6 @@ const App: React.FC = () => {
   }, [activeGraphController]);
 
   const handleTabClick = (index: number) => {
-    // Safely access the controller, using optional chaining
     const controller = multiController.graphs[index]?.[0];
     if (controller) {
       setActiveGraphController(controller);
@@ -76,6 +96,7 @@ const App: React.FC = () => {
         saveAllGraphs={multiController.saveAllGraphs}
         activeTabIndex={activeTabIndex}
         setActiveMatrix={setActiveMatrixFn || (() => {})} // Fallback to empty function
+        view={view || new View()} // Fallback to a new View instance if view is null
       />
       <section>
         <div className='left-bar-div'>
@@ -101,7 +122,7 @@ const App: React.FC = () => {
           </div>
           <div className='canvas-div'>
             {activeGraphController && (
-              <Canvas grid={true} controller={activeGraphController} multiController={multiController} />
+              <Canvas controller={activeGraphController} multiController={multiController} view={view || new View()} />
             )}
           </div>
         </section>

@@ -1,3 +1,5 @@
+import colorsys
+import random
 import time
 from flask import json
 import numpy as np
@@ -49,6 +51,7 @@ class Prediction:
         
         
     def positionNodes(self):
+        
         # do this for each node (by getting the edge_starts)
         for edgeStart in self.edges: 
             nodesToPosition = []  

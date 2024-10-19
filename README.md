@@ -14,6 +14,8 @@ Umbenennen von Knoten
 
 Selbständiges Erzeugen von Knoten
 
+view Tab im Header
+
 # teilweise kaputt
 
 (möglicherweise) speichern und laden von Graphen als Datei

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './header.css';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
+import {View} from './view.tsx'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -13,6 +14,7 @@ interface HeaderProps {
   saveAllGraphs: () => Promise<void>;
   activeTabIndex: number;
   setActiveMatrix: (matrix: string) => void;
+  view: View;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -22,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   saveAllGraphs,
   activeTabIndex,
   setActiveMatrix,
+  view,
 }) => {
   const [selectedMatrix, setSelectedMatrix] = useState(''); // Default selected matrix
   const [matrices, setMatrices] = useState<string[]>([]);   // Matrices fetched from API
@@ -142,7 +145,7 @@ const Header: React.FC<HeaderProps> = ({
         <Menu as="div" className="relative inline-block text-left">
           <div>
             <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-              {loading ? "Loading..." : selectedMatrix || "Select Matrix"}
+              {loading ? "Loading..." : "Select Matrix"}
             </MenuButton>
           </div>
           <MenuItems className="dropdown-menu">
@@ -171,6 +174,51 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           </MenuItems>
 
+        </Menu>
+
+        <Menu as="div" className="relative inline-block text-left">
+          <div>
+            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+              View
+            </MenuButton>
+          </div>
+          <MenuItems className="dropdown-menu">
+            <div className="py-1">
+              <MenuItem>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
+                    onClick={view.toggleGrid}
+                  >
+                    Show Grid
+                  </a>
+                )}
+              </MenuItem>
+              <MenuItem>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
+                    onClick={view.toggleRainbowPredictions}
+                  >
+                    Rainbow Prediction
+                  </a>
+                )}
+              </MenuItem>
+              <MenuItem>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
+                    onClick={view.toggleDarkMode}
+                  >
+                    Dark Mode
+                  </a>
+                )}
+              </MenuItem>
+            </div>
+          </MenuItems>
         </Menu>
       </nav>
       <hr />

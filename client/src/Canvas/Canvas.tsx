@@ -6,14 +6,15 @@ import GraphController from '../ControlBar/GraphController';
 import { KonvaEventObject } from 'konva/lib/Node';
 import Konva from 'konva';
 import MultiGraphs from '../ControlBar/MultiGraphs';
+import { View } from '../Header/view';
 
 interface CanvasProps {
-  grid: boolean;
   controller: GraphController;
   multiController: MultiGraphs;
+  view: View;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) => {
+const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) => {
   const gridSize = controller.gridSize;
   const stageRef = useRef<Konva.Stage>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -23,12 +24,15 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
   const [draggingEdge, setDraggingEdge] = useState<{ startNode: MyNode, endX: number, endY: number } | null>(null);
   const [isDraggingNode, setIsDraggingNode] = useState<boolean>(false);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
   const [scale, setScale] = useState(1); // Initial zoom level (1 = 100%)
+  const [viewState, setViewState] = useState({
+    showGrid: view.showGrid,
+    rainbow: view.showRainbowPredictions
+  });
 
-  // vars for selecting
-  var selecting = false
-  var x1 : number, y1 : number, x2 : number, y2 : number;
+  // Selection variables
+  let selecting = false;
+  let x1: number, y1: number, x2: number, y2: number;
 
   const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, edge: [string, string] | null, node: MyNode | null }>({
     visible: false,
@@ -38,8 +42,26 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
     node: null
   });
 
-  
-  // useEffect functions
+  // useEffect
+
+  // React to changes in the `view` object
+  useEffect(() => {
+    const updateCanvasView = () => {
+      // Update the state that tracks view properties to trigger re-render
+      setViewState({
+        showGrid: view.showGrid,
+        rainbow: view.showRainbowPredictions,
+      });
+    };
+
+    // Subscribe to view changes
+    view.onChange(updateCanvasView);
+
+    // Clean up listener on component unmount
+    return () => {
+      view.offChange(updateCanvasView);
+    };
+  }, [view]);
   
   useEffect(() => {
     const stage = stageRef.current;
@@ -125,7 +147,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
         <Line
           key={`v_${i}`}
           points={[i, 0, i, window.innerHeight]}
-          stroke="#ddd"
+          stroke="gray"
           strokeWidth={1}
         />
       );
@@ -135,7 +157,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
         <Line
           key={`h_${i}`}
           points={[0, i, window.innerWidth, i]}
-          stroke="#ddd"
+          stroke="gray"
           strokeWidth={1}
         />
       );
@@ -560,7 +582,7 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
         y={stagePos.y}  // Bind updated stage position
       >
 
-          <Layer>{grid && drawGrid()}</Layer>
+          <Layer>{viewState.showGrid && drawGrid()}</Layer>
 
           <Layer>
 
@@ -598,14 +620,14 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
                       height={node.h}
                       fill={
                         node.isPreview
-                          ? "lightgreen"
+                          ? viewState.rainbow ? node.color : "lightgreen"
                           : node.isSelected
                           ? "lightblue"
-                          : ""
+                          : "lightgray"
                       }
                       cornerRadius={5}
-                      stroke={"gray"}
-                      strokeWidth={0.8}
+                      stroke={"black"}
+                      strokeWidth={1.5}
                       opacity={MyNode.nodeOpacity}
                     />
                   ) : (
@@ -622,14 +644,14 @@ const Canvas: React.FC<CanvasProps> = ({ grid, controller, multiController }) =>
                       height={node.w}
                       fill={
                         node.isPreview
-                          ? "lightgreen"
+                          ? viewState.rainbow ? node.color : "lightgreen"
                           : node.isSelected
-                          ? "ligthblue"
-                          : ""
+                          ? "lightblue"
+                          : "lightgray"
                       }
                       cornerRadius={5}
-                      stroke={"gray"}
-                      strokeWidth={0.8}
+                      stroke={"black"}
+                      strokeWidth={1.5}
                       opacity={MyNode.nodeOpacity}
                     />
                   )}

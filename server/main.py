@@ -25,7 +25,6 @@ matrices = {}
 for path in matrixPaths:
     matrix = MyCsv()
     matrix.openCsv(path[0])
-    matrix.preprocess_df()
     matrices[path[1]] = matrix
     
 print("change")

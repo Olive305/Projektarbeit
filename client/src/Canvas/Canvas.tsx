@@ -446,26 +446,46 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
 
   const handleBackgroundMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     const stage = stageRef.current;
-    if (stage) stage.draggable(false); // Disable default dragging behavior
-
-    if (event.target !== stageRef.current) {
+  
+    if (!stage) return;
+  
+    // Disable default dragging behavior for the stage
+    stage.draggable(false);
+  
+    // Only proceed if the background of the stage was clicked (not another shape)
+    if (event.target !== stage) {
       return;
     }
+  
     event.evt.preventDefault();
-
-    const pos = stageRef.current?.getPointerPosition();
-
-    x1 = pos?.x ? (pos.x - stagePos.x) / scale : 0;
-    y1 = pos?.y ? (pos.y - stagePos.y) / scale : 0;
-    x2 = pos?.x ? (pos.x - stagePos.x) / scale : 0;
-    y2 = pos?.y ? (pos.y - stagePos.y) / scale : 0;
-
+  
+    // Get pointer position relative to the stage
+    const pos = stage.getPointerPosition();
+    if (!pos) return;
+  
+    // Get the current scale of the stage (for zoom level)
+    const scale = stage.scaleX();
+  
+    // Get the stage's current position (for pan/translate adjustment)
+    const stagePos = stage.position();
+  
+    // Convert the pointer position to account for stage translation and scaling
+    x1 = (pos.x - stagePos.x) / scale;
+    y1 = (pos.y - stagePos.y) / scale;
+  
+    // Initialize selection rectangle coordinates
+    x2 = x1;
+    y2 = y1;
+  
+    // Reset the selection rectangle dimensions
     selectionRecRef.current?.width(0);
     selectionRecRef.current?.height(0);
+  
     selecting = true;
-
-    console.log("selecting")
-  }
+  
+    console.log("Selecting started at: ", { x1, y1 });
+  };
+  
 
   const handleLineRightClick = (event: KonvaEventObject<MouseEvent>, edge: [string, string]) => {
     event.evt.preventDefault(); // Prevent the default context menu from appearing

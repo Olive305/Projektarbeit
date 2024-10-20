@@ -5,70 +5,64 @@ class MyCsv:
         self.df = None
         self.PROBABILITY_MIN = 0.3  # Minimum probability threshold
 
+    def getPrefixes(self):
+        """
+        Extracts all the unique prefixes from the 'prefixes' column in the DataFrame.
+        :return: A list of tuples representing the prefixes.
+        """
+        if 'prefixes' not in self.df.columns:
+            raise KeyError("The 'prefixes' column is missing in the DataFrame. Available columns: " + str(self.df.columns))
+        return list(self.df['prefixes'].unique())
+
     def openCsv(self, name: str):
         """
         Opens the CSV file and loads it into a DataFrame.
+        Converts the 'prefixes' column from string representations to tuples upfront to avoid repeated evaluation.
         :param name: The name of the CSV file to load.
         :return: The loaded DataFrame.
         """
-        # Load CSV and ensure column names are properly stripped of whitespace
-        self.df = pd.read_csv(name, delimiter=';', quoting=3)
-        self.df.columns = self.df.columns.str.strip()  # Strip whitespace from columns
-        # Remove duplicate prefixes while keeping only the first occurrence
-        self.df = self.df.drop_duplicates(subset=['prefixes'], keep='first').reset_index(drop=True)
+        self.df = pd.read_csv(name, delimiter=';')
+
+        # Trim column names to remove any leading/trailing spaces
+        self.df.columns = self.df.columns.str.strip()
+
+        # Convert 'prefixes' column from strings to tuples for efficient comparison
+        self.df['prefixes'] = self.df['prefixes'].apply(eval)
+
+        # Debugging step: Print column names to ensure 'prefixes' exists
+        print("Loaded DataFrame with columns:", self.df.columns)
         return self.df
 
-    def testCsv(self):
-        """Prints the first few rows of the loaded DataFrame."""
-        if self.df is not None:
-            print("Columns:", self.df.columns)
-            print(self.df.head())
-        else:
-            print("DataFrame is not loaded. Please open the CSV first.")
-
-    def preprocess_df(self):
-        """ Preprocesses the DataFrame by normalizing the 'prefixes' column and setting it as an index. """
-        if 'prefixes' not in self.df.columns:
-            raise KeyError("'prefixes' column not found in the DataFrame")
-        self.df['prefixes'] = self.df['prefixes'].str.strip().str.lower()
-        self.df.set_index('prefixes', inplace=True, drop=False)
-
-    def predict(self, input_sequence: str, probMin: float):
+    def predict(self, input_sequence: tuple, probMin: float = None):
         """
         Predicts the possible next nodes based on the input sequence.
-        :param input_sequence: A string representing the sequence of prefixes to predict from.
+        :param input_sequence: A tuple containing the sequence of prefixes to predict from.
+        :param probMin: The minimum probability threshold for filtering predictions. 
+                        If None, it defaults to the class-level PROBABILITY_MIN.
         :return: A list of tuples containing predicted nodes and their associated probabilities.
         """
-        if self.df is None:
-            raise ValueError("DataFrame is not loaded. Please open the CSV file first.")
+        if probMin is None:
+            probMin = self.PROBABILITY_MIN
 
-        self.PROBABILITY_MIN = probMin
+        # Check if the 'prefixes' column exists
+        if 'prefixes' not in self.df.columns:
+            raise KeyError("The 'prefixes' column is missing in the DataFrame.")
 
-        # Normalize and use the input_sequence
-        input_sequence = input_sequence.strip().lower()
+        # Use a vectorized comparison to filter rows with matching prefixes
+        matching_rows = self.df[self.df['prefixes'] == input_sequence]
 
-        # Filter the DataFrame using the index
-        if input_sequence not in self.df.index:
-            return []  # Return an empty list if no matching sequence is found
+        if matching_rows.empty:
+            return []  # Return an empty list if no matching prefixes found
 
-        # Retrieve the row directly by index
-        first_row = self.df.loc[input_sequence]
+        # Identify relevant columns (exclude fixed columns like 'prefixes', 'targets', and 'Support')
+        fixed_columns = {'prefixes', 'targets', 'Support'}
+        probability_columns = [col for col in self.df.columns if col not in fixed_columns]
 
-        # Identify the columns between 'targets' and '[EOC]' (assuming continuous columns)
-        target_col_index = self.df.columns.get_loc('targets')
-        eoc_col_index = self.df.columns.get_loc('[EOC]')
-        probability_columns = self.df.columns[target_col_index + 1:eoc_col_index]
-
-        # Filter probability columns with vectorized operations
-        prob_values = first_row[probability_columns]
-        valid_probs = prob_values[prob_values >= self.PROBABILITY_MIN]
-
-        # Collect predictions
-        predictions = list(valid_probs.items())
-
-        # Check if the [EOC] column has a value that meets the threshold
-        if first_row['[EOC]'] >= self.PROBABILITY_MIN:
-            predictions.append(('EOC', first_row['[EOC]']))
-
+        # Use vectorized operations to extract predictions that meet the probability threshold
+        predictions = []
+        for _, row in matching_rows.iterrows():
+            # Vectorized filtering for probabilities
+            valid_predictions = row[probability_columns][row[probability_columns] >= probMin]
+            predictions.extend(valid_predictions.items())
+        
         return predictions
-

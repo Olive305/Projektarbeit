@@ -38,9 +38,6 @@ class MyCsv:
         fixed_columns = {'prefixes', 'targets', 'Support'}
         self.probability_columns = [col for col in self.df.columns if col not in fixed_columns]
 
-        # Debugging step: Print column names to ensure 'prefixes' exists
-        print("Loaded DataFrame with columns:", self.df.columns)
-        return self.df
 
     def predict(self, input_sequence: tuple, probMin: float = None):
         """
@@ -91,8 +88,6 @@ class MyCsv:
             
             # Vectorized check to find matching prefixes in the DataFrame
             matching_prefixes = self.df[self.df['prefixes'] == trace]
-            
-            print("matching prefixes for", trace, matching_prefixes)
 
             if matching_prefixes.empty:
                 # If no matching prefix, consider all activities as inserted
@@ -118,3 +113,53 @@ class MyCsv:
         fitness = 1 - (total_deviation_cost / total_possible_insertions) if total_possible_insertions > 0 else 1
 
         return fitness
+    
+    def simplicity(self, traces: list, nodes_in_process_tree: int):
+        """
+        Measures the simplicity of the model based on the number of duplicate and missing activities.
+        
+        Args:
+            event_log (list): List of observed sequences (i.e., traces from the event log).
+            nodes_in_process_tree (int): The number of nodes in the process tree (provided as input).
+            
+        Returns:
+            float: Simplicity score between 0 and 1.
+        """
+        traces = [trace for trace in traces if '[EOC]' not in trace]
+        
+        # Extract unique activities from the process tree (from the 'prefixes' column in the DataFrame)
+        unique_activities_in_log = set(act for prefix in self.df['prefixes'] for act in prefix)
+        
+
+        # Extract all activities in the event log (event classes)
+        unique_activities_in_tree = set(act for trace in traces for act in trace)
+        
+        print("unique in log", unique_activities_in_log)
+        
+        print("unique in tree", unique_activities_in_tree)
+
+        # Duplicate activities: activities that appear more than once in the process tree
+        activity_counts_in_tree = {}
+        for trace in traces:
+            for activity in trace:
+                if activity in activity_counts_in_tree:
+                    activity_counts_in_tree[activity] += 1
+                else:
+                    activity_counts_in_tree[activity] = 1
+
+        duplicate_activities = sum(1 for count in activity_counts_in_tree.values() if count > 1)
+        
+        print("dup", duplicate_activities)
+
+        # Missing activities: activities in the tree that are not in the event log
+        missing_activities = len(unique_activities_in_tree - unique_activities_in_log)
+
+        # Event classes in the log: number of unique activities in the event log
+        event_classes_in_log = len(unique_activities_in_log)
+
+        # Simplicity formula: provided nodes_in_process_tree is used
+        simplicity_score = 1 - (duplicate_activities + missing_activities) / (nodes_in_process_tree + event_classes_in_log)
+        print("simp",simplicity_score)
+
+        return simplicity_score
+

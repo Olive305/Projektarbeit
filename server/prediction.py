@@ -278,13 +278,10 @@ class Prediction:
         
         # Calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
-        
-        # Calculate the metrics
-        prefixes = self.matrix.getPrefixes()  # Process model for replay fitness
-        
 
         # ---- Replay Fitness Calculation ----
         self.fitness = self.matrix.replay_fitness(traces)
+        self.simplicity = self.matrix.simplicity(traces, len(self.nodes))
         
         
         metricsTime = time.time()

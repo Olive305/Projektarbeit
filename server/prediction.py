@@ -48,6 +48,11 @@ class Prediction:
         self.auto = False
         self.AUTO_PROB_MIN = 0.02
         
+        self.fitness = 0
+        self.simplicity = 0
+        self.precision = 0
+        self.generalization = 0
+        
         
     def positionNodes(self):
         
@@ -225,7 +230,7 @@ class Prediction:
 
         # Parse the output to get node positions
         node_positions = {}
-        lines = plain_output.splitlines()
+        lines = plain_output.splitlines()        
 
         for line in lines:
             parts = line.split()
@@ -262,58 +267,68 @@ class Prediction:
 
 
     def getPredictions(self, graph):
-        # graph is the list of nodes and edges. preview nodes will be added by this code
+        
+        startTime = time.time()
+        
+        # Deserialize the graph and get all the traces
         self.deserializeGraph(graph)
-        
-
-        sequences = self.getAllSequences()
-        i = 0
-        
-        print(sequences)
-        
-        #prefixes = self.matrix.getPrefixes()
-        
+        traces = self.getAllSequences()
         
         numNodes = len(self.nodes)
         
-        # calculate the maximal Number of nodes that should be added (for auto mode)
+        # Calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
         
+        # Calculate the metrics
+        prefixes = self.matrix.getPrefixes()  # Process model for replay fitness
+        
 
-        for sequence in sequences:
-            print("seq", sequence)
-            predictions = self.matrix.predict(sequence, 0.0 if self.auto else self.probMin)
+        # ---- Replay Fitness Calculation ----
+        self.fitness = self.matrix.replay_fitness(traces)
+        
+        
+        metricsTime = time.time()
+        print("metrics", metricsTime - startTime)
+        matrixTime = 0
+
+        i = 0
+        for trace in traces:
+            matrixStartTime = time.time()
+            print("seq", trace)
+            predictions = self.matrix.predict(trace, self.AUTO_PROB_MIN if self.auto else self.probMin)
+            matrixEndTime = time.time()
+            matrixTime += matrixEndTime - matrixEndTime
 
             for [node, probability] in predictions:
-                if probability < self.AUTO_PROB_MIN :
-                    continue
-                
-                lastNodeId = "0" if len(sequences[i]) == 0 else sequences[i][len(sequences[i]) - 1]
 
-                # if the edge to the node from lastNodeId exist, we do not add anything
-                if (lastNodeId in self.edges and node in self.edges[lastNodeId]):
+                lastNodeId = "0" if len(traces[i]) == 0 else traces[i][len(traces[i]) - 1]
+
+                # Check if the edge to the node from lastNodeId exists, we do not add anything
+                if lastNodeId in self.edges and node in self.edges[lastNodeId]:
                     continue
-                
-                # check if a preview node with the actual key already exists
+
+                # Check if a preview node with the actual key already exists
                 existsKey = False
-                
+
                 if lastNodeId in self.edges:
                     for edgeEnd in self.edges[lastNodeId]:
                         if node == self.nodes[edgeEnd].actualKey:
                             existsKey = True
                             break
-                
+
                 if existsKey:
-                    if (self.nodeProbSet[self.actualKeySet[node]] < probability):
+                    if self.nodeProbSet[self.actualKeySet[node]] < probability:
                         self.nodeProbSet[self.actualKeySet[node]] = probability
                     continue
-                
-                # we add the node with edge from lastNode
-                if (lastNodeId in self.nodes):
+
+                # We add the node with edge from lastNode
+                if lastNodeId in self.nodes:
                     self.addNode(lastNodeId, True, node, probability)
 
             i += 1
-            
+
+        predictionsTime = time.time()
+        print("matrix", matrixTime, "pred", predictionsTime - metricsTime)
             
         if self.auto:
             
@@ -369,8 +384,14 @@ class Prediction:
                     if node in edge_nodes:
                         edge_nodes.remove(node)
 
+        autoTime = time.time()
+        
+        print("auto", autoTime - predictionsTime)
                     
         self.positionNodes()
+        
+        posTime = time.time()
+        print("pos", posTime - autoTime)
         
 
         return self.serializeGraph()
@@ -381,6 +402,9 @@ class Prediction:
         
         new_x = oldNode.x + 1
         new_y = oldNode.y
+        
+        if givenKey in self.deletedKeys:
+            self.deletedKeys.remove(givenKey)
 
         # Create a new node at the calculated position
         newNode = Node(self.getAvailableKey() if isPreview else givenKey, 0, 0, givenKey, isPreview)
@@ -449,9 +473,6 @@ class Prediction:
         sequences.insert(0, ())
 
         return sequences
-
-
-
 
     def getAvailableKey(self):
         # get the smallest key from the deleted keys list if possible
@@ -522,7 +543,13 @@ class Prediction:
                 'returnNodes': returnNodes,
                 'deletedKeys': self.deletedKeys
             },
-            'PetriNet': json.loads(self.convert_to_petri_net())  # Convert string to dict
+            'PetriNet': json.loads(self.convert_to_petri_net()),  # Convert string to dict
+            'metrics': {
+                'fitness': self.fitness,
+                'simplicity': self.simplicity,
+                'precision': self.precision,
+                'generalization': self.generalization
+            }
         }
         
         return json.dumps(serialized_graph)

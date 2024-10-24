@@ -6,31 +6,14 @@ import ControlBar from './ControlBar/ControlBar';
 import GraphController from './ControlBar/GraphController';
 import MultiController from './ControlBar/MultiGraphs';
 import './App.css';
-import { View } from './Header/view';
 
 const App: React.FC = () => {
   const gridSize = 20;
   const [multiController] = useState(new MultiController(gridSize));
-  const [view, setView] = useState<View | undefined>(new View()); // Allow null or fallback
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [activeGraphController, setActiveGraphController] = useState<GraphController | null>(null);
   const [setActiveMatrixFn, setSetActiveMatrixFn] = useState<((matrix: string) => void) | null>(null);
-
-  // Function to trigger a re-render whenever the view changes
-  const updateView = useCallback(() => {
-    setView(new View(view)); // Create a new instance or force state update
-  }, [view]);
-
-  useEffect(() => {
-    if (!view) return; // Check if view is valid before adding listeners
-    // Subscribe to changes in view, if View has event listeners for updates
-    view.onChange(updateView);
-
-    return () => {
-      // Clean up the subscription if View has such an API
-      view.offChange(updateView);
-    };
-  }, [view, updateView]);
+  const [rainbowPredictions, setRainbowPredictions] = useState(true)
 
   useEffect(() => {
     // Initialize with a default graph if no graphs exist
@@ -42,7 +25,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     activeGraphController?.notifyListeners();
-  }, [view, activeGraphController]);
+  }, [activeGraphController]);
 
   useEffect(() => {
     // Update the active graph controller whenever the active tab index changes
@@ -96,15 +79,17 @@ const App: React.FC = () => {
         saveAllGraphs={multiController.saveAllGraphs}
         activeTabIndex={activeTabIndex}
         setActiveMatrix={setActiveMatrixFn || (() => {})} // Fallback to empty function
-        view={view || new View()} // Fallback to a new View instance if view is null
+        toggleRainbowPredictions={() => setRainbowPredictions(!rainbowPredictions)}
+        handleToPetriNet={(() => {handleConvertToPetriNet(activeTabIndex)})}
       />
-      <section>
+      <section
+        className='workspace'
+      >
         <div className='left-bar-div'>
           {activeGraphController && (
             <ControlBar
               controller={activeGraphController}
               multi={multiController}
-              handleConvertToPetriNet={handleConvertToPetriNet}
             />
           )}
         </div>
@@ -122,7 +107,7 @@ const App: React.FC = () => {
           </div>
           <div className='canvas-div'>
             {activeGraphController && (
-              <Canvas controller={activeGraphController} multiController={multiController} view={view || new View()} />
+              <Canvas controller={activeGraphController} multiController={multiController} rainbowPredictions={rainbowPredictions}/>
             )}
           </div>
         </section>

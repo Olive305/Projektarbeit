@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './header.css';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
-import {View} from './view.tsx'
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 interface HeaderProps {
   createNewGraph: (name: string) => void;
@@ -14,7 +9,8 @@ interface HeaderProps {
   saveAllGraphs: () => Promise<void>;
   activeTabIndex: number;
   setActiveMatrix: (matrix: string) => void;
-  view: View;
+  toggleRainbowPredictions: () => void;
+  handleToPetriNet: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -24,9 +20,10 @@ const Header: React.FC<HeaderProps> = ({
   saveAllGraphs,
   activeTabIndex,
   setActiveMatrix,
-  view,
+  toggleRainbowPredictions,
+  handleToPetriNet,
 }) => {
-  const [selectedMatrix, setSelectedMatrix] = useState(''); // Default selected matrix
+  const [_, setSelectedMatrix] = useState(''); // Default selected matrix
   const [matrices, setMatrices] = useState<string[]>([]);   // Matrices fetched from API
   const [loading, setLoading] = useState(true);  // Loading state to indicate API call
 
@@ -83,22 +80,22 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-white shadow">
-      <nav className="container mx-auto p-4 flex space-x-4">
+    <header className="">
+      <nav className="">
         {/* File Menu */}
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="">
           <div>
-            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <MenuButton className="dropdown-button">
               File
             </MenuButton>
           </div>
           <MenuItems className="dropdown-menu">
             <div className="py-1">
               <MenuItem>
-                {({ active }) => (
+                {() => (
                   <a
                     href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
+
                     onClick={handleCreateNew}
                   >
                     New
@@ -106,45 +103,44 @@ const Header: React.FC<HeaderProps> = ({
                 )}
               </MenuItem>
               <MenuItem>
-                {({ active }) => (
-                  <>
-                    <label className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}>
-                      Open
-                      <input type="file" className="hidden" onChange={handleOpenFromFile} />
-                    </label>
-                  </>
-                )}
+                <>
+                  <label>
+                    <input type="file" onChange={handleOpenFromFile} />
+                  </label>
+                </>
               </MenuItem>
               <MenuItem>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
-                    onClick={handleSaveCurrent}
-                  >
-                    Save As
-                  </a>
-                )}
+                <a
+                  href="#"
+                  onClick={handleSaveCurrent}
+                >
+                  Save As
+                </a>
               </MenuItem>
               <MenuItem>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
-                    onClick={saveAllGraphs}
-                  >
-                    Save All
-                  </a>
-                )}
+                <a
+                  href="#"
+                  onClick={saveAllGraphs}
+                >
+                  Save All
+                </a>
+              </MenuItem>
+              <MenuItem>
+                <a
+                  href="#"
+                  onClick={() => {handleToPetriNet()}}
+                >
+                  Zu Petri Netz
+                </a>
               </MenuItem>
             </div>
           </MenuItems>
         </Menu>
 
         {/* Matrix Menu */}
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="">
           <div>
-            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <MenuButton className="dropdown-button">
               {loading ? "Loading..." : "Select Matrix"}
             </MenuButton>
           </div>
@@ -153,17 +149,12 @@ const Header: React.FC<HeaderProps> = ({
               {matrices.length > 0 ? (
                 matrices.map((matrix) => (
                   <MenuItem key={matrix}>
-                    {({ active }) => (
-                      <a
-                        href="#"
-                        onClick={() => handleMatrixChange(matrix)}
-                        className={`${
-                          active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                        } block w-full px-4 py-2 text-sm cursor-pointer`} // Ensures each item takes full width
-                      >
-                        {matrix}
-                      </a>
-                    )}
+                    <a
+                      href="#"
+                      onClick={() => handleMatrixChange(matrix)}
+                    >
+                      {matrix}
+                    </a>
                   </MenuItem>
                 ))
               ) : (
@@ -176,46 +167,29 @@ const Header: React.FC<HeaderProps> = ({
 
         </Menu>
 
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="">
           <div>
-            <MenuButton className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <MenuButton className="dropdown-button">
               View
             </MenuButton>
           </div>
           <MenuItems className="dropdown-menu">
             <div className="py-1">
               <MenuItem>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
-                    onClick={view.toggleGrid}
-                  >
-                    Show Grid
-                  </a>
-                )}
+                <a
+                  href="#"
+                  onClick={() => {}}
+                >
+                  Show Grid
+                </a>
               </MenuItem>
               <MenuItem>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
-                    onClick={view.toggleRainbowPredictions}
-                  >
-                    Rainbow Prediction
-                  </a>
-                )}
-              </MenuItem>
-              <MenuItem>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(active ? 'bg-gray-100 text-gray-900' : 'text-gray-700', 'dropdown-menu-item')}
-                    onClick={view.toggleDarkMode}
-                  >
-                    Dark Mode
-                  </a>
-                )}
+                <a
+                  href="#"
+                  onClick={toggleRainbowPredictions}
+                >
+                  Rainbow Prediction
+                </a>
               </MenuItem>
             </div>
           </MenuItems>

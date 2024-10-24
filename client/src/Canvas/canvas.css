@@ -1,15 +1,11 @@
 .canvas-container {
+    margin: 0;
+    padding: 0;
     width: 80vw;
-    height: 85vh; /* Set height to 85% of the viewport height */
-    overflow: auto;
+    height: 80vh; /* Set height to 85% of the viewport height */
+    overflow: hidden;
     margin: 10px;
     border: 1px solid grey;
-}
-
-.canvas-content {
-    width: 3000px;
-    height: 3000px;
-    overflow: hidden;
 }
 
 .popover {

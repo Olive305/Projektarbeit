@@ -5,16 +5,14 @@ import MyNode from './NodeType';
 import GraphController from '../ControlBar/GraphController';
 import { KonvaEventObject } from 'konva/lib/Node';
 import Konva from 'konva';
-import MultiGraphs from '../ControlBar/MultiGraphs';
-import { View } from '../Header/view';
+import { JSX } from 'react/jsx-runtime';
 
 interface CanvasProps {
   controller: GraphController;
-  multiController: MultiGraphs;
-  view: View;
+  rainbowPredictions: boolean;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) => {
+const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
   const gridSize = controller.gridSize;
   const stageRef = useRef<Konva.Stage>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -25,10 +23,6 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
   const [isDraggingNode, setIsDraggingNode] = useState<boolean>(false);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1); // Initial zoom level (1 = 100%)
-  const [viewState, setViewState] = useState({
-    showGrid: view.showGrid,
-    rainbow: view.showRainbowPredictions
-  });
 
   // Selection variables
   let selecting = false;
@@ -42,48 +36,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
     node: null
   });
 
-  // useEffect
-
-  // React to changes in the `view` object
-  useEffect(() => {
-    const updateCanvasView = () => {
-      // Update the state that tracks view properties to trigger re-render
-      setViewState({
-        showGrid: view.showGrid,
-        rainbow: view.showRainbowPredictions,
-      });
-    };
-
-    // Subscribe to view changes
-    view.onChange(updateCanvasView);
-
-    // Clean up listener on component unmount
-    return () => {
-      view.offChange(updateCanvasView);
-    };
-  }, [view]);
-  
-  useEffect(() => {
-    const stage = stageRef.current;
-    const scrollContainer = scrollContainerRef.current;
-
-    if (stage && scrollContainer) {
-      const repositionStage = () => {
-        const dx = scrollContainer.scrollLeft;
-        const dy = scrollContainer.scrollTop;
-        stage.container().style.transform = `translate(${dx}px, ${dy}px)`;
-        stage.x(-dx);
-        stage.y(-dy);
-      };
-
-      scrollContainer.addEventListener('scroll', repositionStage);
-      repositionStage();
-
-      return () => {
-        scrollContainer.removeEventListener('scroll', repositionStage);
-      };
-    }
-  }, [controller]);
+  // useEffect hooks
 
   useEffect(() => {
     const handleControllerChange = () => {
@@ -141,27 +94,52 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
   };
 
   const drawGrid = () => {
-    const gridLines = [];
-    for (let i = 0; i < window.innerWidth; i += gridSize) {
+    const gridLines: JSX.Element[] = [];
+    const stage = stageRef.current;
+  
+    if (!stage || scale < 0.4) {
+      return gridLines; // Don't draw the grid if zoom level is too low or stage doesn't exist
+    }
+  
+    const stageWidth = stage.width();
+    const stageHeight = stage.height();
+    
+    // Get the visible area in world coordinates
+    const topLeftX = -stagePos.x / scale;
+    const topLeftY = -stagePos.y / scale;
+    const bottomRightX = topLeftX + stageWidth / scale;
+    const bottomRightY = topLeftY + stageHeight / scale;
+  
+    // Calculate visible grid bounds
+    const startX = Math.floor(topLeftX / gridSize) * gridSize;
+    const endX = Math.ceil(bottomRightX / gridSize) * gridSize;
+    const startY = Math.floor(topLeftY / gridSize) * gridSize;
+    const endY = Math.ceil(bottomRightY / gridSize) * gridSize;
+  
+    // Draw vertical grid lines
+    for (let x = startX; x <= endX; x += gridSize) {
       gridLines.push(
         <Line
-          key={`v_${i}`}
-          points={[i, 0, i, window.innerHeight]}
+          key={`v_${x}`}
+          points={[x, topLeftY, x, bottomRightY]}
           stroke="gray"
-          strokeWidth={1}
+          strokeWidth={1} // Keep line thickness consistent based on zoom
         />
       );
     }
-    for (let i = 0; i < window.innerHeight; i += gridSize) {
+  
+    // Draw horizontal grid lines
+    for (let y = startY; y <= endY; y += gridSize) {
       gridLines.push(
         <Line
-          key={`h_${i}`}
-          points={[0, i, window.innerWidth, i]}
+          key={`h_${y}`}
+          points={[topLeftX, y, bottomRightX, y]}
           stroke="gray"
-          strokeWidth={1}
+          strokeWidth={1} // Keep line thickness consistent based on zoom
         />
       );
     }
+  
     return gridLines;
   };
 
@@ -266,6 +244,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
 
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
+    e.cancelBubble = true;
     if (isDraggingNode) {
       const node = nodes.get(id);
       if (!node) return;
@@ -575,15 +554,19 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
     setContextMenu({ visible: false, x: 0, y: 0, edge: null, node: null });
   };
 
+  const handleStageDragMove = (e: KonvaEventObject<DragEvent>) => {
+    const newPos = e.target.position();
+    setStagePos(newPos);
+  };
+
 
   return (
-    <div className="canvas-container" ref={scrollContainerRef} onClick={handleCanvasClick}>
-      <div className="canvas-content">
-
+    <div className="canvas-container" onClick={handleCanvasClick}>
       <Stage
         ref={stageRef}
         width={window.innerWidth}
         height={window.innerHeight}
+        onDragMove={handleStageDragMove}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseDown={(e) => {
@@ -602,7 +585,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
         y={stagePos.y}  // Bind updated stage position
       >
 
-          <Layer>{viewState.showGrid && drawGrid()}</Layer>
+          <Layer>{true && drawGrid()}</Layer>
 
           <Layer>
 
@@ -640,7 +623,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
                       height={node.h}
                       fill={
                         node.isPreview
-                          ? viewState.rainbow ? node.color : "lightgreen"
+                          ? rainbowPredictions ? node.color : "lightgreen"
                           : node.isSelected
                           ? "lightblue"
                           : "lightgray"
@@ -664,7 +647,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
                       height={node.w}
                       fill={
                         node.isPreview
-                          ? viewState.rainbow ? node.color : "lightgreen"
+                          ? rainbowPredictions ? node.color : "lightgreen"
                           : node.isSelected
                           ? "lightblue"
                           : "lightgray"
@@ -778,7 +761,6 @@ const Canvas: React.FC<CanvasProps> = ({ controller, multiController, view }) =>
       )}
 
     </div>
-  </div>
   );
 };
 

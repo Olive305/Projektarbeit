@@ -1,4 +1,3 @@
-import MyNode from "../Canvas/NodeType";
 import GraphController from "./GraphController";
 
 class MultiController {

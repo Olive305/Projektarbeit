@@ -1,39 +1,37 @@
-# Starten
+# Start
 
-Auf Linux und MacOs: start.sh ausführen (nicht vollkommen getestet)
+### On Linux and MacOS:
+Run `start.sh` (not fully tested).
 
-Auf Windows: start.bat ausführen
+### On Windows:
+Run `start.bat`.
 
-Diese Dateien installieren die dependencies und starten das Frontend und das Backend
+These files install the dependencies and start both the frontend and backend.
+You have to install graphviz and add it to path (in Windows and Linux, not tested on MacOs)
 
-# kaputte Funktionen
+## Broken Features
 
-copy / paste
+- Renaming of nodes.
+- Automatic node generation.
+- Toggling grid on/off.
+- All metrics except for `fitness` (not yet implemented).
 
-Umbenennen von Knoten
+## Partially Broken Features
 
-Selbständiges Erzeugen von Knoten
+- (Potentially) saving and loading of graphs as files.
 
-view Tab im Header
+## Short Explanation of Key Features
 
-# teilweise kaputt
+The canvas displays the graph as edges and nodes (directly follows graph). The server sends predictions for nodes that should be attached, which are shown as green nodes with blue, dashed edges or in rainbow colors, based on which node the prediction is coming from. Clicking on such a prediction will select it.
 
-(möglicherweise) speichern und laden von Graphen als Datei
+Each prediction has a probability at which it should be shown as preview. The **Probability Slider** (only shown when auto probability checkbox is disabled) allows you to adjust the threshold for which predictions should be displayed. The higher the probability, the fewer predictions will be shown. There is also an option to automatically calculate the number of predictions to display. This function is enabled by default and can be toggled using the checkbox.
 
-# kurze Erklärung der wichtigsten Funktionen
+Clicking on existing nodes selects them. Once selected, you can delete, copy, and eventually move them simultaneously. You can also select nodes using a **Lasso** (blue rectangle).
 
-Auf dem Kanvas wird der Graph als Kanten und Knoten angezeigt. Der Server schickt die Vorhersagen für die Knoten, die angehängt werden sollen, welche als grüne Knoten mit blauen, gestrichelten Kanten angezeigt werden. Klickt man solch eine Vorhersage an, wird diese ausgewählt.
+Right-clicking on nodes or edges opens a menu that allows you to delete them. More functions will be added later.
 
-Jede Vorhersage hat eine Wahrscheinlichkeit, mit der diese getroffen wird. Mit dem Probability Slider kann eingestellt werden, mit welcher Wahrscheinlichkeit eine Vorhersage angezeigt werden soll. Je höher die Wahrscheinlichkeit, desto weniger werden angezeigt. Außerdem gibt es die Möglichkeit die Menge der angezeigten Vorhersagen automatisch berechnen zu lassen. Diese Funktion ist automatisch eingeschaltet und läst sich durch die Checkbox an oder ausschalten.
+Above the canvas, where the graphs are displayed, there are buttons. The page always opens with a "New" button. These buttons act as tabs (the design will be further refined) and allow you to open multiple graphs simultaneously. In the **File** tab (top left), you can open new tabs, open existing files, or save the graph as a file.
 
-Klickt man auf existierenende Knoten, so werden diese Ausgewählt. Dadurch lassen sich alle ausgewählten Knoten löschen, kopieren und später auch gleichzeitig verschieben.
-Man kann Knoten auch mit einem "Lasso" (blaues Rechteck) auswählen, doch die Funktion is fehlerhaft.
+The **"To Petri net"** button (now in the File button in the header) opens a new tab where the graph is displayed as a Petri net. No predictions are made for Petri nets and further functions like downloading the petri Net will be added.
 
-Rechtsklick auf Knoten oder Kanten öffnet ein Menü, dass es erlaubt diese zu löschen. Später werden weiterer Funktionen dazu kommen.
-
-Über dem Kanvas auf dem die Graphen abgebildet werden befinden sich buttons. Die Seite öffnet immer mit einem "New" button. Dieses sind Tabs (Design wird wie im Rest der Seite noch überarbeitet), die erlauben, dass man mehrere Graphen gleichzeitig öffnen kann. Im File tab (oben links) lassen sich neue Tabs öffnen, bestehende Dateien öffnen, oder den Graph als Datei speichern.
-
-Der "To Petri net" button öffnet einen neuen Tab, in dem der Graph als Petri Netz dargestellt wird. Für das Petri Netz werden keine Vorschläge, also Vorhersagen gemacht.
-
-Oben im header befindet sich ein Button, auf dem der Name der aktuell verwendeten Prediction Matrix angezeigt wird (wird später verändert, sodass die Funktion des Knopfes dort steht). Klickt man auf diesen Knopf, werden alle verfügbaren Matrizen angezeigt und man kann die verwendete Matrix wechseln. Dadurch werden andere Knoten vorgeschlagen
-
+At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions.

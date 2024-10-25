@@ -1,4 +1,4 @@
-# Start
+# Start the site
 
 ### On Linux and MacOS:
 Run `start.sh` (not fully tested).

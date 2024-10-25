@@ -282,6 +282,8 @@ class Prediction:
         # ---- Replay Fitness Calculation ----
         self.fitness = self.matrix.replay_fitness(traces)
         self.simplicity = self.matrix.simplicity(traces, len(self.nodes))
+        self.precision = self.matrix.precision(traces, self.edges)
+        self.generalization = self.matrix.generalization(traces, (len(self.nodes.keys()) - 2 if '[EOC]' in self.nodes else len(self.nodes.keys()) - 1))
         
         
         metricsTime = time.time()

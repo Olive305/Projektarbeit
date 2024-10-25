@@ -14,11 +14,11 @@ You have to install graphviz and add it to path (in Windows and Linux, not teste
 - Renaming of nodes.
 - Automatic node generation.
 - Toggling grid on/off.
-- All metrics except for `fitness` (not yet implemented).
 
 ## Partially Broken Features
 
 - (Potentially) saving and loading of graphs as files.
+- Calculation of the generalization metric of the graph seems to be inaccurate. I have to further read into the calculation of this metric to fix this
 
 ## Short Explanation of Key Features
 

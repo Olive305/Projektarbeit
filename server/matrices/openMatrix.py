@@ -1,4 +1,5 @@
 import pandas as pd
+import math
 
 class MyCsv:
     def __init__(self):
@@ -30,9 +31,6 @@ class MyCsv:
 
         # Convert 'prefixes' column from strings to tuples for efficient comparison
         self.df['prefixes'] = self.df['prefixes'].apply(eval)
-
-        # Remove duplicate prefixes, keeping only the first occurrence
-        self.df = self.df.drop_duplicates(subset='prefixes', keep='first').reset_index(drop=True)
 
         # Precompute and cache the probability columns for use in the predict method
         fixed_columns = {'prefixes', 'targets', 'Support'}
@@ -119,7 +117,7 @@ class MyCsv:
         Measures the simplicity of the model based on the number of duplicate and missing activities.
         
         Args:
-            event_log (list): List of observed sequences (i.e., traces from the event log).
+            traces (list): List of observed traces (each trace is a tuple).
             nodes_in_process_tree (int): The number of nodes in the process tree (provided as input).
             
         Returns:
@@ -127,11 +125,11 @@ class MyCsv:
         """
         traces = [trace for trace in traces if '[EOC]' not in trace]
         
-        # Extract unique activities from the process tree (from the 'prefixes' column in the DataFrame)
+        # Extract unique activities from the df
         unique_activities_in_log = set(act for prefix in self.df['prefixes'] for act in prefix)
         
 
-        # Extract all activities in the event log (event classes)
+        # Extract all activities in the traces
         unique_activities_in_tree = set(act for trace in traces for act in trace)
         
         print("unique in log", unique_activities_in_log)
@@ -162,4 +160,84 @@ class MyCsv:
         print("simp",simplicity_score)
 
         return simplicity_score
+    
+    def precision(self, traces: list, edges: dict):
+        """
+        Measures the precision of the model.
+        
+        Args:
+            traces (list): List of observed traces (each trace is a tuple).
+            edges (dict): The edges in the traces
+            
+        Returns:
+            float: Precision score between 0 and 1.
+        """
+        
+        traces = [trace for trace in traces if '[EOC]' not in trace]
+        
+        # calculate the total visits of nodes (activities) in the traces
+        visitsOfNode = {}
+        
+        for trace in traces:
+            for node in trace:
+                if node in visitsOfNode:
+                    visitsOfNode[node] += 1
+                else: 
+                    visitsOfNode[node] = 1
+        
+        nodeSum = 0
+        
+        print("visits", visitsOfNode)
+        
+        # calculate the value for each node
+        for node in visitsOfNode.keys():
+            outgoingEdges = len(self.df.loc[self.df['prefixes'] == node, 'targets'])
+            usedEdges = len(edges[node]) if node in edges else 0
+            
+            # skip calculation if there are no outgoing edges
+            if outgoingEdges == 0:
+                continue
+            
+            nodeSum += visitsOfNode[node] + (outgoingEdges - usedEdges) / outgoingEdges
+            
+        if sum(visitsOfNode.values()) == 0:
+            return 1
+            
+        return 1 - nodeSum / sum(visitsOfNode.values())
+
+    def generalization(self, traces, num_nodes_in_tree: int):
+        """
+        Measures the generalization of the model based on how often nodes in the tree are visited.
+        
+        Args:
+            traces (list): List of observed sequences (i.e., traces from the event log).
+            num_nodes_in_tree (int): The number of nodes in the process tree, provided as input.
+            
+        Returns:
+            float: Generalization score between 0 and 1.
+        """
+        traces = [trace for trace in traces if '[EOC]' not in trace]
+        
+        # Initialize visit count for each unique node (prefix)
+        node_visits = {tuple(row['prefixes']): 0 for _, row in self.df.iterrows()}
+
+        # Count the number of times each node (prefix) is visited in the traces
+        for trace in traces:
+            for prefix in node_visits:
+                if set(prefix).issubset(set(trace)):
+                    node_visits[prefix] += 1
+
+        # Calculate the generalization score based on the provided formula
+        if num_nodes_in_tree > 0:
+            generalization_score = 1 - (
+                sum(1 / math.sqrt(visits) for visits in node_visits.values() if visits > 0) / num_nodes_in_tree
+            )
+        else:
+            generalization_score = 1  # If there are no nodes, generalization is perfect by default
+
+        return generalization_score
+
+            
+        
+        
 

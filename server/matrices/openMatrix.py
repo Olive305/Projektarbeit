@@ -132,9 +132,6 @@ class MyCsv:
         # Extract all activities in the traces
         unique_activities_in_tree = set(act for trace in traces for act in trace)
         
-        print("unique in log", unique_activities_in_log)
-        
-        print("unique in tree", unique_activities_in_tree)
 
         # Duplicate activities: activities that appear more than once in the process tree
         activity_counts_in_tree = {}
@@ -147,7 +144,6 @@ class MyCsv:
 
         duplicate_activities = sum(1 for count in activity_counts_in_tree.values() if count > 1)
         
-        print("dup", duplicate_activities)
 
         # Missing activities: activities in the tree that are not in the event log
         missing_activities = len(unique_activities_in_tree - unique_activities_in_log)
@@ -157,7 +153,6 @@ class MyCsv:
 
         # Simplicity formula: provided nodes_in_process_tree is used
         simplicity_score = 1 - (duplicate_activities + missing_activities) / (nodes_in_process_tree + event_classes_in_log)
-        print("simp",simplicity_score)
 
         return simplicity_score
     
@@ -187,7 +182,6 @@ class MyCsv:
         
         nodeSum = 0
         
-        print("visits", visitsOfNode)
         
         # calculate the value for each node
         for node in visitsOfNode.keys():

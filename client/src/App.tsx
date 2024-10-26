@@ -13,10 +13,9 @@ const App: React.FC = () => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [activeGraphController, setActiveGraphController] = useState<GraphController | null>(null);
   const [setActiveMatrixFn, setSetActiveMatrixFn] = useState<((matrix: string) => void) | null>(null);
-  const [rainbowPredictions, setRainbowPredictions] = useState(true)
+  const [rainbowPredictions, setRainbowPredictions] = useState(true);
 
   useEffect(() => {
-    // Initialize with a default graph if no graphs exist
     if (multiController.graphs.length === 0) {
       multiController.createNewGraph('New');
       setActiveTabIndex(0);
@@ -28,22 +27,17 @@ const App: React.FC = () => {
   }, [activeGraphController]);
 
   useEffect(() => {
-    // Update the active graph controller whenever the active tab index changes
     const activeController = multiController.graphs[activeTabIndex]?.[0] ?? null;
     setActiveGraphController(activeController);
-
     if (activeController) {
       activeController.notifyListeners();
     }
   }, [multiController, activeTabIndex]);
 
-  // Update setActiveMatrix only when activeGraphController changes
   useEffect(() => {
     if (activeGraphController && activeGraphController.setActiveMatrix) {
-      // If there's an active controller and setActiveMatrix exists, set the function
       setSetActiveMatrixFn(() => activeGraphController.setActiveMatrix);
     } else {
-      // Fallback to an empty function to avoid null or undefined errors
       setSetActiveMatrixFn(() => {});
     }
   }, [activeGraphController]);
@@ -61,36 +55,35 @@ const App: React.FC = () => {
 
   const handleConvertToPetriNet = (index: number) => {
     const newIndex = multiController.convertToPetriNet(index);
-    setActiveTabIndex(newIndex); // Set the new Petri Net tab as the active tab
+    setActiveTabIndex(newIndex);
+  };
+
+  const handleCreateNewGraph = (name: string) => {
+    multiController.createNewGraph(name);
+    setActiveTabIndex(multiController.graphs.length - 1);
+  };
+
+  const handleReadGraphFromFile = async (file: File) => {
+    await multiController.readGraphFromFile(file);
+    setActiveTabIndex(multiController.graphs.length - 1);
   };
 
   return (
     <>
       <Header
-        createNewGraph={(name: string) => {
-          multiController.createNewGraph(name);
-          setActiveTabIndex(multiController.graphs.length - 1); // Set new tab as active
-        }}
-        readGraphFromFile={async (file: File) => {
-          await multiController.readGraphFromFile(file);
-          setActiveTabIndex(multiController.graphs.length - 1); // Set new tab as active
-        }}
-        saveGraphAs={multiController.saveGraphAs}
+        createNewGraph={handleCreateNewGraph}
+        readGraphFromFile={handleReadGraphFromFile}
+        saveGraph={() => multiController.saveGraph(activeTabIndex)}
         saveAllGraphs={multiController.saveAllGraphs}
         activeTabIndex={activeTabIndex}
-        setActiveMatrix={setActiveMatrixFn || (() => {})} // Fallback to empty function
+        setActiveMatrix={setActiveMatrixFn || (() => {})}
         toggleRainbowPredictions={() => setRainbowPredictions(!rainbowPredictions)}
-        handleToPetriNet={(() => {handleConvertToPetriNet(activeTabIndex)})}
+        handleToPetriNet={() => handleConvertToPetriNet(activeTabIndex)}
       />
-      <section
-        className='workspace'
-      >
+      <section className='workspace'>
         <div className='left-bar-div'>
           {activeGraphController && (
-            <ControlBar
-              controller={activeGraphController}
-              multi={multiController}
-            />
+            <ControlBar controller={activeGraphController} multi={multiController} />
           )}
         </div>
         <section className='workspace-section'>
@@ -107,7 +100,7 @@ const App: React.FC = () => {
           </div>
           <div className='canvas-div'>
             {activeGraphController && (
-              <Canvas controller={activeGraphController} multiController={multiController} rainbowPredictions={rainbowPredictions}/>
+              <Canvas controller={activeGraphController} rainbowPredictions={rainbowPredictions}/>
             )}
           </div>
         </section>

@@ -5,7 +5,7 @@ import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 interface HeaderProps {
   createNewGraph: (name: string) => void;
   readGraphFromFile: (file: File) => Promise<void>;
-  saveGraphAs: (index: number) => Promise<void>;
+  saveGraph: (index: number) => Promise<void>;
   saveAllGraphs: () => Promise<void>;
   activeTabIndex: number;
   setActiveMatrix: (matrix: string) => void;
@@ -16,7 +16,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   createNewGraph,
   readGraphFromFile,
-  saveGraphAs,
+  saveGraph,
   saveAllGraphs,
   activeTabIndex,
   setActiveMatrix,
@@ -76,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleSaveCurrent = async () => {
-    await saveGraphAs(activeTabIndex);
+    await saveGraph(activeTabIndex);
   };
 
   return (
@@ -114,7 +114,7 @@ const Header: React.FC<HeaderProps> = ({
                   href="#"
                   onClick={handleSaveCurrent}
                 >
-                  Save As
+                  Save
                 </a>
               </MenuItem>
               <MenuItem>

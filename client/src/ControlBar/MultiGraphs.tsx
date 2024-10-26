@@ -11,30 +11,54 @@ class MultiController {
 
   async readGraphFromFile(file: File) {
     const name = file.name;
-    const index = this.graphs.push([new GraphController(this.gridSize), name]) - 1;
+    const index = this.graphs.push([new GraphController(this.gridSize, true, true), name]) - 1;
 
     const text = await file.text();
     this.graphs[index][0].deserializeGraph(text);
+    this.graphs[index][0].get_preview_nodes();
+
     this.graphs[index][1] = name;
   }
 
-  async saveGraphAs(index: number) {
-    const fileName = prompt("Enter the file name:");
-    if (fileName) {
-      const graphData = this.graphs[index][0].serializeGraph();
-      const blob = new Blob([graphData], { type: 'application/json' });
+
+  async saveGraph(index: number) {
+    try {
+      const graph = this.graphs[index][0];
+      const graphName = this.graphs[index][1];
+      const serializedData = graph.serializeGraph();
+  
+      // Ensure there is data to download
+      if (!serializedData) {
+        console.error("No data to download.");
+        return;
+      }
+  
+      // Create a Blob from the serialized graph data
+      const blob = new Blob([serializedData], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+  
+      // Create an anchor element and set it up for download
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${fileName}.json`; // Save as .json file
+      a.download = `${graphName}.json`;
+  
+      // Append to the DOM to ensure it is clickable
+      document.body.appendChild(a);
+  
+      // Trigger the download by programmatically clicking the link
       a.click();
+  
+      // Clean up by removing the anchor and revoking the Blob URL
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error during file download:", error);
     }
   }
-
+  
   async saveAllGraphs() {
     this.graphs.forEach(async (_, index) => {
-      await this.saveGraphAs(index);
+      await this.saveGraph(index);
     });
   }
 
@@ -59,17 +83,6 @@ class MultiController {
     }
   }
 
-  private generateFileContent(index: number): string {
-    let content = this.graphs[index][1] + "\n";
-    this.graphs[index][0].edges.forEach(edge => {
-      content += "E " + edge[0] + " " + edge[1] + "\n";
-    });
-    this.graphs[index][0].nodes.forEach(node => {
-      content += "N " + node.id + " " + node.get_real_x + " " + node.get_real_y + " " + node.caption + "\n";
-    });
-    return content;
-  }
-
   public getIndexOf(controller: GraphController): number {
     return this.graphs.findIndex(([graphController]) => graphController === controller);
   }
@@ -78,7 +91,6 @@ class MultiController {
     this.graphs.push([this.graphs[index][0].toPetriNet(), this.graphs[index][1] + " Petri Net"]);
     return this.graphs.length - 1; // Return the index of the newly added graph
   }
-  
 }
 
 export default MultiController;

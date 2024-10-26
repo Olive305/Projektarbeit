@@ -274,6 +274,9 @@ class Prediction:
         self.deserializeGraph(graph)
         traces = self.getAllSequences()
         
+        print(self.nodes)
+        print(self.edges)
+        
         numNodes = len(self.nodes)
         
         # Calculate the maximal Number of nodes that should be added (for auto mode)
@@ -293,7 +296,6 @@ class Prediction:
         i = 0
         for trace in traces:
             matrixStartTime = time.time()
-            print("seq", trace)
             predictions = self.matrix.predict(trace, self.AUTO_PROB_MIN if self.auto else self.probMin)
             matrixEndTime = time.time()
             matrixTime += matrixEndTime - matrixEndTime
@@ -536,6 +538,8 @@ class Prediction:
                         'node': self.nodes[edgeEnd].to_dict(),  # Convert Node to dict
                         'probability': self.nodeProbSet[edgeEnd]
                     })
+    
+        print("result", returnNodes)
     
         serialized_graph = {
             'dfg': {

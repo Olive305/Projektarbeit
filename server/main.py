@@ -27,7 +27,6 @@ for path in matrixPaths:
     matrix.openCsv(path[0])
     matrices[path[1]] = matrix
     
-print("change")
 
 @app.route("/api/test", methods=['GET'])
 def test():

@@ -245,33 +245,69 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 
   const handleDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
     e.cancelBubble = true;
+    
     if (isDraggingNode) {
       const node = nodes.get(id);
       if (!node) return;
-      node.set_real_x(e.target.x());
-      node.set_real_y(e.target.y());
-      setNodes(new Map(nodes));
+  
+      // Check if the dragged node is selected
+      if (node.isSelected) {
+        // Get the difference in movement
+        const deltaX = e.target.x() - node.get_real_x();
+        const deltaY = e.target.y() - node.get_real_y();
+  
+        // Apply movement to all selected nodes
+        controller.selectedNodes.forEach(selectedId => {
+          const selectedNode = nodes.get(selectedId);
+          if (selectedNode) {
+            selectedNode.set_real_x(selectedNode.get_real_x() + deltaX);
+            selectedNode.set_real_y(selectedNode.get_real_y() + deltaY);
+          }
+        });
+      } else {
+        // Move only the current node if it is not selected
+        node.set_real_x(e.target.x());
+        node.set_real_y(e.target.y());
+      }
+      
+      setNodes(new Map(nodes)); // Update state with new node positions
     }
   };
-
+  
   const handleDragEnd = (e: KonvaEventObject<DragEvent>, id: string) => {
     if (isDraggingNode) {
       const node = nodes.get(id);
       if (!node) return;
-      
-      // Get the actual dragged position
-      const x = e.target.x();
-      const y = e.target.y();
   
-      // Set the new real positions rounded to the nearest grid
-      node.set_real_x(Math.round(x / gridSize) * gridSize);
-      node.set_real_y(Math.round(y / gridSize) * gridSize);
+      // Check if the dragged node is selected
+      if (node.isSelected) {
+        // Get the actual dragged position
+        const x = e.target.x();
+        const y = e.target.y();
   
-      // Update the state with the modified node
-      setNodes(new Map(nodes));
+        // Calculate the snap-to-grid offsets
+        const offsetX = Math.round(x / gridSize) * gridSize - node.get_real_x();
+        const offsetY = Math.round(y / gridSize) * gridSize - node.get_real_y();
+  
+        // Apply snapping to all selected nodes
+        controller.selectedNodes.forEach(selectedId => {
+          const selectedNode = nodes.get(selectedId);
+          if (selectedNode) {
+            selectedNode.set_real_x(selectedNode.get_real_x() + offsetX);
+            selectedNode.set_real_y(selectedNode.get_real_y() + offsetY);
+          }
+        });
+      } else {
+        // Snap only the dragged node to the grid if it is not selected
+        node.set_real_x(Math.round(e.target.x() / gridSize) * gridSize);
+        node.set_real_y(Math.round(e.target.y() / gridSize) * gridSize);
+      }
+  
+      setNodes(new Map(nodes)); // Update the state with the modified node positions
       setIsDraggingNode(false);
     }
   };
+  
   
 
   const handleCircleMouseDown = (event: KonvaEventObject<MouseEvent>, node: MyNode) => {
@@ -529,6 +565,13 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 
   const handleDeleteNode = () => {
     if (contextMenu.node) {
+
+      // if the node is selected, delete the selected nodes
+      if (controller.nodes.get(contextMenu.node.id)?.isSelected) {
+        controller.deleteSelectedNodes()
+        return
+      }
+
       controller.removeNode(contextMenu.node.id);
       setNodes(new Map(controller.nodes)); // Update the state with the new set of nodes
       setEdges([...controller.edges]); // Update the state with the new set of edges
@@ -603,7 +646,9 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
                   onDragEnd={(e) => (node.isPreview ? {} : handleDragEnd(e, node.id))}
                   onContextMenu={(e) => handleNodeRightClick(e, node)}
                   onClick={(e) => {
+                    
                     e.cancelBubble = true;
+                    if (e.evt.button !== 0) return;
                     const id = node.id;
 
                     const targetNode = nodes.get(id);
@@ -730,6 +775,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
             <Rect
               ref={selectionRecRef}
               fill='lightblue'
+              stroke='blue'
               visible={false}
               listening={false}
               opacity={0.5}

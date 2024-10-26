@@ -17,7 +17,6 @@ You have to install graphviz and add it to path (in Windows and Linux, not teste
 
 ## Partially Broken Features
 
-- (Potentially) saving and loading of graphs as files.
 - Calculation of the generalization metric of the graph seems to be inaccurate. I have to further read into the calculation of this metric to fix this
 
 ## Short Explanation of Key Features

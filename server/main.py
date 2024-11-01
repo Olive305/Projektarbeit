@@ -1,58 +1,259 @@
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory, session, g
 from flask_cors import CORS
 import os
+import uuid
 
 # Define the project folder (current working directory in this case)
 project_folder = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../client/dist", static_url_path="")
+app.secret_key = "your_secret_key"  # Required for session management
 CORS(app)
 
-# Multiple matrices usable
-matrixPaths = [
-    (os.path.join(project_folder, r"matrices", "Helpdesk_nsp_matrix.csv"), "Helpdesk"),
-    (os.path.join(project_folder, r"matrices", "PDC_2020_1211111_TrainTest_nsp_matrix.csv"), "PDC_2020_1211111_TrainTest"),
-    (os.path.join(project_folder, r"matrices", "SimpleIORChoice_nsp_matrix.csv"), "Simple IOR Choice")
+app.config.update(
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=False,  # Set to True in production with https
+)
+
+# Paths to predefined matrices
+matrix_paths = [
+    (os.path.join(project_folder, "matrices", "Helpdesk_nsp_matrix.csv"), "Helpdesk"),
+    (
+        os.path.join(
+            project_folder, "matrices", "PDC_2020_1211111_TrainTest_nsp_matrix.csv"
+        ),
+        "PDC_2020_1211111_TrainTest",
+    ),
+    (
+        os.path.join(project_folder, "matrices", "SimpleIORChoice_nsp_matrix.csv"),
+        "Simple IOR Choice",
+    ),
 ]
 
-# test test
-
+# Load predefined matrices
 matrices = {}
-
-# Initialize the matrices
-for path in matrixPaths:
+for path, name in matrix_paths:
     matrix = MyCsv()
-    matrix.openCsv(path[0])
-    matrices[path[1]] = matrix
-    
+    matrix.openCsv(path)
+    matrices[name] = matrix
 
-@app.route("/api/test", methods=['GET'])
-def test():
-    return jsonify(True)
 
-@app.route("/api/predict", methods=['POST'])
-def predict():
+@app.route("/")
+@app.route("/<path:path>")
+def serve_frontend(path=""):
+    # Serve the specific static file if it exists, otherwise serve index.html
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):  # type: ignore
+        return send_from_directory(app.static_folder, path)  # type: ignore
+    else:
+        return send_from_directory(app.static_folder, "index.html")  # type: ignore
+
+
+@app.route("/api/testConnection", methods=["GET"])
+def test_connection():
+    """API endpoint to test server connection."""
+    return jsonify({"status": "Connection successful"})
+
+
+@app.route("/api/startSession", methods=["POST"])
+def start_session():
+    """
+    Initialize a prediction session. Users can choose a predefined matrix or upload a custom CSV file.
+    """
+    data = request.form
+
+    # Check for provided matrix name or custom CSV upload
+    matrix_name = data.get("matrix_name")
+    custom_csv = request.files.get("file") if "file" in request.files else None
+
+    # Initialize a new Prediction instance
+    if custom_csv:
+        custom_path = os.path.join("/tmp", f"{uuid.uuid4()}.csv")
+        custom_csv.save(custom_path)
+        csv = MyCsv()
+        csv.openCsv(custom_path)
+        session["matrix"] = csv
+        g.custom_path = custom_path
+        matrix = csv
+    elif matrix_name and matrix_name in matrices:
+        matrix = matrices[matrix_name]
+    else:
+        return jsonify(
+            {"error": "Please provide a valid matrix name or upload a CSV file."}
+        ), 400
+
+    pred = Prediction(matrix)
+
+    session["prediction"] = pred.to_json()
+    session["session_id"] = str(uuid.uuid4())
+
+    return jsonify(
+        {"message": "Session started successfully", "session_id": session["session_id"]}
+    )
+
+
+@app.route("/api/changeMatrix", methods=["POST"])
+def change_matrix():
+    """
+    Change the matrix mid-session. Users can specify a new predefined matrix or upload a custom CSV.
+    """
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    data = request.form or {}
+    matrix_name = data.get("matrix_name")
+    custom_csv = request.files.get("file") if "file" in request.files else None
+
+    # Check if using a predefined matrix
+    if matrix_name in matrices:
+        # Update with predefined matrix and clear any custom matrix path
+        matrix = matrices[matrix_name]
+        if "matrix_path" in session:
+            del session["matrix_path"]
+        g.custom_path = None  # Clear custom path for teardown
+
+    # Check if a custom matrix was provided by name or uploaded file
+    elif custom_csv:
+        # Remove old custom matrix file if it exists
+        old_custom_path = session.get("matrix_path")
+        if old_custom_path and os.path.exists(old_custom_path):
+            os.remove(old_custom_path)
+
+        # Save the new custom CSV
+        custom_path = os.path.join("/tmp", f"{uuid.uuid4()}.csv")
+        custom_csv.save(custom_path)
+
+        # Load the matrix from the CSV
+        matrix = MyCsv()
+        matrix.openCsv(custom_path)
+
+        # Store the custom matrix in session for future use
+        session["custom_matrices"][matrix_name] = matrix.to_dict()
+        session["matrix_path"] = custom_path  # Update path for teardown
+        g.custom_path = custom_path  # Update for teardown
+
+    else:
+        return jsonify(
+            {"error": "Please provide a valid matrix name or upload a CSV file."}
+        ), 400
+
+    # Update the Prediction instance with the new matrix
+    session["lastUsedMatrix"] = matrix_name
+
+    return jsonify({"message": "Matrix added successfully"})
+
+
+@app.route("/api/getAvailableMatrices", methods=["GET"])
+def get_available_matrices():
+    """Get the list of available matrices, including predefined and session custom matrices."""
+    # Ensure custom matrices are initialized in session
+    custom_matrices = session.get("custom_matrices", {})
+
+    # Combine predefined and custom matrix names
+    available_matrices = list(matrices.keys()) + list(custom_matrices.keys())
+
+    return jsonify(available_matrices)
+
+
+@app.route("/api/generatePetriNet", methods=["POST"])
+def generate_petri_net():
+    """
+    Generate a Petri net from the current prediction session.
+    This function expects a graph input to convert.
+    """
+    print("petri session:", session)
+
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices[session["lastUsedMatrix"]]
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+    petri_net = prediction.convert_to_petri_net()
+
+    return jsonify({"net": petri_net})
+
+
+@app.route("/api/getMetrics", methods=["POST"])
+def get_metrics():
+    """
+    Retrieve metrics from the current prediction session.
+    This endpoint expects a graph input to calculate metrics.
+    """
+
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices[session["lastUsedMatrix"]]
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+    metrics = prediction.getMetrics()
+
+    return jsonify({"metrics": metrics})
+
+
+@app.route("/api/predictOutcome", methods=["POST"])
+def predict_outcome():
+    """
+    Generate predictions based on the graph input provided.
+    This will reset the Prediction instance in the session with the latest input.
+    """
     data = request.json
-    if 'input_value' not in data:
-        return jsonify({"error": "No input_value provided"}), 400
+    graph_input = data.get("graph_input")  # type: ignore
+    matrixName = data.get("matrix")  # type: ignore
 
-    input_value = data['input_value']
-    prediction = Prediction(matrices)
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
 
-    # Function call for the prediction (to be added)
-    result = prediction.getPredictions(input_value)
+    # Retrieve the matrix from either predefined matrices or custom matrices in the session
+    matrix = matrices.get(matrixName) or MyCsv.from_dict(
+        session.get("custom_matrices", {}).get(matrixName)
+    )
+    if not matrix:
+        return jsonify({"error": "Given matrix not available in this session."}), 400
 
-    return jsonify(result)
+    # Load Prediction from session and update it with new data
+    prediction = Prediction.from_json(session["prediction"], matrix)
+    predictions = prediction.getPredictions(graph_input)
 
-@app.route("/api/getMatrices", methods=['GET'])
-def getMatrices():
-    # Ensure that all available matrices are returned
-    return jsonify({
-        "available_matrices": list(matrices.keys()),
-        "default_matrix": "Simple IOR Choice"
-    })
+    # Update session with the modified Prediction instance
+    session["prediction"] = prediction.to_json()
+    session["lastUsedMatrix"] = matrixName
+    session.modified = True  # Ensure session updates are saved
+
+    return jsonify({"predictions": predictions})
+
+
+@app.teardown_appcontext
+def cleanup(exception=None):
+    """
+    Cleanup any temporary files stored during the session.
+    This ensures custom CSVs are removed after session ends.
+    """
+    # Access g.custom_path instead of session to avoid request context error
+    custom_path = getattr(g, "custom_path", None)
+    if custom_path and os.path.exists(custom_path):
+        os.remove(custom_path)
+
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8081)
+    app.run(debug=True, port=8081, host="localhost")

@@ -1,18 +1,17 @@
 .canvas-container {
-    margin: 0;
-    padding: 0;
-    width: 80vw;
-    height: 80vh; /* Set height to 85% of the viewport height */
-    overflow: hidden;
-    margin: 10px;
-    border: 1px solid grey;
+	margin: 0;
+	padding: 0;
+	width: 80vw;
+	height: 80vh; /* Set height to 85% of the viewport height */
+	overflow: hidden;
+	border: 1px solid grey;
 }
 
 .popover {
-    position: absolute;
-    background: white;
-    border: 1px solid #ccc;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    z-index: 1000;
+	position: absolute;
+	background: white;
+	border: 1px solid #ccc;
+	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+	padding: 10px;
+	z-index: 1000;
 }

@@ -1,25 +1,26 @@
 # Start the site
 
-### On Linux and MacOS:
-Run `start.sh` (not fully tested).
+Run main.py file (opens frontend and backend)
 
-### On Windows:
-Run `start.bat`.
-
-These files install the dependencies and start both the frontend and backend.
+You may need to install the dependencies and start both the frontend and backend.
 You have to install graphviz and add it to path (in Windows and Linux, not tested on MacOs)
 
 ## Broken Features
 
 - Renaming of nodes.
-- Automatic node generation.
-- Toggling grid on/off.
+- Not showing the quality metrics, because of changes on the interface
 
 ## Partially Broken Features
 
 - Calculation of the generalization metric of the graph seems to be inaccurate. I have to further read into the calculation of this metric to fix this
 
+## Not tested
+
+- Uploading custom csv files
+
 ## Short Explanation of Key Features
+
+(Maybe not up to date.)
 
 The canvas displays the graph as edges and nodes (directly follows graph). The server sends predictions for nodes that should be attached, which are shown as green nodes with blue, dashed edges or in rainbow colors, based on which node the prediction is coming from. Clicking on such a prediction will select it.
 
@@ -33,4 +34,4 @@ Above the canvas, where the graphs are displayed, there are buttons. The page al
 
 The **"To Petri net"** button (now in the File button in the header) opens a new tab where the graph is displayed as a Petri net. No predictions are made for Petri nets and further functions like downloading the petri Net will be added.
 
-At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions.
+At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions. It also shows a **Add Matrix** button, which allows to add a custom csv file for custom predictions. This matrix will only be used during the current session. It should be possible to add multiple custom matrices during a session.

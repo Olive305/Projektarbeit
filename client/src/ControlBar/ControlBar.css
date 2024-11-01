@@ -1,81 +1,81 @@
-  /* Checkbox styling */
+/* Checkbox styling */
 .checkbox {
-    margin-right: 0.5rem;
-    transform: scale(1.2);
+	margin-right: 0.5rem;
+	transform: scale(1.2);
 }
 
 label {
-    display: flex;
-    align-items: center;
-    font-size: 1.1rem;
-    color: black;
-    cursor: pointer;
+	display: flex;
+	align-items: center;
+	font-size: 1.1rem;
+	color: black;
+	cursor: pointer;
 }
 
 label:hover {
-    color: #fff;
+	color: #fff;
 }
 
-  /* Slider container styling */
+/* Slider container styling */
 .slidecontainer {
-    width: 100%;
-    margin: 1rem 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+	width: 100%;
+	margin: 1rem 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
-  /* Slider styling */
+/* Slider styling */
 .slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 80%;
-    height: 0.4rem;
-    background: black;
-    outline: none;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    border-radius: 5px;
-    cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+	width: 80%;
+	height: 0.4rem;
+	background: black;
+	outline: none;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+	border-radius: 5px;
+	cursor: pointer;
 }
 
 .slider:hover {
-    opacity: 1;
+	opacity: 1;
 }
 
 .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 1.2rem;
-    height: 1.2rem;
-    background: #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid black;
-    transition: background-color 0.3s;
+	-webkit-appearance: none;
+	appearance: none;
+	width: 1.2rem;
+	height: 1.2rem;
+	background: #fff;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid black;
+	transition: background-color 0.3s;
 }
 
 .slider::-webkit-slider-thumb:hover {
-    background-color: white;
+	background-color: white;
 }
 
 .slider::-moz-range-thumb {
-    width: 1.2rem;
-    height: 1.2rem;
-    background: #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid gray;
-    transition: background-color 0.3s;
+	width: 1.2rem;
+	height: 1.2rem;
+	background: #fff;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid gray;
+	transition: background-color 0.3s;
 }
 
 .slider::-moz-range-thumb:hover {
-    background-color: #eee;
+	background-color: #eee;
 }
 
-  /* Probability text styling */
+/* Probability text styling */
 .slidecontainer p {
-    color: black;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+	color: black;
+	font-size: 1.1rem;
+	margin-bottom: 0.5rem;
 }

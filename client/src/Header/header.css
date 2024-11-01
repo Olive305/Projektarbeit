@@ -1,74 +1,73 @@
 /* Reset default link styles inside the dropdown */
 .dropdown-menu a {
-    color: inherit;
-    text-decoration: none;
-    display: block; /* Ensure links behave like block-level elements */
-    width: 100%; /* Ensure the links take the full width of their container */
+	color: inherit;
+	text-decoration: none;
+	display: block; /* Ensure links behave like block-level elements */
+	width: 100%; /* Ensure the links take the full width of their container */
 }
 
 .dropdown-button {
-    width: 3rem;
-    height: 2rem;
-    border: none;
-    border-radius: 0.5rem;
-    background-color: #292C34;
-    color: #87909D;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.3s ease;
+	width: 3rem;
+	height: 2rem;
+	border: none;
+	border-radius: 0.5rem;
+	background-color: #292c34;
+	color: #87909d;
+	font-size: 16px;
+	cursor: pointer;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	transition: background-color 0.3s ease;
 }
 
 .dropdown-button:hover {
-    background-color: #72737C;
+	background-color: #72737c;
 }
 
 /* Custom styles for the dropdown menu */
 .dropdown-menu {
-    position: absolute;
-    padding: 0.5rem;
-    z-index: 10;
-    width: 14rem; /* Dropdown menu width */
-    margin-top: 0.5rem;
-    border-radius: 1rem; /* rounded-md */
-    background-color: gray;
-    border: px solid black;
-    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
-    display: block; /* Ensure the dropdown itself is block-level */
+	position: absolute;
+	padding: 0.5rem;
+	z-index: 10;
+	width: 14rem; /* Dropdown menu width */
+	margin-top: 0.5rem;
+	border-radius: 1rem; /* rounded-md */
+	background-color: gray;
+	border: px solid black;
+	transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+	display: block; /* Ensure the dropdown itself is block-level */
 }
 
 /* Ensure each menu item is displayed as a block and takes up full width */
 .dropdown-menu-item {
-    text-align: left;
-    cursor: pointer;
-    padding: 0.5rem 1rem; /* Padding for better spacing */
-    display: block; /* Display items as block-level elements */
-    width: 100%; /* Ensure items take up full width */
-    box-sizing: border-box; /* Prevent padding from overflowing */
+	text-align: left;
+	cursor: pointer;
+	padding: 0.5rem 1rem; /* Padding for better spacing */
+	display: block; /* Display items as block-level elements */
+	width: 100%; /* Ensure items take up full width */
+	box-sizing: border-box; /* Prevent padding from overflowing */
 }
 
 /* Hover effect for menu items */
 .dropdown-menu-item:hover {
-    background-color: white; /* bg-gray-100 */
+	background-color: white; /* bg-gray-100 */
 }
 
 /* Styling for the nav container to align items horizontally */
 nav {
-    display: flex;
-    flex-direction: row;
-    justify-content: start; /* Align items at the start of the nav */
-    align-items: center;
-    gap: 1rem; /* Space between menu buttons */
+	display: flex;
+	flex-direction: row;
+	justify-content: start; /* Align items at the start of the nav */
+	align-items: center;
+	gap: 1rem; /* Space between menu buttons */
 }
 
 header {
-    background-color: #292C34;
-    padding: 1rem;
-    margin: 0rem;
-    border: none;
-    border-bottom-left-radius: 1rem;
-    border-bottom-right-radius: 1rem;
-    
+	background-color: #292c34;
+	padding: 1rem;
+	margin: 0rem;
+	border: none;
+	border-bottom-left-radius: 1rem;
+	border-bottom-right-radius: 1rem;
 }

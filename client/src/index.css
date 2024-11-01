@@ -1,12 +1,12 @@
 /* src/styles.css */
-@Tailwind base;
-@Tailwind components;
-@Tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body
-{
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: white;
-    margin: 0;
-    padding: 0;
+body {
+	font-family: Arial, Helvetica, sans-serif;
+	background-color: white;
+	margin: 0;
+	padding: 0;
+	table-layout: fixed;
 }

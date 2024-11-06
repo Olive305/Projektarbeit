@@ -196,41 +196,60 @@ class MyCsv:
 
         Args:
             traces (list): List of observed traces (each trace is a tuple).
-            edges (dict): The edges in the traces
+            edges (dict): The edges in the traces.
 
         Returns:
             float: Precision score between 0 and 1.
         """
-
+        # Filter out traces with '[EOC]'
         traces = [trace for trace in traces if "[EOC]" not in trace]
 
-        # calculate the total visits of nodes (activities) in the traces
+        # Calculate the total visits of nodes (activities) in the traces
         visitsOfNode = {}
-
         for trace in traces:
+            visitsOfNode["starting_with_key:0"] = (
+                visitsOfNode.get("starting_with_key:0", 0) + 1
+            )
             for node in trace:
-                if node in visitsOfNode:
-                    visitsOfNode[node] += 1
-                else:
-                    visitsOfNode[node] = 1
+                visitsOfNode[node] = visitsOfNode.get(node, 0) + 1
 
+        # Initialize the node sum to accumulate precision metrics per node
         nodeSum = 0
 
-        # calculate the value for each node
-        for node in visitsOfNode.keys():
-            outgoingEdges = len(self.df.loc[self.df["prefixes"] == node, "targets"])
-            usedEdges = len(edges[node]) if node in edges else 0
+        # Iterate over edges (keys of edges) to calculate precision per node
+        for node in edges:
+            # Filter prefixes that end with the current node
+            matching_prefixes = [
+                prefix
+                for prefix in self.df["prefixes"]
+                if (len(prefix) > 0 and prefix[-1] == node)
+                or (node == "starting_with_key:0" and prefix == ())
+            ]
 
-            # skip calculation if there are no outgoing edges
+            # Find outgoing edges based on the prefixes and count them
+            outgoing_edges = {
+                target for prefix in matching_prefixes for target in prefix
+            }
+            used_edges = outgoing_edges.intersection(edges[node])
+
+            # Calculate outgoing and used edge counts
+            outgoingEdges = len(outgoing_edges)
+            usedEdges = len(used_edges)
+
+            # Skip if there are no outgoing edges for this node
             if outgoingEdges == 0:
                 continue
 
-            nodeSum += visitsOfNode[node] + (outgoingEdges - usedEdges) / outgoingEdges
+            # Calculate the precision part for this node and add it to the sum
+            nodeSum += visitsOfNode.get(node, 0) * (usedEdges / outgoingEdges)
 
-        if sum(visitsOfNode.values()) == 0:
-            return 1
+        # Return 1 if there are no visits; otherwise, calculate and return precision
+        totalVisits = sum(visitsOfNode.values())
+        if totalVisits == 0:
+            return 1.0
 
-        return 1 - nodeSum / sum(visitsOfNode.values())
+        # Calculate final precision score, normalized by the total visits
+        return 1 - nodeSum / totalVisits
 
     def generalization(self, traces, num_nodes_in_tree: int):
         """

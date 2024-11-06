@@ -69,7 +69,10 @@ def start_session():
 
     # Initialize a new Prediction instance
     if custom_csv:
-        custom_path = os.path.join("/tmp", f"{uuid.uuid4()}.csv")
+        tmp_dir = os.path.join(os.path.sep, "tmp")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+        custom_path = os.path.join(tmp_dir, f"{uuid.uuid4()}.csv")
         custom_csv.save(custom_path)
         csv = MyCsv()
         csv.openCsv(custom_path)
@@ -107,6 +110,10 @@ def change_matrix():
     matrix_name = data.get("matrix_name")
     custom_csv = request.files.get("file") if "file" in request.files else None
 
+    # Ensure custom matrices are initialized in session
+    if "custom_matrices" not in session:
+        session["custom_matrices"] = {}
+
     # Check if using a predefined matrix
     if matrix_name in matrices:
         # Update with predefined matrix and clear any custom matrix path
@@ -117,13 +124,18 @@ def change_matrix():
 
     # Check if a custom matrix was provided by name or uploaded file
     elif custom_csv:
+        # Create tmp directory if it doesn't exist
+        tmp_dir = os.path.join(os.path.sep, "tmp")
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+
         # Remove old custom matrix file if it exists
         old_custom_path = session.get("matrix_path")
         if old_custom_path and os.path.exists(old_custom_path):
             os.remove(old_custom_path)
 
         # Save the new custom CSV
-        custom_path = os.path.join("/tmp", f"{uuid.uuid4()}.csv")
+        custom_path = os.path.join(tmp_dir, f"{uuid.uuid4()}.csv")
         custom_csv.save(custom_path)
 
         # Load the matrix from the CSV
@@ -174,7 +186,7 @@ def generate_petri_net():
     # Initialize Prediction with last used matrix
     prediction = Prediction.from_json(
         session["prediction"],
-        matrices[session["lastUsedMatrix"]]
+        matrices.get(session["lastUsedMatrix"])
         or MyCsv.from_dict(
             session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
         ),
@@ -199,7 +211,7 @@ def get_metrics():
     # Initialize Prediction with last used matrix
     prediction = Prediction.from_json(
         session["prediction"],
-        matrices[session["lastUsedMatrix"]]
+        matrices.get(session["lastUsedMatrix"])
         or MyCsv.from_dict(
             session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
         ),

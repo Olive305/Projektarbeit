@@ -60,9 +60,12 @@ export class SessionAuth {
 	): Promise<MatrixChangeResponse> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
+		console.log("changing matrix", matrixName);
+
 		const formData = new FormData();
 		formData.append("matrix_name", matrixName);
 		if (file) {
+			console.log("file exists");
 			formData.append("file", file);
 		}
 
@@ -114,10 +117,13 @@ export class SessionAuth {
 		);
 
 		const data = JSON.parse(response.data.metrics);
+
+		console.log("setting metrics", data);
+
 		setFitness(data.fitness);
 		setGeneralization(data.generalization);
 		setPrecision(data.precision);
-		setSimplicity(data.setSimplicity);
+		setSimplicity(data.simplicity);
 	}
 
 	// Generate predictions based on the graph input

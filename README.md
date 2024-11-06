@@ -7,16 +7,13 @@ You have to install graphviz and add it to path (in Windows and Linux, not teste
 
 ## Broken Features
 
-- Renaming of nodes.
-- Not showing the quality metrics, because of changes on the interface
+- (Saving) and loading graphs
 
 ## Partially Broken Features
 
-- Calculation of the generalization metric of the graph seems to be inaccurate. I have to further read into the calculation of this metric to fix this
+- Calculation of the generalization metric of the graph seems to be accurate but have to recheck. I have to further read into the calculation of this metric to fix this
 
 ## Not tested
-
-- Uploading custom csv files
 
 ## Short Explanation of Key Features
 
@@ -34,4 +31,4 @@ Above the canvas, where the graphs are displayed, there are buttons. The page al
 
 The **"To Petri net"** button (now in the File button in the header) opens a new tab where the graph is displayed as a Petri net. No predictions are made for Petri nets and further functions like downloading the petri Net will be added.
 
-At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions. It also shows a **Add Matrix** button, which allows to add a custom csv file for custom predictions. This matrix will only be used during the current session. It should be possible to add multiple custom matrices during a session.
+At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions. It also shows a **Add Matrix** button, which allows to add a custom csv file for custom predictions. This matrix will only be used during the current session. It is possible to add multiple custom matrices during a session. I will later add the function to remove custom matrices.

@@ -115,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({
 					className="">
 					<div>
 						<MenuButton className="dropdown-button">
-							{loading ? "Loading..." : "Select Matrix"}
+							{loading ? "Loading..." : "Matrix"}
 						</MenuButton>
 					</div>
 					<MenuItems className="dropdown-menu">
@@ -138,24 +138,31 @@ const Header: React.FC<HeaderProps> = ({
 						</div>
 						<hr className="my-2" /> {/* Horizontal line to separate items */}
 						<MenuItem>
-							<label className="px-4 py-2 text-sm text-gray-700 cursor-pointer">
-								Add Matrix
-								<input
-									type="file"
-									className="hidden"
-									onChange={async (
-										event: React.ChangeEvent<HTMLInputElement>
-									) => {
-										const file = event.target.files?.[0];
-										if (file) {
-											const matrixName = prompt(
-												"Enter the name for the new matrix:"
-											);
-											setActiveMatrix(matrixName ? matrixName : "Matrix", file); // Use this to read and set the matrix
-										}
-									}}
-								/>
-							</label>
+							{() => (
+								<label
+									className="px-4 py-2 text-sm text-gray-700 cursor-pointer"
+									onClick={async () => {
+										const input = document.createElement("input");
+										input.type = "file";
+										input.onchange = async (event: Event) => {
+											const file = (event.target as HTMLInputElement)
+												.files?.[0];
+											console.log("reading from file");
+											if (file) {
+												const matrixName = prompt(
+													"Enter the name for the new matrix:"
+												);
+												setActiveMatrix(
+													matrixName ? matrixName : "Matrix",
+													file
+												); // Use this to read and set the matrix
+											}
+										};
+										input.click();
+									}}>
+									Add Matrix
+								</label>
+							)}
 						</MenuItem>
 					</MenuItems>
 				</Menu>

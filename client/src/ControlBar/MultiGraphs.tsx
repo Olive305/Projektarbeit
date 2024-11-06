@@ -99,7 +99,10 @@ class MultiController {
 		console.log(petriNetData);
 		const petriController = new GraphController(this.gridSize, false, true);
 		petriController.deserializePetriNet(petriNetData);
-		return this.graphs.push([petriController, this.graphs[index][1]]);
+		return this.graphs.push([
+			petriController,
+			"PetriNet " + this.graphs[index][1],
+		]);
 	};
 }
 

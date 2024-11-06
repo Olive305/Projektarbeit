@@ -249,12 +249,11 @@ class Prediction:
         transitions = dict(self.nodes)
         places = {}
         arcs = []
-        deleteTrans = []
-
-        # Remove transitions that are in preview_nodes
-        for trans in transitions:
-            if trans in self.preview_nodes:
-                deleteTrans.append(trans)
+        deleteTrans = [
+            trans
+            for trans in transitions
+            if trans in self.preview_nodes or trans in ["starting_with_key:0", "[EOC]"]
+        ]
 
         for trans in deleteTrans:
             del transitions[trans]
@@ -309,6 +308,9 @@ class Prediction:
 
         # Convert to graphviz Digraph
         dot = graphviz.Digraph(engine="dot")
+        dot.attr(
+            rankdir="LR",
+        )  # Set rankdir to left-to-right
 
         for transition in transitions:
             dot.node(transition, transition)
@@ -340,10 +342,9 @@ class Prediction:
             "places": [
                 {
                     "id": place,
-                    "x": round(
-                        -node_positions.get(place, (0, 0))[1]
-                    ),  # Use default position (0, 0) if not found
-                    "y": round(node_positions.get(place, (0, 0))[0]),
+                    "x": round(node_positions.get(place, (0, 0))[0])
+                    / 2,  # Use default position (0, 0) if not found
+                    "y": round(node_positions.get(place, (0, 0))[1]),
                 }
                 for place in places
             ],
@@ -351,10 +352,9 @@ class Prediction:
                 {
                     "id": trans,
                     "label": trans,
-                    "x": round(
-                        -node_positions.get(trans, (0, 0))[1]
-                    ),  # Use default position (0, 0) if not found
-                    "y": round(node_positions.get(trans, (0, 0))[0]),
+                    "x": round(node_positions.get(trans, (0, 0))[0])
+                    / 2,  # Use default position (0, 0) if not found
+                    "y": round(node_positions.get(trans, (0, 0))[1]),
                 }
                 for trans in transitions
             ],
@@ -396,7 +396,9 @@ class Prediction:
 
             for [node, probability] in predictions:
                 lastNodeId = (
-                    "0" if len(traces[i]) == 0 else traces[i][len(traces[i]) - 1]
+                    "starting_with_key:0"
+                    if len(traces[i]) == 0
+                    else traces[i][len(traces[i]) - 1]
                 )
 
                 # Check if the edge to the node from lastNodeId exists, we do not add anything
@@ -535,8 +537,8 @@ class Prediction:
 
         # Recursive function to build sequences
         def recBuildSeq(seq, curr):
-            # Check if the current node has been visited to prevent loops
-            if curr in visited:
+            # Check if the current node has been visited to prevent loops and check if it is a preview node
+            if curr in visited or curr in self.preview_nodes:
                 return []
 
             # Mark the current node as visited
@@ -568,8 +570,8 @@ class Prediction:
 
             return sequences
 
-        # Start the recursion from node "0" with an empty sequence
-        sequences = recBuildSeq((), "0")
+        # Start the recursion from node "starting_with_key:0" with an empty sequence
+        sequences = recBuildSeq((), "starting_with_key:0")
 
         # Ensure that the empty sequence () is included
         sequences.insert(0, ())

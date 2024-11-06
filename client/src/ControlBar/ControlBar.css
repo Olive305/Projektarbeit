@@ -79,3 +79,35 @@ label:hover {
 	font-size: 1.1rem;
 	margin-bottom: 0.5rem;
 }
+
+.processNameContainer {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 20px 0;
+	font-family: Arial, sans-serif;
+}
+
+.label {
+	font-weight: bold;
+	font-size: 1rem;
+	color: #333;
+}
+
+.input {
+	padding: 8px 12px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	font-size: 1rem;
+	outline: none;
+	transition: border-color 0.3s;
+}
+
+.input:focus {
+	border-color: #007bff;
+	box-shadow: 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.processNameContainer label {
+	margin-right: 10px;
+}

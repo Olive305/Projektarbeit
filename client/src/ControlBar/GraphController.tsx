@@ -45,9 +45,16 @@ class GraphController {
 
 		if (!notAddStartingNode)
 			this.addMyRect(
-				new MyNode("0", 1, 3, gridSize, "Start", this.nodeOnClick.bind(this))
+				new MyNode(
+					"starting_with_key:0",
+					1,
+					3,
+					gridSize,
+					"Start",
+					this.nodeOnClick.bind(this)
+				)
 			);
-		this.calculateColor("0");
+		this.calculateColor("starting_with_key:0");
 
 		this.activeMatrix = "Simple IOR Choice";
 		this.getPredictions = handleGetPredictions;
@@ -331,6 +338,7 @@ class GraphController {
 	}
 
 	public removeNode(key: string) {
+		if (key === "starting_with_key:0") return;
 		this.edges = this.edges.filter(
 			(edge) => edge[0] !== key && edge[1] !== key
 		);
@@ -342,6 +350,7 @@ class GraphController {
 
 	public deleteSelectedNodes() {
 		this.selectedNodes.forEach((key) => {
+			if (key === "starting_with_key:0") return;
 			this.edges = this.edges.filter(
 				(edge) => edge[0] !== key && edge[1] !== key
 			);

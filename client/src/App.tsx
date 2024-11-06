@@ -19,6 +19,7 @@ const App: React.FC = () => {
 		generatePetriNet,
 		getAvailableMatrices,
 		changeMatrix,
+		getMetrics,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -26,11 +27,18 @@ const App: React.FC = () => {
 	const [activeTabIndex, setActiveTabIndex] = useState(0);
 	const [rainbowPredictions, setRainbowPredictions] = useState(true);
 
+	const [activeName, setActiveName] = useState("");
+
 	const [activeGraphController, setActiveGraphController] =
 		useState<GraphController | null>(null);
 	const [tabs, setTabs] = useState(multiController.current.graphs);
 
 	const [matrices, setMatrices] = useState<string[]>([]); // Matrices fetched from API
+
+	const [fitness, setFitness] = useState(0);
+	const [generalization, setGeneralization] = useState(0);
+	const [simplicity, setSimplicity] = useState(0);
+	const [precision, setPrecision] = useState(0);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -45,13 +53,32 @@ const App: React.FC = () => {
 		activeGraphController?.notifyListeners();
 	}, [activeGraphController]);
 
+	useEffect(() => {
+		activeGraphController?.notifyListeners();
+	}, [activeTabIndex, activeName]);
+
 	// Set initial graph controller on initial render
 	useEffect(() => {
 		if (multiController.current.graphs.length === 0) {
-			multiController.current.createNewGraph("New", predictOutcome);
+			multiController.current.createNewGraph(
+				"New",
+				async (graphInput: any, matrix: string) => {
+					const prediction = await predictOutcome(graphInput, matrix);
+
+					getMetrics(
+						setFitness,
+						setGeneralization,
+						setSimplicity,
+						setPrecision
+					);
+					return prediction;
+				}
+			);
 		}
 		setActiveGraphController(multiController.current.graphs[0][0]);
-		setTabs([...multiController.current.graphs]); // Ensure initial tab is rendered
+		setTabs([...multiController.current.graphs]);
+
+		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	}, [predictOutcome]);
 
 	// Update preview nodes whenever session starts
@@ -70,12 +97,29 @@ const App: React.FC = () => {
 		getMatrices();
 	}, [sessionStarted]);
 
-	const handleTabClick = (index: number) => {
+	const handleNameChange = (name: string) => {
+		setActiveName(name);
+		// Update the name of the current tab only
+		if (
+			activeGraphController &&
+			multiController.current.graphs[activeTabIndex]
+		) {
+			multiController.current.graphs[activeTabIndex][1] = name;
+		}
+		setTabs([...multiController.current.graphs]); // Update tabs state
+	};
+
+	const handleTabClick = async (index: number): Promise<void> => {
 		const controller = multiController.current.graphs[index]?.[0];
 		if (controller) {
 			setActiveGraphController(controller);
 			setActiveTabIndex(index);
-			controller.get_preview_nodes();
+			setActiveName(multiController.current.graphs[index][1]);
+
+			await controller.get_preview_nodes();
+
+			// Update metrics for the new active tab
+			getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
 		} else {
 			console.error("Controller is undefined or null");
 		}
@@ -88,21 +132,27 @@ const App: React.FC = () => {
 		);
 		setActiveTabIndex(newIndex);
 		setTabs([...multiController.current.graphs]); // Update tabs state
+		setActiveName(multiController.current.graphs[newIndex][1]); // Set activeName to the new graph's name
 	};
 
-	const handleCreateNewGraph = (name: string) => {
+	const handleCreateNewGraph = async (name: string) => {
 		multiController.current.createNewGraph(name, predictOutcome);
 		setActiveTabIndex(multiController.current.graphs.length - 1);
-		setTabs([...multiController.current.graphs]); // Update tabs state
+		setTabs([...multiController.current.graphs]);
+		setActiveName(name);
+
+		// Update metrics for the new active tab
+		getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
 	};
 
 	const handleReadGraphFromFile = async (file: File) => {
 		await multiController.current.readGraphFromFile(file);
 		setActiveTabIndex(multiController.current.graphs.length - 1);
-		setTabs([...multiController.current.graphs]); // Update tabs state
+		setTabs([...multiController.current.graphs]);
+		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	};
 
-	const handleTabClose = (index: number): void => {
+	const handleTabClose = async (index: number) => {
 		multiController.current.graphs.splice(index, 1);
 		if (multiController.current.graphs.length === 0) {
 			multiController.current.createNewGraph("New", predictOutcome);
@@ -111,7 +161,13 @@ const App: React.FC = () => {
 			const newTabIndex = index > 0 ? index - 1 : 0;
 			setActiveTabIndex(newTabIndex);
 		}
-		setTabs([...multiController.current.graphs]); // Update tabs state
+		setTabs([...multiController.current.graphs]);
+		setActiveName(multiController.current.graphs[activeTabIndex][1]);
+
+		await activeGraphController?.get_preview_nodes();
+
+		// Update metrics after closing a tab and setting a new active tab
+		getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
 	};
 
 	return (
@@ -123,6 +179,7 @@ const App: React.FC = () => {
 				saveAllGraphs={multiController.current.saveAllGraphs}
 				activeTabIndex={activeTabIndex}
 				setActiveMatrix={(matrixName: string, file?: File) => {
+					console.log("Setting active matrix to:", matrixName, "in App.tsx");
 					changeMatrix(matrixName, file);
 					if (activeGraphController)
 						activeGraphController.activeMatrix = matrixName;
@@ -147,6 +204,12 @@ const App: React.FC = () => {
 						<ControlBar
 							controller={activeGraphController}
 							multi={multiController.current}
+							activeName={activeName}
+							setActiveName={handleNameChange}
+							precision={precision}
+							simplicity={simplicity}
+							fitness={fitness}
+							generalization={generalization}
 						/>
 					)}
 				</div>
@@ -155,13 +218,13 @@ const App: React.FC = () => {
 						{tabs.map(([_, name], index) => (
 							<a
 								key={index}
-								className={`tab${activeTabIndex === index ? " active" : ""}`}
+								className={`tab${activeTabIndex === index ? "active" : ""}`}
 								onClick={() => handleTabClick(index)}>
 								{name}
 								<button
 									className="tabCloseButton"
 									onClick={(event) => {
-										event.stopPropagation(); // Prevents triggering the tab click event
+										event.stopPropagation();
 										handleTabClose(index);
 									}}>
 									<img

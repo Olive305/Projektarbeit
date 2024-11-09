@@ -9,11 +9,13 @@ class MultiController {
 		this.gridSize = gSize;
 	}
 
-	async readGraphFromFile(file: File) {
+	async readGraphFromFile(file: File, handleGetPredictions: any) {
 		const name = file.name;
 		const index =
-			this.graphs.push([new GraphController(this.gridSize, true, true), name]) -
-			1;
+			this.graphs.push([
+				new GraphController(this.gridSize, true, true, handleGetPredictions),
+				name,
+			]) - 1;
 
 		const text = await file.text();
 		this.graphs[index][0].deserializeGraph(text);

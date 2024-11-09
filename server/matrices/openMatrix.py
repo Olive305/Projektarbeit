@@ -190,7 +190,7 @@ class MyCsv:
 
         return simplicity_score
 
-    def precision(self, traces: list, edges: dict):
+    def precision(self, traces: list, edges: dict, previewNodes: list):
         """
         Measures the precision of the model.
 
@@ -218,30 +218,40 @@ class MyCsv:
 
         # Iterate over edges (keys of edges) to calculate precision per node
         for node in edges:
-            # Filter prefixes that end with the current node
-            matching_prefixes = [
-                prefix
-                for prefix in self.df["prefixes"]
+            if node in previewNodes or node == "[EOC]":  # Skip preview nodes
+                pass
+
+            # Filter prefixes that end with the current node and get the targets
+            outgoing_edges = [
+                self.df[self.df["prefixes"] == prefix]["targets"].values[0].strip()  # type: ignore
+                for prefix in self.df["prefixes"]  # type: ignore
                 if (len(prefix) > 0 and prefix[-1] == node)
                 or (node == "starting_with_key:0" and prefix == ())
             ]
 
-            # Find outgoing edges based on the prefixes and count them
-            outgoing_edges = {
-                target for prefix in matching_prefixes for target in prefix
-            }
-            used_edges = outgoing_edges.intersection(edges[node])
+            # Number of nodes not existing in the outgoing edges
+            wrongEdges = sum(
+                1
+                for edge in edges[node]
+                if edge not in outgoing_edges and edge not in previewNodes
+            )
 
-            # Calculate outgoing and used edge counts
-            outgoingEdges = len(outgoing_edges)
-            usedEdges = len(used_edges)
+            # Number of missed edges
+            missedEdges = (
+                len(outgoing_edges)
+                - len([edge for edge in edges[node] if edge not in previewNodes])
+                + wrongEdges
+            )
 
-            # Skip if there are no outgoing edges for this node
-            if outgoingEdges == 0:
-                continue
+            # Calculate the precision of the current node
+            nodeValue = (
+                (missedEdges + wrongEdges) / len(outgoing_edges)
+                if len(outgoing_edges) > 0
+                else 1
+            )
 
-            # Calculate the precision part for this node and add it to the sum
-            nodeSum += visitsOfNode.get(node, 0) * (usedEdges / outgoingEdges)
+            # Update the node sum with the precision of the current node
+            nodeSum += nodeValue * visitsOfNode.get(node, 1)
 
         # Return 1 if there are no visits; otherwise, calculate and return precision
         totalVisits = sum(visitsOfNode.values())

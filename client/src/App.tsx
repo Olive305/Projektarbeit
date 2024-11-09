@@ -137,7 +137,7 @@ const App: React.FC = () => {
 
 	const handleCreateNewGraph = async (name: string) => {
 		multiController.current.createNewGraph(name, predictOutcome);
-		setActiveTabIndex(multiController.current.graphs.length - 1);
+		handleTabClick(multiController.current.graphs.length - 1);
 		setTabs([...multiController.current.graphs]);
 		setActiveName(name);
 
@@ -146,8 +146,8 @@ const App: React.FC = () => {
 	};
 
 	const handleReadGraphFromFile = async (file: File) => {
-		await multiController.current.readGraphFromFile(file);
-		setActiveTabIndex(multiController.current.graphs.length - 1);
+		await multiController.current.readGraphFromFile(file, predictOutcome);
+		handleTabClick(multiController.current.graphs.length - 1);
 		setTabs([...multiController.current.graphs]);
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	};
@@ -170,6 +170,19 @@ const App: React.FC = () => {
 		getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
 	};
 
+	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
+		changeMatrix(matrixName, file);
+		if (activeGraphController) activeGraphController.activeMatrix = matrixName;
+		const getMatrices = async () => {
+			if (sessionStarted) {
+				setMatrices(await getAvailableMatrices());
+			}
+		};
+		getMatrices();
+
+		activeGraphController?.get_preview_nodes();
+	};
+
 	return (
 		<>
 			<Header
@@ -178,20 +191,7 @@ const App: React.FC = () => {
 				saveGraph={() => multiController.current.saveGraph(activeTabIndex)}
 				saveAllGraphs={multiController.current.saveAllGraphs}
 				activeTabIndex={activeTabIndex}
-				setActiveMatrix={(matrixName: string, file?: File) => {
-					console.log("Setting active matrix to:", matrixName, "in App.tsx");
-					changeMatrix(matrixName, file);
-					if (activeGraphController)
-						activeGraphController.activeMatrix = matrixName;
-					const getMatrices = async () => {
-						if (sessionStarted) {
-							setMatrices(await getAvailableMatrices());
-						}
-					};
-					getMatrices();
-
-					activeGraphController?.get_preview_nodes();
-				}}
+				setActiveMatrix={handleSetActiveMatrix}
 				toggleRainbowPredictions={() =>
 					setRainbowPredictions(!rainbowPredictions)
 				}

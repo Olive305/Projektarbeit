@@ -141,7 +141,7 @@ class Prediction:
         traces = self.getAllSequences()
         fitness = self.matrix.replay_fitness(traces)
         simplicity = self.matrix.simplicity(traces, len(self.nodes))
-        precision = self.matrix.precision(traces, self.edges)
+        precision = self.matrix.precision(traces, self.edges, self.preview_nodes)
         generalizaiton = self.matrix.generalization(traces, len(self.nodes))
 
         serializedMetrics = {
@@ -196,6 +196,8 @@ class Prediction:
                 gapSizeTop = 0
                 gapSizeBottom = 0
                 for i in range(max(round(np.sqrt(len(self.preview_nodes))), 5)):
+                    print("i for", edgeStart, i)
+                    print("posMatrix", self.posMatrix)
                     # we start by going up
                     if (curr_x, curr_y - i) not in self.posMatrix:
                         # if we have found a free place, we check, if it borders to enough free places such that
@@ -216,12 +218,26 @@ class Prediction:
                         # if we have found a free place, we check, if it borders to enough free places such that
                         curr_curr_y = curr_y + i + 1
                         while (curr_x, curr_curr_y) not in self.posMatrix:
+                            print("checking for", curr_x, curr_curr_y)
                             gapSizeBottom += 1
                             curr_curr_y += 1
                             if gapSizeBottom > len(nodesToPosition) + 1:
                                 gapFound = True
                                 gapStart = curr_y + i + 1
                                 break
+
+                    print(
+                        "len",
+                        len(nodesToPosition),
+                        "gapFound",
+                        gapFound,
+                        "gapSizeTop",
+                        gapSizeTop,
+                        "gapSizeBottom",
+                        gapSizeBottom,
+                        "gapSize",
+                        gapSize,
+                    )
 
                     if gapFound:
                         break

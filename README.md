@@ -7,13 +7,13 @@ You have to install graphviz and add it to path (in Windows and Linux, not teste
 
 ## Broken Features
 
-- (Saving) and loading graphs
 - Show grid functionality
 
 ## Partially Broken Features
 
 - Calculation of the generalization metric of the graph seems to be accurate but have to recheck. I have to further read into the calculation of this metric to fix this
 - When closing / opening tabs it does not correctly switch to them
+- Special case when positioning the predicted nodes: When there is a node directly below the found gap, the gap is displaced on y coordinate lower for some reason
 
 ## Not tested
 

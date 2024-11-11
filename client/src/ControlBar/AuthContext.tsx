@@ -22,6 +22,7 @@ interface AuthContextProps {
 	) => Promise<void>;
 	predictOutcome: (graphInput: any, matrix: string) => Promise<any>;
 	testConnection: () => Promise<{ status: string }>;
+	removeMatrix: (matrixName: string) => Promise<any>;
 }
 
 // Add children prop in AuthProviderProps
@@ -46,6 +47,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const changeMatrix = async (matrixName: string, file?: File) => {
 		const response = await sessionResponse.changeMatrix(matrixName, file);
 		return response; // Keep the type consistent with MatrixChangeResponse
+	};
+
+	const removeMatrix = async (matrixName: string) => {
+		if (!sessionId) throw new Error("Session has not been started.");
+		const response = await sessionResponse.removeMatrix(matrixName);
+		return response;
 	};
 
 	const getAvailableMatrices = async () => {
@@ -93,6 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				getMetrics,
 				predictOutcome,
 				testConnection,
+				removeMatrix,
 			}}>
 			{children}
 		</AuthContext.Provider>

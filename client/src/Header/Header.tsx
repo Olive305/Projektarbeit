@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./header.css";
+import CloseIcon from "../assets/close_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 interface HeaderProps {
@@ -12,6 +13,8 @@ interface HeaderProps {
 	toggleRainbowPredictions: () => void;
 	handleToPetriNet: () => void;
 	matrices: any;
+	deleteMatrix: (matrixName: string) => void;
+	toggleShowGrid: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -24,6 +27,8 @@ const Header: React.FC<HeaderProps> = ({
 	toggleRainbowPredictions,
 	handleToPetriNet,
 	matrices,
+	deleteMatrix,
+	toggleShowGrid,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -123,11 +128,25 @@ const Header: React.FC<HeaderProps> = ({
 							{matrices.length > 0 ? (
 								matrices.map((matrix: any) => (
 									<MenuItem key={matrix}>
-										<a
-											href="#"
-											onClick={async () => setActiveMatrix(matrix)}>
-											{matrix}
-										</a>
+										<div className="matrix-item">
+											<a
+												href="#"
+												onClick={async () => setActiveMatrix(matrix)}>
+												{matrix}
+											</a>
+											<button
+												className="deleteMatrixButton"
+												style={{ display: "inline-block", marginLeft: "10px" }}
+												onClick={(event) => {
+													event.stopPropagation();
+													deleteMatrix(matrix);
+												}}>
+												<img
+													src={CloseIcon}
+													alt="Close"
+												/>
+											</button>
+										</div>
 									</MenuItem>
 								))
 							) : (
@@ -178,7 +197,7 @@ const Header: React.FC<HeaderProps> = ({
 							<MenuItem>
 								<a
 									href="#"
-									onClick={() => {}}>
+									onClick={toggleShowGrid}>
 									Show Grid
 								</a>
 							</MenuItem>

@@ -149,4 +149,16 @@ export class SessionAuth {
 
 		return response.data;
 	}
+
+	// Remove a custom matrix from the session
+	async removeMatrix(matrixName: string): Promise<{ message: string }> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const response: AxiosResponse<{ message: string }> = await axios.post(
+			`${this.apiUrl}/removeMatrix`,
+			{ matrix_name: matrixName }
+		);
+
+		return response.data;
+	}
 }

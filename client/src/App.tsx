@@ -20,12 +20,14 @@ const App: React.FC = () => {
 		getAvailableMatrices,
 		changeMatrix,
 		getMetrics,
+		removeMatrix,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
 	const [sessionStarted, setSessionStarted] = useState(false);
 	const [activeTabIndex, setActiveTabIndex] = useState(0);
 	const [rainbowPredictions, setRainbowPredictions] = useState(true);
+	const [showGrid, setShowGrid] = useState(true);
 
 	const [activeName, setActiveName] = useState("");
 
@@ -152,6 +154,27 @@ const App: React.FC = () => {
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	};
 
+	const handleDeleteMatrix = async (matrixName: string) => {
+		await removeMatrix(matrixName);
+		const getMatrices = async () => {
+			if (sessionStarted) {
+				setMatrices(await getAvailableMatrices());
+			}
+		};
+		if (activeGraphController?.activeMatrix === matrixName) {
+			activeGraphController.activeMatrix = "Simple IOR Choice";
+		}
+		// Check for all graphs if the active matrix is the deleted Matrix and change this to the default matrix
+		multiController.current.graphs.forEach((graph) => {
+			if (graph[0].activeMatrix === matrixName) {
+				graph[0].activeMatrix = "Simple IOR Choice";
+			}
+		});
+
+		getMatrices();
+		activeGraphController?.get_preview_nodes();
+	};
+
 	const handleTabClose = async (index: number) => {
 		multiController.current.graphs.splice(index, 1);
 		if (multiController.current.graphs.length === 0) {
@@ -171,14 +194,15 @@ const App: React.FC = () => {
 	};
 
 	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
-		changeMatrix(matrixName, file);
+		await changeMatrix(matrixName, file);
 		if (activeGraphController) activeGraphController.activeMatrix = matrixName;
 		const getMatrices = async () => {
 			if (sessionStarted) {
-				setMatrices(await getAvailableMatrices());
+				const updatedMatrices = await getAvailableMatrices();
+				setMatrices(updatedMatrices);
 			}
 		};
-		getMatrices();
+		await getMatrices();
 
 		activeGraphController?.get_preview_nodes();
 	};
@@ -197,6 +221,8 @@ const App: React.FC = () => {
 				}
 				handleToPetriNet={() => handleConvertToPetriNet(activeTabIndex)}
 				matrices={matrices}
+				deleteMatrix={handleDeleteMatrix}
+				toggleShowGrid={() => setShowGrid(!showGrid)}
 			/>
 			<section className="workspace">
 				<div className="left-bar-div">
@@ -241,6 +267,7 @@ const App: React.FC = () => {
 							<Canvas
 								controller={activeGraphController}
 								rainbowPredictions={rainbowPredictions}
+								showGrid={showGrid}
 							/>
 						)}
 					</div>

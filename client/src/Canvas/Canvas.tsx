@@ -10,9 +10,14 @@ import { JSX } from "react/jsx-runtime";
 interface CanvasProps {
 	controller: GraphController;
 	rainbowPredictions: boolean;
+	showGrid: boolean;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
+const Canvas: React.FC<CanvasProps> = ({
+	controller,
+	rainbowPredictions,
+	showGrid,
+}) => {
 	const gridSize = controller.gridSize;
 	const stageRef = useRef<Konva.Stage>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -84,7 +89,12 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 
 			// Define the zoom factor and sensitivity
 			const zoomScale = e.evt.deltaY > 0 ? 0.9 : 1.1; // Zoom out if scrolling down, zoom in if scrolling up
-			const newScale = oldScale * zoomScale;
+			let newScale = oldScale * zoomScale;
+
+			// Set a maximum zoom scale of 2x
+			if (newScale > 2) {
+				newScale = 2;
+			}
 
 			setScale(newScale); // Update scale state
 
@@ -120,11 +130,12 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 		const bottomRightX = topLeftX + stageWidth / scale;
 		const bottomRightY = topLeftY + stageHeight / scale;
 
-		// Calculate visible grid bounds
-		const startX = Math.floor(topLeftX / gridSize) * gridSize;
-		const endX = Math.ceil(bottomRightX / gridSize) * gridSize;
-		const startY = Math.floor(topLeftY / gridSize) * gridSize;
-		const endY = Math.ceil(bottomRightY / gridSize) * gridSize;
+		// Calculate visible grid bounds with extra margin for smoother panning
+		const margin = gridSize * 10; // Adjust the margin as needed
+		const startX = Math.floor((topLeftX - margin) / gridSize) * gridSize;
+		const endX = Math.ceil((bottomRightX + margin) / gridSize) * gridSize;
+		const startY = Math.floor((topLeftY - margin) / gridSize) * gridSize;
+		const endY = Math.ceil((bottomRightY + margin) / gridSize) * gridSize;
 
 		// Draw vertical grid lines
 		for (let x = startX; x <= endX; x += gridSize) {
@@ -134,6 +145,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 					points={[x, topLeftY, x, bottomRightY]}
 					stroke="gray"
 					strokeWidth={1} // Keep line thickness consistent based on zoom
+					opacity={scale > 0.6 ? 1 : scale < 0.4 ? 0 : (scale - 0.4) / 0.2}
 				/>
 			);
 		}
@@ -146,6 +158,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 					points={[topLeftX, y, bottomRightX, y]}
 					stroke="gray"
 					strokeWidth={1} // Keep line thickness consistent based on zoom
+					opacity={scale > 0.6 ? 1 : scale < 0.4 ? 0 : (scale - 0.4) / 0.2}
 				/>
 			);
 		}
@@ -626,7 +639,7 @@ const Canvas: React.FC<CanvasProps> = ({ controller, rainbowPredictions }) => {
 				x={stagePos.x} // Bind updated stage position
 				y={stagePos.y} // Bind updated stage position
 			>
-				<Layer>{true && drawGrid()}</Layer>
+				<Layer>{showGrid && drawGrid()}</Layer>
 
 				<Layer>
 					{edges.map((edge) => drawLineWithHitbox(edge))}

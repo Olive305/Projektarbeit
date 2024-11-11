@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import time
 
 
 class MyCsv:
@@ -205,29 +206,44 @@ class MyCsv:
         traces = [trace for trace in traces if "[EOC]" not in trace]
 
         # Calculate the total visits of nodes (activities) in the traces
-        visitsOfNode = {}
+        visitsOfNode = {"starting_with_key:0": len(traces)}
         for trace in traces:
-            visitsOfNode["starting_with_key:0"] = (
-                visitsOfNode.get("starting_with_key:0", 0) + 1
-            )
             for node in trace:
                 visitsOfNode[node] = visitsOfNode.get(node, 0) + 1
 
         # Initialize the node sum to accumulate precision metrics per node
         nodeSum = 0
 
+        # Create a dictionary to cache outgoing edges for each node
+        outgoing_edges_cache = {}
+        if self.df is not None:
+            # Use vectorized operations to improve performance
+            start_time = time.time()
+            grouped = self.df.groupby("prefixes")["targets"].first().reset_index()
+            for _, row in grouped.iterrows():
+                prefix = row["prefixes"]
+                target = row["targets"].strip()
+                if len(prefix) > 0:
+                    last_node = prefix[-1]
+                    if last_node not in outgoing_edges_cache:
+                        outgoing_edges_cache[last_node] = set()
+                    outgoing_edges_cache[last_node].add(target)
+                else:
+                    if "starting_with_key:0" not in outgoing_edges_cache:
+                        outgoing_edges_cache["starting_with_key:0"] = set()
+                    outgoing_edges_cache["starting_with_key:0"].add(target)
+            end_time = time.time()
+            print(
+                f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
+            )
+
         # Iterate over edges (keys of edges) to calculate precision per node
         for node in edges:
             if node in previewNodes or node == "[EOC]":  # Skip preview nodes
-                pass
+                continue
 
-            # Filter prefixes that end with the current node and get the targets
-            outgoing_edges = [
-                self.df[self.df["prefixes"] == prefix]["targets"].values[0].strip()  # type: ignore
-                for prefix in self.df["prefixes"]  # type: ignore
-                if (len(prefix) > 0 and prefix[-1] == node)
-                or (node == "starting_with_key:0" and prefix == ())
-            ]
+            # Get the cached outgoing edges for the current node
+            outgoing_edges = outgoing_edges_cache.get(node, set())
 
             # Number of nodes not existing in the outgoing edges
             wrongEdges = sum(
@@ -274,22 +290,27 @@ class MyCsv:
         """
         traces = [trace for trace in traces if "[EOC]" not in trace]
 
+        if self.df is None:
+            raise ValueError("DataFrame is not loaded. Please load the CSV first.")
+
         # Initialize visit count for each unique node (prefix)
-        node_visits = {tuple(row["prefixes"]): 0 for _, row in self.df.iterrows()}
+        node_visits = pd.Series(0, index=self.df["prefixes"].apply(tuple).unique())
+
+        # Convert traces to sets for faster subset checks
+        trace_sets = [set(trace) for trace in traces]
 
         # Count the number of times each node (prefix) is visited in the traces
-        for trace in traces:
-            for prefix in node_visits:
-                if set(prefix).issubset(set(trace)):
-                    node_visits[prefix] += 1
+        for prefix in node_visits.index:
+            prefix_set = set(prefix)
+            node_visits[prefix] = sum(
+                1 for trace_set in trace_sets if prefix_set.issubset(trace_set)
+            )
 
         # Calculate the generalization score based on the provided formula
         if num_nodes_in_tree > 0:
             generalization_score = 1 - (
                 sum(
-                    1 / math.sqrt(visits)
-                    for visits in node_visits.values()
-                    if visits > 0
+                    1 / math.sqrt(visits) for visits in node_visits.values if visits > 0
                 )
                 / num_nodes_in_tree
             )

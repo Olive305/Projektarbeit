@@ -1,3 +1,4 @@
+import time
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
 from flask import Flask, jsonify, request, send_from_directory, session, g
@@ -118,9 +119,10 @@ def change_matrix():
     if matrix_name in matrices:
         # Update with predefined matrix and clear any custom matrix path
         matrix = matrices[matrix_name]
-        if "matrix_path" in session:
-            del session["matrix_path"]
-        g.custom_path = None  # Clear custom path for teardown
+
+    elif matrix_name in session.get("custom_matrices", {}):
+        # Update with custom matrix and clear any predefined matrix
+        matrix = MyCsv.from_dict(session["custom_matrices"][matrix_name])
 
     # Check if a custom matrix was provided by name or uploaded file
     elif custom_csv:
@@ -128,11 +130,6 @@ def change_matrix():
         tmp_dir = os.path.join(os.path.sep, "tmp")
         if not os.path.exists(tmp_dir):
             os.makedirs(tmp_dir)
-
-        # Remove old custom matrix file if it exists
-        old_custom_path = session.get("matrix_path")
-        if old_custom_path and os.path.exists(old_custom_path):
-            os.remove(old_custom_path)
 
         # Save the new custom CSV
         custom_path = os.path.join(tmp_dir, f"{uuid.uuid4()}.csv")
@@ -144,7 +141,9 @@ def change_matrix():
 
         # Store the custom matrix in session for future use
         session["custom_matrices"][matrix_name] = matrix.to_dict()
-        session["matrix_path"] = custom_path  # Update path for teardown
+        if "matrix_paths" not in session:
+            session["matrix_paths"] = {}
+        session["matrix_paths"][matrix_name] = custom_path  # Update path for teardown
         g.custom_path = custom_path  # Update for teardown
 
     else:
@@ -156,6 +155,42 @@ def change_matrix():
     session["lastUsedMatrix"] = matrix_name
 
     return jsonify({"message": "Matrix added successfully"})
+
+
+@app.route("/api/removeMatrix", methods=["POST"])  # type: ignore
+def remove_matrix():
+    """
+    Remove a custom matrix from the session.
+    """
+    data = request.json
+    matrix_name = data.get("matrix_name")  # type: ignore
+
+    # If the matrix to remove is a predefined matrix do nothing
+    if matrix_name in matrices:
+        return jsonify({"message": "Predefined matrices cannot be removed"})
+
+    # Ensure custom matrices are initialized in session
+    custom_matrices = session.get("custom_matrices", {})
+    matrix_paths = session.get("matrix_paths", {})
+
+    # Check if the matrix exists in the session
+    if matrix_name in custom_matrices:
+        # Remove the matrix from the session
+        del custom_matrices[matrix_name]
+        session["custom_matrices"] = custom_matrices
+
+        # Remove the matrix file if it exists
+        custom_path = matrix_paths.get(matrix_name)
+        if custom_path and os.path.exists(custom_path):
+            os.remove(custom_path)
+            del matrix_paths[matrix_name]
+            session["matrix_paths"] = matrix_paths
+
+        # Check if the last used matrix is the deleted matrix
+        if session.get("lastUsedMatrix") == matrix_name:
+            session["lastUsedMatrix"] = "Simple IOR Choice"
+
+    return jsonify({"message": "Matrix removed successfully"})
 
 
 @app.route("/api/getAvailableMatrices", methods=["GET"])
@@ -176,7 +211,6 @@ def generate_petri_net():
     Generate a Petri net from the current prediction session.
     This function expects a graph input to convert.
     """
-    print("petri session:", session)
 
     if "prediction" not in session:
         return jsonify(
@@ -203,6 +237,9 @@ def get_metrics():
     This endpoint expects a graph input to calculate metrics.
     """
 
+    # Get the starting time to check for prerformance
+    start_time = time.time()
+
     if "prediction" not in session:
         return jsonify(
             {"error": "No active session found. Please start a session first."}
@@ -216,7 +253,14 @@ def get_metrics():
             session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
         ),
     )
+
+    # Time to initialize the prediction
+    print("%s seconds for initialization in metrics" % (time.time() - start_time))
+
     metrics = prediction.getMetrics()
+
+    # Time to get the metrics
+    print("%s seconds for metrics" % (time.time() - start_time))
 
     return jsonify({"metrics": metrics})
 
@@ -227,9 +271,17 @@ def predict_outcome():
     Generate predictions based on the graph input provided.
     This will reset the Prediction instance in the session with the latest input.
     """
+    # Get the starting time to check for prerformance
+    start_time = time.time()
+
     data = request.json
     graph_input = data.get("graph_input")  # type: ignore
     matrixName = data.get("matrix")  # type: ignore
+
+    session["lastUsedMatrix"] = matrixName
+
+    # Print time to receive the data
+    print("%s seconds for data" % (time.time() - start_time))
 
     if "prediction" not in session:
         return jsonify(
@@ -240,6 +292,10 @@ def predict_outcome():
     matrix = matrices.get(matrixName) or MyCsv.from_dict(
         session.get("custom_matrices", {}).get(matrixName)
     )
+
+    # Time to retrieve the matrix
+    print("%s seconds for matrix" % (time.time() - start_time))
+
     if not matrix:
         return jsonify({"error": "Given matrix not available in this session."}), 400
 
@@ -247,10 +303,15 @@ def predict_outcome():
     prediction = Prediction.from_json(session["prediction"], matrix)
     predictions = prediction.getPredictions(graph_input)
 
+    # Time to get the predictions
+    print("%s seconds for predictions" % (time.time() - start_time))
+
     # Update session with the modified Prediction instance
     session["prediction"] = prediction.to_json()
-    session["lastUsedMatrix"] = matrixName
     session.modified = True  # Ensure session updates are saved
+
+    # Time to update the session
+    print("%s seconds for session" % (time.time() - start_time))
 
     return jsonify({"predictions": predictions})
 

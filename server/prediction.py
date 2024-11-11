@@ -138,17 +138,38 @@ class Prediction:
         return Prediction.from_dict(data, matrix)
 
     def getMetrics(self):
+        import concurrent.futures
+
         traces = self.getAllSequences()
-        fitness = self.matrix.replay_fitness(traces)
-        simplicity = self.matrix.simplicity(traces, len(self.nodes))
-        precision = self.matrix.precision(traces, self.edges, self.preview_nodes)
-        generalizaiton = self.matrix.generalization(traces, len(self.nodes))
+
+        def calculate_fitness():
+            return self.matrix.replay_fitness(traces)
+
+        def calculate_simplicity():
+            return self.matrix.simplicity(traces, len(self.nodes))
+
+        def calculate_precision():
+            return self.matrix.precision(traces, self.edges, self.preview_nodes)
+
+        def calculate_generalization():
+            return self.matrix.generalization(traces, len(self.nodes))
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_fitness = executor.submit(calculate_fitness)
+            future_simplicity = executor.submit(calculate_simplicity)
+            future_precision = executor.submit(calculate_precision)
+            future_generalization = executor.submit(calculate_generalization)
+
+            fitness = future_fitness.result()
+            simplicity = future_simplicity.result()
+            precision = future_precision.result()
+            generalization = future_generalization.result()
 
         serializedMetrics = {
             "fitness": fitness,
             "simplicity": simplicity,
             "precision": precision,
-            "generalization": generalizaiton,
+            "generalization": generalization,
         }
 
         return json.dumps(serializedMetrics)
@@ -196,8 +217,6 @@ class Prediction:
                 gapSizeTop = 0
                 gapSizeBottom = 0
                 for i in range(max(round(np.sqrt(len(self.preview_nodes))), 5)):
-                    print("i for", edgeStart, i)
-                    print("posMatrix", self.posMatrix)
                     # we start by going up
                     if (curr_x, curr_y - i) not in self.posMatrix:
                         # if we have found a free place, we check, if it borders to enough free places such that
@@ -218,26 +237,12 @@ class Prediction:
                         # if we have found a free place, we check, if it borders to enough free places such that
                         curr_curr_y = curr_y + i + 1
                         while (curr_x, curr_curr_y) not in self.posMatrix:
-                            print("checking for", curr_x, curr_curr_y)
                             gapSizeBottom += 1
                             curr_curr_y += 1
                             if gapSizeBottom > len(nodesToPosition) + 1:
                                 gapFound = True
                                 gapStart = curr_y + i + 1
                                 break
-
-                    print(
-                        "len",
-                        len(nodesToPosition),
-                        "gapFound",
-                        gapFound,
-                        "gapSizeTop",
-                        gapSizeTop,
-                        "gapSizeBottom",
-                        gapSizeBottom,
-                        "gapSize",
-                        gapSize,
-                    )
 
                     if gapFound:
                         break

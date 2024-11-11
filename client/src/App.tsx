@@ -179,10 +179,10 @@ const App: React.FC = () => {
 		multiController.current.graphs.splice(index, 1);
 		if (multiController.current.graphs.length === 0) {
 			multiController.current.createNewGraph("New", predictOutcome);
-			setActiveTabIndex(0);
+			handleTabClick(0);
 		} else {
 			const newTabIndex = index > 0 ? index - 1 : 0;
-			setActiveTabIndex(newTabIndex);
+			handleTabClick(newTabIndex);
 		}
 		setTabs([...multiController.current.graphs]);
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);

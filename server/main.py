@@ -9,7 +9,9 @@ import uuid
 # Define the project folder (current working directory in this case)
 project_folder = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, static_folder="../client/dist", static_url_path="")
+app = Flask(
+    __name__, static_folder=os.path.join("..", "client", "dist"), static_url_path=""
+)
 app.secret_key = "your_secret_key"  # Required for session management
 CORS(app)
 

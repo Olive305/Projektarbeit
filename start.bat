@@ -7,6 +7,7 @@ cd client
 :: Install frontend dependencies using npm
 echo Installing frontend dependencies...
 call npm install
+call npm run build
 
 :: Navigate to the backend directory
 cd ..\server

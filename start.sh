@@ -4,6 +4,8 @@
 echo "Installing frontend dependencies..."
 cd client
 npm install
+npm run build
+
 
 # Navigate to the backend directory
 cd ../server

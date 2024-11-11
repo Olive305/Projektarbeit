@@ -484,6 +484,7 @@ class GraphController {
 	public deserializeGraph(data: string) {
 		try {
 			const graphData = JSON.parse(data);
+			console.log("graphData", graphData);
 			const new_ids: [string, string][] = [];
 
 			// Clear existing nodes and edges
@@ -523,16 +524,7 @@ class GraphController {
 				const targetId = new_ids.find((x) => x[0] === edge[1])?.[1];
 
 				if (sourceId && targetId) {
-					// Add the edge to the graph only if source and target are valid
-					if (sourceId === targetId) return;
-					if (
-						this.edges.some(
-							(e) =>
-								(e[0] === sourceId && e[1] === targetId) ||
-								(e[0] === targetId && e[1] === sourceId)
-						)
-					)
-						return;
+					// Add the edge to the graph
 					this.edges.push([sourceId, targetId]);
 				} else {
 					console.warn(

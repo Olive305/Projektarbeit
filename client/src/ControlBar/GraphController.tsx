@@ -218,6 +218,11 @@ class GraphController {
 			// Add old key to deleted keys
 			this.deletedKeys.push(oldKey);
 
+			// Remove the node from the preview nodes
+			this.preview_nodes = this.preview_nodes.filter(
+				(nodeKey) => nodeKey !== oldKey
+			);
+
 			// Update node id back to actual key
 			n.id = n.actualKey;
 
@@ -449,7 +454,8 @@ class GraphController {
 	}
 
 	public serializeGraph(): string {
-		//const nodeNum = 44;
+		console.log("preview nodes", this.preview_nodes);
+		console.log("deleted keys", this.deletedKeys);
 		const graphData = {
 			nodes: Array.from(this.nodes.values())
 				.filter((node) => !node.isPreview) // Exclude preview nodes

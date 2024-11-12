@@ -386,8 +386,6 @@ class Prediction:
         return json.dumps(net_dict)
 
     def getPredictions(self, graph):
-        startTime = time.time()
-
         # Deserialize the graph and get all the traces
         self.deserializeGraph(graph)
 
@@ -395,16 +393,13 @@ class Prediction:
 
         numNodes = len(self.nodes)
 
+        self.preview_nodes = {}
+
         # Calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
-        metricsTime = time.time()
-        print("metrics", metricsTime - startTime)
-        matrixTime = 0
-
         i = 0
         for trace in traces:
-            matrixStartTime = time.time()
             predictions = []
             try:
                 predictions = self.matrix.predict(
@@ -412,8 +407,6 @@ class Prediction:
                 )
             except Exception as e:
                 print("Error getting prediction from MyCsv: ", e)
-            matrixEndTime = time.time()
-            matrixTime += matrixEndTime - matrixEndTime
 
             for [node, probability] in predictions:
                 lastNodeId = (
@@ -422,6 +415,8 @@ class Prediction:
                     else traces[i][len(traces[i]) - 1]
                 )
 
+                print("node: ", node)
+
                 # Check if the edge to the node from lastNodeId exists, we do not add anything
                 if lastNodeId in self.edges and node in self.edges[lastNodeId]:
                     continue
@@ -429,12 +424,14 @@ class Prediction:
                 # Check if a preview node with the actual key already exists
                 existsKey = False
 
+                # Check if this node already exists with edge from lastNode
                 if lastNodeId in self.edges:
                     for edgeEnd in self.edges[lastNodeId]:
                         if node == self.nodes[edgeEnd].actualKey:
                             existsKey = True
                             break
 
+                # If the predicted node exists, update the probability if it is higher
                 if existsKey:
                     if self.nodeProbSet[self.actualKeySet[node]] < probability:
                         self.nodeProbSet[self.actualKeySet[node]] = probability
@@ -446,8 +443,7 @@ class Prediction:
 
             i += 1
 
-        predictionsTime = time.time()
-        print("matrix", matrixTime, "pred", predictionsTime - metricsTime)
+        print("Nodes: ", self.nodes)
 
         if self.auto:
             # Ensure that no more than three preview nodes are connected to the same edge
@@ -455,6 +451,7 @@ class Prediction:
                 numPreview = sum(
                     1 for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes
                 )
+                print("NumPreview: ", numPreview, " on edge: ", edge)
 
                 # If more than three preview nodes, delete the ones with the smallest probability
                 while numPreview > 3:
@@ -487,10 +484,17 @@ class Prediction:
 
         # If the number of preview nodes exceeds the allowed number
         if len(self.preview_nodes) > numNodesToAdd:
+            print(
+                "Exceeded number of preview nodes",
+                len(self.preview_nodes),
+                numNodesToAdd,
+            )
             # Find the minimum probability needed to keep `numNodesToAdd` nodes
             calculatedProbMin = sorted(self.nodeProbSet.values(), reverse=True)[
                 numNodesToAdd
             ]
+
+            print("Calculated prob min: ", calculatedProbMin)
 
             # Collect nodes to remove that have probabilities lower than the calculated threshold
             nodes_to_remove = [
@@ -498,6 +502,8 @@ class Prediction:
                 for node in self.nodeProbSet
                 if self.nodeProbSet[node] < calculatedProbMin
             ]
+
+            print("Nodes to remove: ", nodes_to_remove)
 
             # Remove these nodes and track them in deletedKeys
             for node in nodes_to_remove:
@@ -511,23 +517,14 @@ class Prediction:
                     if node in edge_nodes:
                         edge_nodes.remove(node)
 
-        autoTime = time.time()
-
-        print("auto", autoTime - predictionsTime)
-
         self.positionNodes()
 
-        posTime = time.time()
-        print("pos", posTime - autoTime)
+        print("Nodes: ", self.nodes)
 
         return self.serializeGraph()
 
     def addNode(self, edge_start, isPreview, givenKey, probability):
-        oldNode = self.nodes[edge_start]
-
-        new_x = oldNode.x + 1
-        new_y = oldNode.y
-
+        print("Adding node with key: ", givenKey)
         if givenKey in self.deletedKeys:
             self.deletedKeys.remove(givenKey)
 
@@ -535,6 +532,8 @@ class Prediction:
         newNode = Node(
             self.getAvailableKey() if isPreview else givenKey, 0, 0, givenKey, isPreview
         )
+
+        print("New node: ", newNode.id)
 
         # Add the new node to nodes and establish the edge
         self.nodes[newNode.id] = newNode
@@ -602,15 +601,14 @@ class Prediction:
     def getAvailableKey(self):
         # get the smallest key from the deleted keys list if possible
         if self.deletedKeys:  # check if list is empty
-            self.deletedKeys.sort(reverse=True)
             return self.deletedKeys.pop()
 
         # otherwise return the current number of nodes as a key
         key = len(self.nodes)
-        while "pvw_$A1b!zX9Id:" + str(key) in self.nodes:
+        while "pvw_$A1b!zX9Id:" + str(hash(key)) in self.nodes:
             key += 1
 
-        return "pvw_$A1b!zX9Id:" + str(key)
+        return "pvw_$A1b!zX9Id:" + str(hash(key))
 
     def deserializeGraph(self, graph_json_str):
         graph = json.loads(graph_json_str)  # Convert JSON string to Python dict

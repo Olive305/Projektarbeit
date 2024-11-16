@@ -78,27 +78,22 @@ const Header: React.FC<HeaderProps> = ({
 								)}
 							</MenuItem>
 							<MenuItem>
-								<>
-									<label>
+								{() => (
+									<label className="cursor-pointer">
+										<span>Open from File</span>
 										<input
 											type="file"
+											className="hidden"
 											onChange={handleOpenFromFile}
 										/>
 									</label>
-								</>
+								)}
 							</MenuItem>
 							<MenuItem>
 								<a
 									href="#"
 									onClick={handleSaveCurrent}>
 									Save
-								</a>
-							</MenuItem>
-							<MenuItem>
-								<a
-									href="#"
-									onClick={saveAllGraphs}>
-									Save All
 								</a>
 							</MenuItem>
 							<MenuItem>
@@ -158,8 +153,9 @@ const Header: React.FC<HeaderProps> = ({
 						<hr className="my-2" /> {/* Horizontal line to separate items */}
 						<MenuItem>
 							{() => (
-								<label
-									className="px-4 py-2 text-sm text-gray-700 cursor-pointer"
+								<a
+									className="addMatrixButton"
+									href="#"
 									onClick={async () => {
 										const input = document.createElement("input");
 										input.type = "file";
@@ -180,7 +176,7 @@ const Header: React.FC<HeaderProps> = ({
 										input.click();
 									}}>
 									Add Matrix
-								</label>
+								</a>
 							)}
 						</MenuItem>
 					</MenuItems>
@@ -190,7 +186,7 @@ const Header: React.FC<HeaderProps> = ({
 					as="div"
 					className="">
 					<div>
-						<MenuButton className="dropdown-button">View</MenuButton>
+						<MenuButton className="dropdown-button">Appearance</MenuButton>
 					</div>
 					<MenuItems className="dropdown-menu">
 						<div className="py-1">

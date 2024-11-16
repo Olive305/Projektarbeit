@@ -76,35 +76,6 @@ const ControlBar: React.FC<ControlsProps> = ({
 			{/* Conditionally render performance metrics */}
 			{controller.showPreview && (
 				<>
-					<div>
-						<label>
-							<input
-								className="checkbox"
-								type="checkbox"
-								checked={isChecked}
-								onChange={handleCheckboxChange}
-							/>
-							Auto Probability
-						</label>
-					</div>
-					{!isChecked && (
-						<div className="slidecontainer">
-							<p>Probability: {sliderValue}%</p>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								value={sliderValue}
-								className="slider"
-								id="myRange"
-								style={{ background: "lightblue" }}
-								onChange={handleSliderChange}
-								onMouseUp={handleSliderMouseUp}
-							/>
-						</div>
-					)}
-					<hr className="my-2" />
-
 					<div className="performanceMetrics">
 						<div className="metric">
 							<label>Fitness: {fitness ? Math.round(fitness * 100) : 0}%</label>
@@ -140,6 +111,34 @@ const ControlBar: React.FC<ControlsProps> = ({
 								value={generalization}
 								max="1"
 								className="progressBar"></progress>
+						</div>
+					</div>
+
+					<hr className="my-2" />
+
+					<div className="probabilityContainer">
+						<label>Auto Probability</label>
+						<div className="checkboxSliderContainer"></div>
+						<input
+							className="checkbox"
+							type="checkbox"
+							checked={isChecked}
+							onChange={handleCheckboxChange}
+						/>
+						<div className="slidecontainer">
+							<p>Probability: {sliderValue}%</p>
+							<input
+								type="range"
+								min="0"
+								max="100"
+								value={sliderValue}
+								className="slider"
+								id="myRange"
+								style={{ background: "lightblue" }}
+								onChange={handleSliderChange}
+								onMouseUp={handleSliderMouseUp}
+								disabled={isChecked}
+							/>
 						</div>
 					</div>
 				</>

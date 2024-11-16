@@ -247,6 +247,9 @@ const App: React.FC = () => {
 								className={`tab${activeTabIndex === index ? "active" : ""}`}
 								onClick={() => handleTabClick(index)}>
 								{name}
+								{activeTabIndex === index && (
+									<div className="active-tab-indicator" />
+								)}
 								<button
 									className="tabCloseButton"
 									onClick={(event) => {

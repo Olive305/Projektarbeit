@@ -7,7 +7,7 @@ body {
 }
 
 .left-bar-div {
-	background-color: #87909d;
+	background-color: white;
 	height: auto;
 	margin: 0.4rem;
 	margin-left: 0rem;
@@ -28,8 +28,7 @@ body {
 .tab {
 	cursor: pointer;
 	user-select: none;
-	padding: 3px 5px; /* Increased padding for larger text */
-	border: 1px solid #b0b0b0; /* Softer border color */
+	padding: 3px 5px;
 	border-top-left-radius: 8px;
 	border-top-right-radius: 8px;
 	border-bottom-left-radius: 0;
@@ -50,13 +49,12 @@ body {
 .tabactive {
 	cursor: pointer;
 	user-select: none;
-	padding: 3px 5px; /* Increased padding for larger text */
-	border: 1px solid #b0b0b0; /* Softer border color */
+	padding: 3px 5px;
 	border-top-left-radius: 8px;
 	border-top-right-radius: 8px;
 	border-bottom-left-radius: 0;
 	border-bottom-right-radius: 0;
-	background-color: lightgray;
+	background-color: white;
 	max-width: 200px; /* Limiting max width */
 	overflow: hidden;
 	text-overflow: ellipsis; /* For long text */
@@ -67,6 +65,7 @@ body {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	border-bottom: 3px solid orange; /* Thicker and orange bottom border */
 }
 
 .tab:hover {
@@ -80,15 +79,19 @@ body {
 	margin-bottom: 0px;
 	padding: 1px;
 	cursor: pointer;
-	transition: background-color 0.3s ease, border-color 0.3s ease;
+	transition: background-color 0.3s ease, border-color 0.3s ease,
+		transform 0.3s ease;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	opacity: 0.5; /* Less noticeable when not hovering */
 }
 
 .tabCloseButton:hover {
 	background-color: #e0e0e0; /* Darker shade on hover */
 	border-color: #b0b0b0;
+	opacity: 1; /* More noticeable on hover */
+	transform: scale(1.1); /* Slightly enlarges on hover */
 }
 
 .tabCloseButton img,

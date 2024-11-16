@@ -10,6 +10,7 @@ class MultiController {
 	}
 
 	async readGraphFromFile(file: File, handleGetPredictions: any) {
+		console.log("Reading file", file);
 		const name = file.name;
 		const index =
 			this.graphs.push([

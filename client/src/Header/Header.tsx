@@ -45,9 +45,12 @@ const Header: React.FC<HeaderProps> = ({
 	const handleOpenFromFile = async (
 		event: React.ChangeEvent<HTMLInputElement>
 	) => {
+		console.log("Reading file");
 		const file = event.target.files?.[0];
 		if (file) {
 			await readGraphFromFile(file);
+		} else {
+			console.error("No file selected");
 		}
 	};
 
@@ -78,14 +81,19 @@ const Header: React.FC<HeaderProps> = ({
 							</MenuItem>
 							<MenuItem>
 								{() => (
-									<label className="cursor-pointer">
-										<span>Open from File</span>
-										<input
-											type="file"
-											className="hidden"
-											onChange={handleOpenFromFile}
-										/>
-									</label>
+									<a
+										href="#"
+										onClick={() => {
+											const input = document.createElement("input");
+											input.type = "file";
+											input.onchange = (event) =>
+												handleOpenFromFile(
+													event as unknown as React.ChangeEvent<HTMLInputElement>
+												);
+											input.click();
+										}}>
+										Open from File
+									</a>
 								)}
 							</MenuItem>
 							<MenuItem>

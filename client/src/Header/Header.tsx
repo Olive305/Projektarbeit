@@ -21,7 +21,6 @@ const Header: React.FC<HeaderProps> = ({
 	createNewGraph,
 	readGraphFromFile,
 	saveGraph,
-	saveAllGraphs,
 	activeTabIndex,
 	setActiveMatrix,
 	toggleRainbowPredictions,

@@ -17,10 +17,6 @@ type MetricsResponse = {
 	metrics: any; // Adjust type based on actual metrics data structure
 };
 
-type PetriNetResponse = {
-	net: any; // Adjust type based on actual Petri net data structure
-};
-
 export class SessionAuth {
 	public sessionId: string | null = null;
 	private apiUrl: string = "http://localhost:8081/api";
@@ -90,17 +86,21 @@ export class SessionAuth {
 		return data;
 	}
 
-	// Generate a Petri net from the provided graph input
-	async generatePetriNet(): Promise<PetriNetResponse> {
+	// Generate a Petri net from the provided graph input and download the image
+	async generatePetriNet(): Promise<void> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
-		const response: AxiosResponse<PetriNetResponse> = await axios.post(
-			`${this.apiUrl}/generatePetriNet`
-		);
+		const response = await axios.post(`${this.apiUrl}/generatePetriNet`, null, {
+			responseType: "blob",
+		});
 
-		console.log("response petri net", response.data);
-
-		return response.data;
+		const url = window.URL.createObjectURL(new Blob([response.data]));
+		const link = document.createElement("a");
+		link.href = url;
+		link.setAttribute("download", "petri_net.jpg");
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
 	}
 
 	// Get metrics for a specific graph input

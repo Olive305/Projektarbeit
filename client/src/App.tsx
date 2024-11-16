@@ -127,14 +127,8 @@ const App: React.FC = () => {
 		}
 	};
 
-	const handleConvertToPetriNet = async (index: number) => {
-		const newIndex = await multiController.current.convertToPetriNet(
-			index,
-			await generatePetriNet()
-		);
-		setActiveTabIndex(newIndex);
-		setTabs([...multiController.current.graphs]); // Update tabs state
-		setActiveName(multiController.current.graphs[newIndex][1]); // Set activeName to the new graph's name
+	const handleConvertToPetriNet = async (_: number) => {
+		generatePetriNet();
 	};
 
 	const handleCreateNewGraph = async (name: string) => {

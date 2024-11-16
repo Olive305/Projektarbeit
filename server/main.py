@@ -1,7 +1,7 @@
 import time
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
-from flask import Flask, jsonify, request, send_from_directory, session, g
+from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
 from flask_cors import CORS
 import os
 import uuid
@@ -227,9 +227,13 @@ def generate_petri_net():
             session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
         ),
     )
-    petri_net = prediction.convert_to_petri_net()
+    petri_net_path = prediction.convert_to_petri_net()
 
-    return jsonify({"net": petri_net})
+    # Check if the file exists before sending it
+    if os.path.exists(petri_net_path):
+        return send_file(petri_net_path, mimetype="image/jpeg")
+    else:
+        return jsonify({"error": "Petri net image not found"}), 404
 
 
 @app.route("/api/getMetrics", methods=["POST"])

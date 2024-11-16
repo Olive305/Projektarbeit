@@ -1,12 +1,10 @@
-import colorsys
-import random
-import time
 from flask import json
 import numpy as np
-import pandas as pd
 from matrices.openMatrix import MyCsv
-from pm4py.objects.conversion.dfg.variants import to_petri_net_invisibles_no_duplicates
-from pm4py.objects.petri_net.obj import PetriNet, Marking
+import pm4py
+from pm4py.objects.conversion.dfg.variants.to_petri_net_activity_defines_place import (
+    apply as dfg_to_petri_net,
+)
 import graphviz
 
 
@@ -267,123 +265,71 @@ class Prediction:
                 curr_y += 1
 
     def convert_to_petri_net(self):
-        transitions = dict(self.nodes)
-        places = {}
-        arcs = []
-        deleteTrans = [
-            trans
-            for trans in transitions
-            if trans in self.preview_nodes or trans in ["starting_with_key:0", "[EOC]"]
-        ]
-
-        for trans in deleteTrans:
-            del transitions[trans]
-
-        # Process edges and create places
+        # Define a DFG (Directly Follows Graph) from nodes and edges
+        dfg = {}
         for edgeStart in self.edges:
             for edgeEnd in self.edges[edgeStart]:
-                if not (
-                    edgeStart in self.preview_nodes or edgeEnd in self.preview_nodes
-                ):
-                    place_name = "place_" + edgeStart + "_to_" + edgeEnd
-                    places[place_name] = Node(place_name, 0, 0, place_name, False)
-                    arcs.append((edgeStart, place_name))
-                    arcs.append((place_name, edgeEnd))
+                # Check if edgeEnd is a preview node
+                if edgeEnd in self.preview_nodes:
+                    continue
 
-        addEnd = []
+                # If edgeStart or edgeEnd are starting_with_key:0 or [EOC], skip them
+                if edgeStart == "starting_with_key:0" or edgeEnd == "[EOC]":
+                    continue
 
-        for trans in transitions:
-            if trans not in self.edges:
-                addEnd.append(trans)
-            add = True
-            for edgeEnd in self.edges[trans]:
-                if edgeEnd not in self.preview_nodes:
-                    add = False
-            if add:
-                addEnd.append(trans)
+                # Flatten the nested dictionary structure
+                dfg[(edgeStart, edgeEnd)] = dfg.get((edgeStart, edgeEnd), 0) + 1
 
-        edgeReverseSet = {}
+        # Convert DFG to Petri net
+        try:
+            net, initial_marking, final_marking = dfg_to_petri_net(dfg)
+        except Exception as e:
+            raise ValueError(f"Error converting DFG to Petri Net: {e}")
 
-        for edgeStart in self.edges:
-            for edgeEnd in self.edges[edgeStart]:
-                if edgeEnd in edgeReverseSet:
-                    edgeReverseSet[edgeEnd].append(edgeStart)
-                else:
-                    edgeReverseSet[edgeEnd] = [edgeStart]
-
-        addStart = []
-
-        for trans in transitions:
-            if trans not in edgeReverseSet or len(edgeReverseSet[trans]) == 0:
-                addStart.append(trans)
-
-        for place in addEnd:
-            place_name = "place_from_" + place
-            places[place_name] = Node(place_name, 0, 0, place_name, False)
-            arcs.append((place, place_name))
-
-        for place in addStart:
-            place_name = "place_to_" + place
-            places[place_name] = Node(place_name, 0, 0, place_name, False)
-            arcs.append((place_name, place))
+        # Extract places, transitions, and arcs from the Petri net
+        places = [place.name for place in net.places]
+        transitions = [trans.name for trans in net.transitions]
+        arcs = [(arc.source.name, arc.target.name) for arc in net.arcs]
 
         # Convert to graphviz Digraph
         dot = graphviz.Digraph(engine="dot")
-        dot.attr(
-            rankdir="LR",
-        )  # Set rankdir to left-to-right
+        dot.attr(rankdir="LR", nodesep="0.8", ranksep="1.2")
 
-        for transition in transitions:
-            dot.node(transition, transition)
-
+        # Places
         for place in places:
-            dot.node(place, place)
+            dot.node(
+                place,
+                shape="circle",
+                width="1",
+                height="1",
+                style="filled",
+                fillcolor="lightgray",
+            )
 
+        # Transitions
+        for transition in transitions:
+            dot.node(
+                transition,
+                shape="rect",
+                width="1",
+                height="1",
+                style="filled",
+                fillcolor="lightgray",
+                label="",
+            )
+
+        # Arcs
         for arc in arcs:
-            dot.edge(arc[0], arc[1])
+            dot.edge(arc[0], arc[1], arrowhead="vee", arrowsize="0.8")
 
-        # Use Graphviz layout engine to compute node positions
-        dot.format = "plain"  # Use 'plain' format to get node positions in an easily parsable format
-        plain_output = dot.pipe().decode("utf-8")
+        # Render the graph to a file
+        import os
 
-        # Parse the output to get node positions
-        node_positions = {}
-        lines = plain_output.splitlines()
+        output_path = os.path.join(os.path.dirname(__file__), "static", "petri_net")
+        dot.render(output_path, format="jpg", cleanup=True)
 
-        for line in lines:
-            parts = line.split()
-            if parts[0] == "node":  # If this is a node definition line
-                node_id = parts[1]
-                x_pos = float(parts[2])
-                y_pos = float(parts[3])
-                node_positions[node_id] = (x_pos, y_pos)
-
-        # Serialize the Petri net components with positions
-        net_dict = {
-            "places": [
-                {
-                    "id": place,
-                    "x": round(node_positions.get(place, (0, 0))[0])
-                    / 2,  # Use default position (0, 0) if not found
-                    "y": round(node_positions.get(place, (0, 0))[1]),
-                }
-                for place in places
-            ],
-            "transitions": [
-                {
-                    "id": trans,
-                    "label": trans,
-                    "x": round(node_positions.get(trans, (0, 0))[0])
-                    / 2,  # Use default position (0, 0) if not found
-                    "y": round(node_positions.get(trans, (0, 0))[1]),
-                }
-                for trans in transitions
-            ],
-            "arcs": [{"source": arc[0], "target": arc[1]} for arc in arcs],
-        }
-
-        # Return serialized Petri net with positions
-        return json.dumps(net_dict)
+        # Return the path to the rendered image relative to the static folder
+        return os.path.join("static", "petri_net.jpg")
 
     def getPredictions(self, graph):
         # Deserialize the graph and get all the traces

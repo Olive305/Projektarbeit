@@ -11,7 +11,6 @@ You have to install graphviz and add it to the path (in Windows and Linux, not t
 
 ## Partially Broken Features
 
-- Calculation of the generalization metric of the graph seems to be accurate but needs rechecking. Further reading into the calculation of this metric is required to fix this.
 - Special case when positioning the predicted nodes: When there is a node directly below the found gap, the gap is displaced on the y-coordinate lower for some reason.
 - There is an issue when deleting nodes; they will not be added again correctly (only in manual probability, not in auto probability).
 
@@ -25,7 +24,7 @@ The canvas displays the graph as edges and nodes (directly follows the graph). T
 
 Each prediction has a probability at which it should be shown as a preview. The **Probability Slider** (only shown when the auto probability checkbox is disabled) allows you to adjust the threshold for which predictions should be displayed. The higher the probability, the fewer predictions will be shown. There is also an option to automatically calculate the number of predictions to display. This function is enabled by default and can be toggled using the checkbox.
 
-Clicking on existing nodes selects them. Once selected, you can delete, copy, and eventually move them simultaneously. You can also select nodes using a **Lasso** (blue rectangle).
+Clicking on existing nodes selects them. Once selected, you can delete, copy, and move them simultaneously. You can also select nodes using a **Lasso** (blue rectangle).
 
 Right-clicking on nodes or edges opens a menu that allows you to delete them. More functions will be added later.
 

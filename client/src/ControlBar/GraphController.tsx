@@ -21,6 +21,8 @@ class GraphController {
 	public isGettingPreviewNodes: boolean;
 	public auto: boolean;
 
+	public sequences: any[][]; // List of tuples with arbitrary length
+
 	// constructor for the GraphController
 	public constructor(
 		gridSize: number,
@@ -42,6 +44,7 @@ class GraphController {
 			showPreview !== undefined && showPreview === false ? false : true;
 		this.isGettingPreviewNodes = false;
 		this.auto = true;
+		this.sequences = [[]];
 
 		if (!notAddStartingNode)
 			this.addMyRect(
@@ -434,14 +437,23 @@ class GraphController {
 					!this.deletedKeys.includes(edge[1])
 			);
 
+			console.log("gettingPredictions");
+
 			// Fetch new preview nodes from the backend
 			const response = await this.getPredictions(
 				this.serializeGraph(),
 				this.activeMatrix
 			);
 
-			// Deserialize and add new preview nodes
-			this.deserializePredictNodes(response?.predictions);
+			console.log("response", response);
+
+			// Check if the response is valid and contains predictions
+			if (response && response.predictions) {
+				// Deserialize and add new preview nodes
+				this.deserializePredictNodes(response.predictions);
+			} else {
+				console.error("Invalid response format:", response);
+			}
 
 			// Notify listeners of the update
 			this.notifyListeners();
@@ -483,7 +495,9 @@ class GraphController {
 			auto: this.auto,
 			matrix: this.activeMatrix,
 		};
-		return JSON.stringify(graphData);
+		const data = JSON.stringify(graphData);
+		console.log("serialized data", data);
+		return data;
 	}
 
 	// Deserialize JSON into graph
@@ -551,9 +565,21 @@ class GraphController {
 	}
 
 	public deserializePredictNodes(data: string) {
-		if (!data) throw new Error("Parsed data does not exist");
+		if (!data || typeof data !== "string")
+			throw new Error(
+				"Parsed data does not exist or is not a valid JSON string"
+			);
 
-		const parsedData = JSON.parse(data).dfg;
+		let parsedData;
+		try {
+			parsedData = JSON.parse(data).dfg;
+		} catch (error) {
+			if (error instanceof Error) {
+				throw new Error("Failed to parse JSON data: " + error.message);
+			} else {
+				throw new Error("Failed to parse JSON data: Unknown error");
+			}
+		}
 
 		const prevNodes = parsedData.returnNodes;
 		this.deletedKeys = [];

@@ -44,6 +44,7 @@ const App: React.FC = () => {
 	const [precision, setPrecision] = useState(0);
 	const [variantCoverage, setVariantCoverage] = useState(0);
 	const [logCoverage, setLogCoverage] = useState(0);
+	const [variants, setVariants] = useState([]);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -69,6 +70,8 @@ const App: React.FC = () => {
 				"New",
 				async (graphInput: any, matrix: string) => {
 					const prediction = await predictOutcome(graphInput, matrix);
+
+					setVariants(await getVariantsFromDict());
 
 					getMetrics(
 						setFitness,
@@ -104,6 +107,21 @@ const App: React.FC = () => {
 		getMatrices();
 	}, [sessionStarted]);
 
+	const getVariantsFromDict = async () => {
+		try {
+			const variantsDict = await getVariants();
+			const parsedVariants = JSON.parse(variantsDict.variants);
+
+			if (activeGraphController) {
+				activeGraphController.sequences = parsedVariants.sequences;
+			}
+			return parsedVariants.variants;
+		} catch (error) {
+			console.error("Failed to get variants from dictionary:", error);
+			return [];
+		}
+	};
+
 	const handleNameChange = (name: string) => {
 		setActiveName(name);
 		// Update the name of the current tab only
@@ -125,7 +143,7 @@ const App: React.FC = () => {
 
 			await controller.get_preview_nodes();
 
-			await getVariants();
+			setVariants(await getVariantsFromDict());
 
 			// Update metrics for the new active tab
 			getMetrics(
@@ -150,6 +168,8 @@ const App: React.FC = () => {
 		handleTabClick(multiController.current.graphs.length - 1);
 		setTabs([...multiController.current.graphs]);
 		setActiveName(name);
+
+		setVariants(await getVariantsFromDict());
 
 		// Update metrics for the new active tab
 		getMetrics(
@@ -203,6 +223,8 @@ const App: React.FC = () => {
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 
 		await activeGraphController?.get_preview_nodes();
+
+		setVariants(await getVariantsFromDict());
 
 		// Update metrics after closing a tab and setting a new active tab
 		getMetrics(
@@ -260,6 +282,7 @@ const App: React.FC = () => {
 							generalization={generalization}
 							variantCoverage={variantCoverage}
 							logCoverage={logCoverage}
+							variants={variants}
 						/>
 					)}
 				</div>

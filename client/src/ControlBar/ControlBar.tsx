@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import GraphController from "./GraphController";
 import "./ControlBar.css";
 import MultiGraphs from "./MultiGraphs";
@@ -15,6 +15,7 @@ interface ControlsProps {
 	generalization: any;
 	variantCoverage: any;
 	logCoverage: any;
+	variants: any;
 }
 
 const ControlBar: React.FC<ControlsProps> = ({
@@ -27,6 +28,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 	simplicity,
 	variantCoverage,
 	logCoverage,
+	variants,
 }) => {
 	const [sliderValue, setSliderValue] = useState(
 		controller.probabilityMin * 100
@@ -35,6 +37,49 @@ const ControlBar: React.FC<ControlsProps> = ({
 	const [showMetrics, setShowMetrics] = useState(false);
 	const [showProbability, setShowProbability] = useState(false);
 	const [showVariants, setShowVariants] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [displayedVariants, setDisplayedVariants] = useState<
+		[string, number][]
+	>([]);
+	const [sortOrder, setSortOrder] = useState("default");
+	const [showSortMenu, setShowSortMenu] = useState(false);
+
+	useEffect(() => {
+		getDisplayedVariants();
+	}, [variants, sortOrder, searchTerm]);
+
+	const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchTerm(event.target.value);
+	};
+
+	const getDisplayedVariants = () => {
+		// convert the variant dict to a tuple of the trace and the support
+		const newDisplayedVariants: [string, number][] = [];
+		for (const variant of variants) {
+			// check for search term
+			const searchTerms = searchTerm
+				.toLowerCase()
+				.split(/[\s,]+/)
+				.filter(Boolean);
+			if (
+				searchTerms.every((term) =>
+					String(variant.prefixes).toLowerCase().includes(term)
+				) ||
+				searchTerm === ""
+			) {
+				newDisplayedVariants.push([variant.prefixes, variant.Support]);
+			}
+		}
+
+		// sort the displayed variants
+		if (sortOrder === "support") {
+			newDisplayedVariants.sort((a, b) => {
+				return b[1] - a[1];
+			});
+		}
+
+		setDisplayedVariants(newDisplayedVariants);
+	};
 
 	const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const value = Number(event.target.value);
@@ -57,7 +102,9 @@ const ControlBar: React.FC<ControlsProps> = ({
 	};
 
 	const toggleMetrics = () => setShowMetrics(!showMetrics);
+
 	const toggleProbability = () => setShowProbability(!showProbability);
+
 	const toggleVariants = () => setShowVariants(!showVariants);
 
 	return (
@@ -210,7 +257,46 @@ const ControlBar: React.FC<ControlsProps> = ({
 				</button>
 				{showVariants && (
 					<div className="variantsContainer">
-						{/* TODO: Implement the logic to display event log variants */}
+						<div>
+							<div className="searchSortContainer">
+								<input
+									type="text"
+									placeholder="Search variants"
+									value={searchTerm}
+									onChange={handleSearchChange}
+									className="input"
+								/>
+								<div className="sortButtonContainer">
+									<button
+										className="sortButton"
+										onClick={() => setShowSortMenu(!showSortMenu)}>
+										Sort
+									</button>
+									{showSortMenu && (
+										<div className="sortMenu">
+											<button onClick={() => setSortOrder("default")}>
+												Default Order
+											</button>
+											<button onClick={() => setSortOrder("support")}>
+												By Support
+											</button>
+										</div>
+									)}
+								</div>
+							</div>
+							<div className="variantsListContainer">
+								{displayedVariants.map((variant: any) => (
+									<div key={variant[0]}>
+										<div className="variantItem">{variant[0].join(" → ")}</div>
+										<div
+											className="variantSupport"
+											style={{ color: "gray", fontSize: "small" }}>
+											Support: {variant[1] !== undefined ? variant[1] : "N/A"}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
 					</div>
 				)}
 			</div>

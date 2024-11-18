@@ -215,3 +215,84 @@ hr.my-2 {
 .variantsContainer {
 	padding: 1rem 0;
 }
+.searchSortContainer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+
+.sortButtonContainer {
+	position: relative;
+}
+
+.sortButton {
+	background-color: #f0f0f0;
+	border: none;
+	padding: 0.5rem 1rem;
+	font-size: 1rem;
+	font-weight: bold;
+	color: #333;
+	cursor: pointer;
+	border-radius: 0.5rem;
+	transition: background-color 0.3s ease;
+}
+
+.sortButton:hover {
+	background-color: #d0d0d0;
+}
+
+.sortMenu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	background-color: white;
+	border: 1px solid lightgray;
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	z-index: 1;
+}
+
+.sortMenu button {
+	background-color: white;
+	border: none;
+	padding: 0.5rem 1rem;
+	font-size: 1rem;
+	color: #333;
+	cursor: pointer;
+	width: 100%;
+	text-align: left;
+}
+
+.sortMenu button:hover {
+	background-color: #f0f0f0;
+}
+
+.variantsListContainer {
+	max-height: 200px;
+	overflow-y: auto;
+	border: 1px solid lightgray;
+	border-radius: 0.5rem;
+	padding: 0.5rem;
+}
+
+.variantItem {
+	padding: 0.5rem;
+	border-bottom: 1px solid lightgray;
+	cursor: pointer;
+}
+
+.variantItem:last-child {
+	border-bottom: none;
+}
+
+.variantName {
+	font-size: 1rem;
+	font-weight: bold;
+	color: #333;
+}
+
+.variantSupport {
+	color: gray;
+	font-size: small;
+}

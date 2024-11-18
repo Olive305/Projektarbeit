@@ -169,8 +169,8 @@ class Prediction:
             "precision": precision,
             "generalization": generalization,
         }
-        variant_coverage = self.matrix.get_variant_coverage(traces)
-        event_log_coverage = self.matrix.get_event_log_coverage(traces)
+        variant_coverage = self.matrix.get_variant_coverage(self.edges)
+        event_log_coverage = self.matrix.get_event_log_coverage(self.edges)
 
         serializedMetrics["variant_coverage"] = variant_coverage
         serializedMetrics["event_log_coverage"] = event_log_coverage
@@ -180,15 +180,8 @@ class Prediction:
     def getVariants(self):
         variants = self.matrix.get_variants()
 
-        # get the variants that are already discovered
-        discoveredVariants = [
-            seq for seq in self.getAllSequences() if seq and seq[-1] == "[EOC]"
-        ]
-
         # return the variants and the discovered variants
-        return json.dumps(
-            {"variants": variants, "discoveredVariants": discoveredVariants}
-        )
+        return json.dumps({"variants": variants, "sequences": self.getAllSequences()})
 
     def positionNodes(self):
         # do this for each node (by getting the edge_starts)

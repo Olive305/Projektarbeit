@@ -5,10 +5,6 @@ type StartSessionResponse = {
 	session_id: string;
 };
 
-type PredictionResponse = {
-	predictions: any; // Adjust type based on actual prediction data structure
-};
-
 type MatrixChangeResponse = {
 	message: string;
 };
@@ -119,7 +115,6 @@ export class SessionAuth {
 		);
 
 		const data = JSON.parse(response.data.metrics);
-
 		console.log("setting metrics", data);
 
 		setFitness(data.fitness);
@@ -131,18 +126,20 @@ export class SessionAuth {
 	}
 
 	// Generate predictions based on the graph input
-	async predictOutcome(
-		graphInput: any,
-		matrix: string
-	): Promise<PredictionResponse> {
+	async predictOutcome(graphInput: any, matrix: string) {
 		console.log(this.sessionId);
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
-		const response: AxiosResponse<PredictionResponse> = await axios.post(
-			`${this.apiUrl}/predictOutcome`,
-			{ graph_input: graphInput, matrix }
-		);
-		return response.data;
+		try {
+			const response: any = await axios.post(`${this.apiUrl}/predictOutcome`, {
+				graph_input: graphInput,
+				matrix,
+			});
+			return response.data;
+		} catch (error) {
+			console.error("Error predicting outcome:", error);
+			throw error;
+		}
 	}
 
 	// Test server connection
@@ -170,10 +167,15 @@ export class SessionAuth {
 	async getVariants(): Promise<{ variants: any }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
-		const response: AxiosResponse<{ variants: any }> = await axios.post(
-			`${this.apiUrl}/getVariants`
-		);
-
-		return response.data;
+		try {
+			const response: AxiosResponse<{ variants: any }> = await axios.post(
+				`${this.apiUrl}/getVariants`
+			);
+			console.log("variants", response, response.data);
+			return response.data;
+		} catch (error) {
+			console.error("Error getting variants:", error);
+			throw error;
+		}
 	}
 }

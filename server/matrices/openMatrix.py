@@ -321,24 +321,32 @@ class MyCsv:
 
         return generalization_score
 
-    def get_variant_coverage(self, traces: list):
+    def get_variant_coverage(self, edges: dict):
         """
-        Calculate the variant coverage of the model based on the traces.
+        Calculate the variant coverage of the model based on the edges. For each variant, checks if a path through the model exists.
 
         Args:
-            traces (list): List of observed traces (each trace is a tuple).
+            edges (dict): The edges in the traces.
 
         Returns:
             float: Variant coverage score between 0 and 1.
         """
-        # Remove EOC from traces
-        traces = [trace[:-1] for trace in traces]
 
         # Extract unique variants from the event log
         unique_variants = [variant["prefixes"] for variant in self.get_variants()]
 
-        # Initialize the coverage count
-        coverage_count = sum([1 for trace in traces if trace in unique_variants])
+        coverage_count = 0
+
+        for variant in unique_variants:
+            # Check if the variant is covered by the model
+            covered = True
+            for i in range(len(variant) - 1):
+                if variant[i] not in edges or variant[i + 1] not in edges[variant[i]]:
+                    covered = False
+                    break
+
+            if covered:
+                coverage_count += 1
 
         # Calculate the variant coverage score
         variant_coverage = (
@@ -347,19 +355,33 @@ class MyCsv:
 
         return variant_coverage
 
-    def get_event_log_coverage(self, traces: list):
+    def get_event_log_coverage(self, edges: dict):
         """
-        Calculate the event log coverage of the model based on the traces.
+        Calculate the event log coverage of the model based on the edges. For each variant, checks if a path through the model exists.
 
         Args:
-            traces (list): List of observed traces (each trace is a tuple).
+            edges (dict): The edges in the traces.
 
         Returns:
             float: Event log coverage score between 0 and 1.
         """
         prefixes = self.getPrefixes()
-        coverage_count = sum([1 for prefix in prefixes if prefix in traces])
+
+        coverage_count = 0
+
+        for prefix in prefixes:
+            # Check if the variant is covered by the model
+            covered = True
+            for i in range(len(prefix) - 1):
+                if prefix[i] not in edges or prefix[i + 1] not in edges[prefix[i]]:
+                    covered = False
+                    break
+
+            if covered:
+                coverage_count += 1
+
         event_log_coverage = coverage_count / len(prefixes) if len(prefixes) > 0 else 1
+
         return event_log_coverage
 
     def get_variants(self):

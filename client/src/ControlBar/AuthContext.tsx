@@ -18,11 +18,14 @@ interface AuthContextProps {
 		setFitness: (val: number) => void,
 		setGeneralization: (val: number) => void,
 		setSimplicity: (val: number) => void,
-		setPrecision: (val: number) => void
+		setPrecision: (val: number) => void,
+		setVariantCoverage: (val: number) => void,
+		setEventLogCoverage: (val: number) => void
 	) => Promise<void>;
 	predictOutcome: (graphInput: any, matrix: string) => Promise<any>;
 	testConnection: () => Promise<{ status: string }>;
 	removeMatrix: (matrixName: string) => Promise<any>;
+	getVariants: () => Promise<any>;
 }
 
 // Add children prop in AuthProviderProps
@@ -67,13 +70,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		setFitness: (val: number) => void,
 		setGeneralization: (val: number) => void,
 		setSimplicity: (val: number) => void,
-		setPrecision: (val: number) => void
+		setPrecision: (val: number) => void,
+		setVariantCoverage: (val: number) => void,
+		setEventLogCoverage: (val: number) => void
 	) => {
 		await sessionResponse.getMetrics(
 			setFitness,
 			setGeneralization,
 			setSimplicity,
-			setPrecision
+			setPrecision,
+			setVariantCoverage,
+			setEventLogCoverage
 		);
 	};
 
@@ -83,6 +90,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 	const testConnection = async () => {
 		return await sessionResponse.testConnection();
+	};
+
+	const getVariants = async () => {
+		return await sessionResponse.getVariants();
 	};
 
 	useEffect(() => {
@@ -101,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				predictOutcome,
 				testConnection,
 				removeMatrix,
+				getVariants,
 			}}>
 			{children}
 		</AuthContext.Provider>

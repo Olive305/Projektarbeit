@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import GraphController from "./GraphController";
 import "./ControlBar.css";
 import MultiGraphs from "./MultiGraphs";
+import ArrowDropDownIcon from "../assets/arrow_drop_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 
 interface ControlsProps {
 	controller: GraphController;
@@ -12,6 +13,8 @@ interface ControlsProps {
 	simplicity: any;
 	precision: any;
 	generalization: any;
+	variantCoverage: any;
+	logCoverage: any;
 }
 
 const ControlBar: React.FC<ControlsProps> = ({
@@ -22,36 +25,40 @@ const ControlBar: React.FC<ControlsProps> = ({
 	precision,
 	generalization,
 	simplicity,
+	variantCoverage,
+	logCoverage,
 }) => {
-	// State to hold the slider value
 	const [sliderValue, setSliderValue] = useState(
 		controller.probabilityMin * 100
 	);
-	const [isChecked, setIsChecked] = useState(controller.auto); // State to manage checkbox status
+	const [isChecked, setIsChecked] = useState(controller.auto);
+	const [showMetrics, setShowMetrics] = useState(false);
+	const [showProbability, setShowProbability] = useState(false);
+	const [showVariants, setShowVariants] = useState(false);
 
-	// Function to handle slider value changes
 	const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const value = Number(event.target.value);
 		setSliderValue(value);
 	};
 
-	// Trigger preview nodes when the slider interaction is complete
 	const handleSliderMouseUp = () => {
 		controller.probabilityMin = sliderValue / 100;
 		controller.get_preview_nodes();
 	};
 
-	// Update process name on input change
 	const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setActiveName(event.target.value);
 	};
 
-	// Handle checkbox change
 	const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		controller.auto = event.target.checked;
 		setIsChecked(event.target.checked);
 		controller.get_preview_nodes();
 	};
+
+	const toggleMetrics = () => setShowMetrics(!showMetrics);
+	const toggleProbability = () => setShowProbability(!showProbability);
+	const toggleVariants = () => setShowVariants(!showVariants);
 
 	return (
 		<div>
@@ -73,9 +80,18 @@ const ControlBar: React.FC<ControlsProps> = ({
 
 			<hr className="my-2" />
 
-			{/* Conditionally render performance metrics */}
-			{controller.showPreview && (
-				<>
+			<div className="collapsibleSection">
+				<button
+					onClick={toggleMetrics}
+					className="collapsibleButton">
+					Performance Metrics
+					<img
+						src={ArrowDropDownIcon}
+						alt="Toggle"
+						className="dropdownIcon"
+					/>
+				</button>
+				{showMetrics && (
 					<div className="performanceMetrics">
 						<div className="metric">
 							<label>Fitness: {fitness ? Math.round(fitness * 100) : 0}%</label>
@@ -112,37 +128,92 @@ const ControlBar: React.FC<ControlsProps> = ({
 								max="1"
 								className="progressBar"></progress>
 						</div>
-					</div>
-
-					<hr className="my-2" />
-
-					<div className="probabilityContainer">
-						<label>Auto Probability</label>
-						<div className="checkboxSliderContainer"></div>
-						<input
-							className="checkbox"
-							type="checkbox"
-							checked={isChecked}
-							onChange={handleCheckboxChange}
-						/>
-						<div className="slidecontainer">
-							<p>Probability: {sliderValue}%</p>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								value={sliderValue}
-								className="slider"
-								id="myRange"
-								style={{ background: "lightblue" }}
-								onChange={handleSliderChange}
-								onMouseUp={handleSliderMouseUp}
-								disabled={isChecked}
-							/>
+						<div className="metric">
+							<label>
+								Variant Coverage:{" "}
+								{variantCoverage ? Math.round(variantCoverage * 100) : 0}%
+							</label>
+							<progress
+								value={variantCoverage}
+								max="1"
+								className="progressBar"></progress>
+						</div>
+						<div className="metric">
+							<label>
+								Log Coverage: {logCoverage ? Math.round(logCoverage * 100) : 0}%
+							</label>
+							<progress
+								value={logCoverage}
+								max="1"
+								className="progressBar"></progress>
 						</div>
 					</div>
-				</>
-			)}
+				)}
+			</div>
+
+			<hr className="my-2" />
+
+			<div className="collapsibleSection">
+				<button
+					onClick={toggleProbability}
+					className="collapsibleButton">
+					Probability Settings
+					<img
+						src={ArrowDropDownIcon}
+						alt="Toggle"
+						className="dropdownIcon"
+					/>
+				</button>
+				{showProbability && (
+					<div className="probabilityContainer">
+						<label>Auto Probability</label>
+						<div className="checkboxSliderContainer">
+							<input
+								className="checkbox"
+								type="checkbox"
+								checked={isChecked}
+								onChange={handleCheckboxChange}
+							/>
+							<div style={{ width: "10px" }}></div>
+							<div className="slidecontainer">
+								<p>Probability: {sliderValue}%</p>
+								<input
+									type="range"
+									min="0"
+									max="100"
+									value={sliderValue}
+									className="slider"
+									id="myRange"
+									style={{ background: "lightblue" }}
+									onChange={handleSliderChange}
+									onMouseUp={handleSliderMouseUp}
+									disabled={isChecked}
+								/>
+							</div>
+						</div>
+					</div>
+				)}
+			</div>
+
+			<hr className="my-2" />
+
+			<div className="collapsibleSection">
+				<button
+					onClick={toggleVariants}
+					className="collapsibleButton">
+					Event Log Variants
+					<img
+						src={ArrowDropDownIcon}
+						alt="Toggle"
+						className="dropdownIcon"
+					/>
+				</button>
+				{showVariants && (
+					<div className="variantsContainer">
+						{/* TODO: Implement the logic to display event log variants */}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

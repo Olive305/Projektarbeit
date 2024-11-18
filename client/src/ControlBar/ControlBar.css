@@ -1,6 +1,7 @@
 /* General container styling */
 .processNameContainer {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	margin-bottom: 1rem;
 }
@@ -9,20 +10,32 @@
 	font-size: 1rem;
 	font-weight: bold;
 	color: #333;
+	margin: 0;
+	padding: 0;
 	margin-right: 0.5rem;
+	padding-left: 1rem;
 }
 
 .input {
 	padding: 0.5rem;
-	border: none;
+	margin: 0;
+	margin-left: 0.3rem;
+	border: 1px solid transparent;
 	border-radius: 0.5rem;
 	font-size: 1rem;
-	transition: border-color 0.3s ease;
+	min-width: 10rem;
+	max-width: 100%;
+	box-sizing: border-box;
+	transition: border 0.3s ease;
 }
 
 .input:focus {
 	border-color: gray;
 	outline: none;
+}
+
+.input:hover {
+	border-color: gray;
 }
 
 .checkbox {
@@ -34,6 +47,7 @@
 	display: inline-block;
 	position: relative;
 	transition: background-color 0.3s ease, border-color 0.3s ease;
+	margin-right: 0.5rem;
 }
 
 .checkbox:checked {
@@ -53,116 +67,75 @@
 	transform: rotate(45deg);
 }
 
-.checkbox {
-	margin-right: 0.5rem;
-}
-
 .probabilityContainer {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	flex-direction: column;
+	align-items: flex-start;
 	margin-top: auto;
 	padding: 1rem 0;
 }
 
 .checkboxSliderContainer {
 	display: flex;
-	align-items: center;
+	flex-direction: column;
+	align-items: flex-start;
 	gap: 0.5rem;
 }
 
 .slidecontainer {
-	flex-grow: 1;
-	margin-left: 0.5rem;
+	width: 100%;
+	margin-top: 0.5rem;
 }
 
-/* The slider itself */
 .slider {
+	-webkit-appearance: none;
 	width: 100%;
-	height: 0.25rem;
-	background: #e0e0e0;
+	height: 1rem;
+	border-radius: 0.5rem;
+	background: lightgray;
 	outline: none;
 	transition: background 0.3s ease;
-	border-radius: 0.25rem;
-	appearance: none;
-	-webkit-appearance: none;
-	position: relative;
-}
-
-.slider:disabled {
-	background: lightgray;
 }
 
 .slider::-webkit-slider-thumb {
-	width: 0.75rem;
-	height: 0.75rem;
+	-webkit-appearance: none;
+	appearance: none;
+	width: 1rem;
+	height: 1rem;
+	border-radius: 50%;
 	background: orange;
 	cursor: pointer;
-	border-radius: 50%;
-	transition: transform 0.3s ease;
-	-webkit-appearance: none;
-	position: relative;
-	z-index: 2;
-}
-
-.slider:disabled::-webkit-slider-thumb {
-	background: gray;
-}
-
-.slider::-webkit-slider-thumb:hover {
-	transform: scale(1.2);
+	transition: background 0.3s ease;
 }
 
 .slider::-moz-range-thumb {
-	width: 0.75rem;
-	height: 0.75rem;
+	width: 1rem;
+	height: 1rem;
+	border-radius: 50%;
 	background: orange;
 	cursor: pointer;
-	border-radius: 50%;
-	transition: transform 0.3s ease;
-	position: relative;
-	z-index: 2;
+	transition: background 0.3s ease;
 }
 
-.slider:disabled::-moz-range-thumb {
-	background: gray;
+.slider:hover {
+	background: #d0d0d0;
+}
+
+.slider::-webkit-slider-thumb:hover {
+	background: darkorange;
 }
 
 .slider::-moz-range-thumb:hover {
-	transform: scale(1.2);
-}
-.slider::-webkit-slider-runnable-track {
-	background: #e0e0e0;
-}
-
-.slider::-moz-range-track {
-	background: #e0e0e0;
-}
-
-.slider::-webkit-slider-runnable-track {
-	background: linear-gradient(
-		to right,
-		orange 0%,
-		orange var(--slider-value, 50%),
-		#e0e0e0 var(--slider-value, 50%),
-		#e0e0e0 100%
-	);
-}
-
-.slider::-moz-range-track {
-	background: linear-gradient(
-		to right,
-		orange 0%,
-		orange var(--slider-value, 50%),
-		#e0e0e0 var(--slider-value, 50%),
-		#e0e0e0 100%
-	);
+	background: darkorange;
 }
 
 .performanceMetrics {
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
+	padding-left: 1.3rem;
+	padding-right: 1.3rem;
+	padding-top: 1rem;
 }
 
 .metric {
@@ -174,14 +147,16 @@
 	font-size: 1rem;
 	font-weight: bold;
 	color: #333;
-	margin-bottom: 0.5rem;
+	padding: 0;
+	margin: 0;
 }
 
 .progressBar {
 	width: 100%;
 	height: 1rem;
+	border: 1px solid lightgray;
 	border-radius: 0.5rem;
-	background-color: #f0f0f0;
+	background-color: white;
 	overflow: hidden;
 }
 
@@ -197,5 +172,46 @@
 
 hr.my-2 {
 	border: 1px solid black;
-	margin: 1rem 0;
+	margin: 0;
+	padding: 0;
+}
+
+/* Collapsible sections */
+.collapsibleSection {
+	margin-bottom: 1rem;
+}
+
+.collapsibleButton {
+	background-color: #f0f0f0;
+	border: none;
+	padding: 0.5rem 1rem;
+	margin: 0;
+	font-size: 1rem;
+	font-weight: bold;
+	color: #333;
+	cursor: pointer;
+	width: 100%;
+	text-align: left;
+	border-radius: 0.5rem;
+	transition: background-color 0.3s ease;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.collapsibleButton:hover {
+	background-color: #d0d0d0;
+}
+
+.collapsibleContent {
+	padding: 0 1rem;
+	display: none;
+}
+
+.collapsibleContent.show {
+	display: block;
+}
+
+.variantsContainer {
+	padding: 1rem 0;
 }

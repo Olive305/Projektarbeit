@@ -51,7 +51,7 @@ class MyCsv:
         self.df.columns = self.df.columns.str.strip()
 
         # Convert 'prefixes' column from strings to tuples for efficient comparison
-        self.df["prefixes"] = self.df["prefixes"].apply(eval)
+        self.df["prefixes"] = self.df["prefixes"].apply(lambda x: tuple(eval(x)))
 
         # Precompute and cache the probability columns for use in the predict method
         fixed_columns = {"prefixes", "targets", "Support"}
@@ -320,3 +320,65 @@ class MyCsv:
             )
 
         return generalization_score
+
+    def get_variant_coverage(self, traces: list):
+        """
+        Calculate the variant coverage of the model based on the traces.
+
+        Args:
+            traces (list): List of observed traces (each trace is a tuple).
+
+        Returns:
+            float: Variant coverage score between 0 and 1.
+        """
+        # Remove EOC from traces
+        traces = [trace[:-1] for trace in traces]
+
+        # Extract unique variants from the event log
+        unique_variants = [variant["prefixes"] for variant in self.get_variants()]
+
+        # Initialize the coverage count
+        coverage_count = sum([1 for trace in traces if trace in unique_variants])
+
+        # Calculate the variant coverage score
+        variant_coverage = (
+            coverage_count / len(unique_variants) if len(unique_variants) > 0 else 1
+        )
+
+        return variant_coverage
+
+    def get_event_log_coverage(self, traces: list):
+        """
+        Calculate the event log coverage of the model based on the traces.
+
+        Args:
+            traces (list): List of observed traces (each trace is a tuple).
+
+        Returns:
+            float: Event log coverage score between 0 and 1.
+        """
+        prefixes = self.getPrefixes()
+        coverage_count = sum([1 for prefix in prefixes if prefix in traces])
+        event_log_coverage = coverage_count / len(prefixes) if len(prefixes) > 0 else 1
+        return event_log_coverage
+
+    def get_variants(self):
+        """
+        Returns the unique variants in the event log where the target is [EOC] and their support.
+        In this context, a variant is a prefix that ends with an end-of-case marker. (end-of-case marker is in targets)
+        """
+        if self.df is None:
+            raise ValueError("DataFrame is not loaded. Please load the CSV first.")
+
+        # Filter rows where the target is '[EOC]'
+        eoc_rows = self.df[self.df["targets"].str.strip() == "[EOC]"]
+
+        # Extract unique variants and their support
+        variants = eoc_rows[["prefixes", "Support"]].copy()
+        variants["prefixes"] = variants["prefixes"].apply(
+            lambda x: tuple(eval(x)) if isinstance(x, str) else x
+        )
+
+        variants_dict = variants.to_dict(orient="records")
+
+        return variants_dict

@@ -169,8 +169,26 @@ class Prediction:
             "precision": precision,
             "generalization": generalization,
         }
+        variant_coverage = self.matrix.get_variant_coverage(traces)
+        event_log_coverage = self.matrix.get_event_log_coverage(traces)
+
+        serializedMetrics["variant_coverage"] = variant_coverage
+        serializedMetrics["event_log_coverage"] = event_log_coverage
 
         return json.dumps(serializedMetrics)
+
+    def getVariants(self):
+        variants = self.matrix.get_variants()
+
+        # get the variants that are already discovered
+        discoveredVariants = [
+            seq for seq in self.getAllSequences() if seq and seq[-1] == "[EOC]"
+        ]
+
+        # return the variants and the discovered variants
+        return json.dumps(
+            {"variants": variants, "discoveredVariants": discoveredVariants}
+        )
 
     def positionNodes(self):
         # do this for each node (by getting the edge_starts)
@@ -499,16 +517,14 @@ class Prediction:
             self.edges[start] = [end]
 
     def getAllSequences(self):
-        visited = {}
-
         # Recursive function to build sequences
-        def recBuildSeq(seq, curr):
+        def recBuildSeq(seq, curr, visited):
             # Check if the current node has been visited to prevent loops and check if it is a preview node
             if curr in visited or curr in self.preview_nodes:
                 return []
 
             # Mark the current node as visited
-            visited[curr] = True
+            visited.add(curr)
 
             sequences = []
 
@@ -526,18 +542,16 @@ class Prediction:
                 newSequences = recBuildSeq(
                     seq + (self.nodes[end].id,),  # Update the sequence tuple
                     end,  # Move to the next node
+                    visited.copy(),  # Pass a copy of the visited set
                 )
 
                 # Append the new sequences
                 sequences.extend(newSequences)
 
-            # Backtrack: remove the current node from visited
-            del visited[curr]
-
             return sequences
 
         # Start the recursion from node "starting_with_key:0" with an empty sequence
-        sequences = recBuildSeq((), "starting_with_key:0")
+        sequences = recBuildSeq((), "starting_with_key:0", set())
 
         # Ensure that the empty sequence () is included
         sequences.insert(0, ())

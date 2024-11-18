@@ -21,6 +21,7 @@ const App: React.FC = () => {
 		changeMatrix,
 		getMetrics,
 		removeMatrix,
+		getVariants,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -41,6 +42,8 @@ const App: React.FC = () => {
 	const [generalization, setGeneralization] = useState(0);
 	const [simplicity, setSimplicity] = useState(0);
 	const [precision, setPrecision] = useState(0);
+	const [variantCoverage, setVariantCoverage] = useState(0);
+	const [logCoverage, setLogCoverage] = useState(0);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -71,7 +74,9 @@ const App: React.FC = () => {
 						setFitness,
 						setGeneralization,
 						setSimplicity,
-						setPrecision
+						setPrecision,
+						setVariantCoverage,
+						setLogCoverage
 					);
 					return prediction;
 				}
@@ -120,8 +125,17 @@ const App: React.FC = () => {
 
 			await controller.get_preview_nodes();
 
+			await getVariants();
+
 			// Update metrics for the new active tab
-			getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
+			getMetrics(
+				setFitness,
+				setGeneralization,
+				setSimplicity,
+				setPrecision,
+				setVariantCoverage,
+				setLogCoverage
+			);
 		} else {
 			console.error("Controller is undefined or null");
 		}
@@ -138,7 +152,14 @@ const App: React.FC = () => {
 		setActiveName(name);
 
 		// Update metrics for the new active tab
-		getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
+		getMetrics(
+			setFitness,
+			setGeneralization,
+			setSimplicity,
+			setPrecision,
+			setVariantCoverage,
+			setLogCoverage
+		);
 	};
 
 	const handleReadGraphFromFile = async (file: File) => {
@@ -184,7 +205,14 @@ const App: React.FC = () => {
 		await activeGraphController?.get_preview_nodes();
 
 		// Update metrics after closing a tab and setting a new active tab
-		getMetrics(setFitness, setGeneralization, setSimplicity, setPrecision);
+		getMetrics(
+			setFitness,
+			setGeneralization,
+			setSimplicity,
+			setPrecision,
+			setVariantCoverage,
+			setLogCoverage
+		);
 	};
 
 	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
@@ -230,6 +258,8 @@ const App: React.FC = () => {
 							simplicity={simplicity}
 							fitness={fitness}
 							generalization={generalization}
+							variantCoverage={variantCoverage}
+							logCoverage={logCoverage}
 						/>
 					)}
 				</div>

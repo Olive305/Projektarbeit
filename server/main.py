@@ -236,6 +236,30 @@ def generate_petri_net():
         return jsonify({"error": "Petri net image not found"}), 404
 
 
+@app.route("/api/getVariants", methods=["POST"])
+def get_variants():
+    """
+    Retrieve variants from the current prediction session.
+    """
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices.get(session["lastUsedMatrix"])
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+
+    variants = prediction.getVariants()
+
+    return jsonify({"variants": variants})
+
+
 @app.route("/api/getMetrics", methods=["POST"])
 def get_metrics():
     """

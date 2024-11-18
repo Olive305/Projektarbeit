@@ -108,7 +108,9 @@ export class SessionAuth {
 		setFitness: any,
 		setGeneralization: any,
 		setSimplicity: any,
-		setPrecision: any
+		setPrecision: any,
+		setVariantCoverage: any,
+		setEventLogCoverage: any
 	) {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -124,6 +126,8 @@ export class SessionAuth {
 		setGeneralization(data.generalization);
 		setPrecision(data.precision);
 		setSimplicity(data.simplicity);
+		setVariantCoverage(data.variant_coverage);
+		setEventLogCoverage(data.event_log_coverage);
 	}
 
 	// Generate predictions based on the graph input
@@ -157,6 +161,17 @@ export class SessionAuth {
 		const response: AxiosResponse<{ message: string }> = await axios.post(
 			`${this.apiUrl}/removeMatrix`,
 			{ matrix_name: matrixName }
+		);
+
+		return response.data;
+	}
+
+	// Get variants based on the last used matrix
+	async getVariants(): Promise<{ variants: any }> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const response: AxiosResponse<{ variants: any }> = await axios.post(
+			`${this.apiUrl}/getVariants`
 		);
 
 		return response.data;

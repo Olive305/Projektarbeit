@@ -135,7 +135,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"
-						className="dropdownIcon"
+						className={showMetrics ? "dropdownIconExpanded" : "dropdownIcon"}
 					/>
 				</button>
 				{showMetrics && (
@@ -208,19 +208,23 @@ const ControlBar: React.FC<ControlsProps> = ({
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"
-						className="dropdownIcon"
+						className={
+							showProbability ? "dropdownIconExpanded" : "dropdownIcon"
+						}
 					/>
 				</button>
 				{showProbability && (
 					<div className="probabilityContainer">
-						<label>Auto Probability</label>
-						<div className="checkboxSliderContainer">
+						<div className="checkBoxContainer">
 							<input
 								className="checkbox"
 								type="checkbox"
 								checked={isChecked}
 								onChange={handleCheckboxChange}
 							/>
+							<label>Auto Probability</label>
+						</div>
+						<div className="sliderContainer">
 							<div style={{ width: "10px" }}></div>
 							<div className="slidecontainer">
 								<p>Probability: {sliderValue}%</p>
@@ -252,7 +256,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"
-						className="dropdownIcon"
+						className={showVariants ? "dropdownIconExpanded" : "dropdownIcon"}
 					/>
 				</button>
 				{showVariants && (
@@ -275,26 +279,36 @@ const ControlBar: React.FC<ControlsProps> = ({
 									{showSortMenu && (
 										<div className="sortMenu">
 											<button onClick={() => setSortOrder("default")}>
-												Default Order
+												Default
 											</button>
 											<button onClick={() => setSortOrder("support")}>
-												By Support
+												Support
 											</button>
 										</div>
 									)}
 								</div>
 							</div>
 							<div className="variantsListContainer">
-								{displayedVariants.map((variant: any) => (
-									<div key={variant[0]}>
-										<div className="variantItem">{variant[0].join(" → ")}</div>
-										<div
-											className="variantSupport"
-											style={{ color: "gray", fontSize: "small" }}>
-											Support: {variant[1] !== undefined ? variant[1] : "N/A"}
-										</div>
+								{displayedVariants.length === 0 ? (
+									<div
+										className="variantItem"
+										style={{ color: "gray" }}>
+										No variants
 									</div>
-								))}
+								) : (
+									displayedVariants.map((variant: any) => (
+										<div key={variant[0]}>
+											<div className="variantItem">
+												{variant[0].join(" → ")}
+											</div>
+											<div
+												className="variantSupport"
+												style={{ color: "gray", fontSize: "small" }}>
+												Support: {variant[1] !== undefined ? variant[1] : "N/A"}
+											</div>
+										</div>
+									))
+								)}
 							</div>
 						</div>
 					</div>

@@ -1,3 +1,4 @@
+import math
 from flask import json
 import numpy as np
 from matrices.openMatrix import MyCsv
@@ -48,17 +49,19 @@ class Prediction:
         self.posMatrix = {}  # {(x, y): nodeId}
         self.deletedKeys = []
 
-        self.matrix = matrix
+        self.matrix: MyCsv = matrix
 
         self.probMin = 0.3
         self.nodeProbSet = {}
         self.auto = False
-        self.AUTO_PROB_MIN = 0.02
+        self.AUTO_PROB_MIN = 0.0
 
         self.fitness = 0
         self.simplicity = 0
         self.precision = 0
         self.generalization = 0
+
+        self.supportDict = {}  # {nodeId: support} not serialized and deserialized
 
     def to_dict(self):
         # Serialize each node in nodes and preview_nodes using their to_dict method, if nodes are not empty
@@ -147,10 +150,10 @@ class Prediction:
             return self.matrix.simplicity(traces, len(self.nodes))
 
         def calculate_precision():
-            return self.matrix.precision(traces, self.edges, self.preview_nodes)
+            return self.matrix.precision(self.edges, list(self.preview_nodes.keys()))
 
         def calculate_generalization():
-            return self.matrix.generalization(traces, len(self.nodes))
+            return self.matrix.generalization(self.nodes, len(self.nodes))
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_fitness = executor.submit(calculate_fitness)
@@ -184,96 +187,74 @@ class Prediction:
         return json.dumps({"variants": variants, "sequences": self.getAllSequences()})
 
     def positionNodes(self):
-        # do this for each node (by getting the edge_starts)
-        for edgeStart in self.edges:
-            nodesToPosition = []
+        def check_if_gap(starting_pos, numNodes):
+            starting_pos = (starting_pos[0], starting_pos[1] - 1)
+            for i in range(numNodes + 2):
+                if (starting_pos[0], starting_pos[1] + i) in self.posMatrix:
+                    return False
+            return True
 
-            # we only need to position preview nodes
-            for edgeEnd in self.edges[edgeStart]:
-                if edgeEnd in self.preview_nodes:
-                    nodesToPosition.append(edgeEnd)
+        def position_batch(starting_pos, nodes):
+            # sort the nodes by the probability of the node
+            nodes.sort(key=lambda node: self.nodeProbSet[node], reverse=True)
 
-            # calculate the current position to be used for this starting node
-            curr_y = self.nodes[edgeStart].y  # Haha curry
-            curr_x = self.nodes[edgeStart].x + 1
+            for node in nodes_to_position:
+                self.nodes[node].x = starting_pos[0]
+                self.nodes[node].y = starting_pos[1]
+                self.posMatrix[starting_pos] = node
+                starting_pos = (starting_pos[0], starting_pos[1] + 1)
 
-            # we try finding a gap, where we can put all the preview nodes which start from one node
-            gapStart = curr_y
-            gapFound = False
+        for edge_start in self.edges:
+            nodes_to_position = [
+                node for node in self.edges[edge_start] if node in self.preview_nodes
+            ]
 
-            while not gapFound:
-                # first check the standart gap (placing the nodes nearly aligned such that the middle is next to the starting node)
-                gapSize = 0
-                i = round(len(nodesToPosition) / 2)
+            if len(nodes_to_position) == 0:
+                continue
 
-                if len(nodesToPosition) == 1:
-                    i = 1
+            # get the number of nodes to position in this batch
+            numNodes = len(nodes_to_position)
 
-                if (curr_x, curr_y - i) not in self.posMatrix:
-                    # if we have found a free place, we check, if it borders to enough free places such that
-                    curr_curr_y = curr_y - i + 1  # recursive current XD
-                    while (curr_x, curr_curr_y) not in self.posMatrix:
-                        gapSize += 1
-                        curr_curr_y += 1
-                        if gapSize > len(nodesToPosition):
-                            gapFound = True
-                            gapStart = curr_y - i + 1
-                            break
+            # get the starting position of the batch
+            # first we try the default position with the batch centered on the right to the node
+            starting_pos = (
+                self.nodes[edge_start].x + 1,
+                round(self.nodes[edge_start].y - numNodes / 2)
+                if numNodes > 2
+                else self.nodes[edge_start].y,
+            )
 
-                if gapFound:
+            normal_pos = starting_pos
+
+            # While no gap was found, we try to find a position that works
+            while True:
+                if check_if_gap(starting_pos, numNodes):
+                    position_batch(starting_pos, nodes_to_position)
                     break
 
-                gapSizeTop = 0
-                gapSizeBottom = 0
-                for i in range(max(round(np.sqrt(len(self.preview_nodes))), 5)):
-                    # we start by going up
-                    if (curr_x, curr_y - i) not in self.posMatrix:
-                        # if we have found a free place, we check, if it borders to enough free places such that
-                        curr_curr_y = curr_y - i + 1
-                        while (curr_x, curr_curr_y) not in self.posMatrix:
-                            gapSizeTop += 1
-                            curr_curr_y += 1
-                            if gapSizeTop > len(nodesToPosition) + 1:
-                                gapFound = True
-                                gapStart = curr_y - i + 1
-                                break
-
-                    if gapFound:
+                found = False
+                # the default position did not work, so we check for positions above and below
+                for i in range(1, round(math.sqrt(len(self.nodes)) + 10)):
+                    # check below
+                    if check_if_gap((starting_pos[0], starting_pos[1] + i), numNodes):
+                        starting_pos = (starting_pos[0], starting_pos[1] + i)
+                        position_batch(starting_pos, nodes_to_position)
+                        found = True
                         break
 
-                    # then we go down
-                    if (curr_x, curr_y + i) not in self.posMatrix:
-                        # if we have found a free place, we check, if it borders to enough free places such that
-                        curr_curr_y = curr_y + i + 1
-                        while (curr_x, curr_curr_y) not in self.posMatrix:
-                            gapSizeBottom += 1
-                            curr_curr_y += 1
-                            if gapSizeBottom > len(nodesToPosition) + 1:
-                                gapFound = True
-                                gapStart = curr_y + i + 1
-                                break
-
-                    if gapFound:
+                    # check above
+                    if check_if_gap((starting_pos[0], starting_pos[1] - i), numNodes):
+                        starting_pos = (starting_pos[0], starting_pos[1] - i)
+                        position_batch(starting_pos, nodes_to_position)
+                        found = True
                         break
 
-                if not gapFound:
-                    curr_x += 1
+                if found:
+                    break
 
-            curr_y = gapStart
-
-            # now the gap should be found and we add the nodes to the gap sorted by probability
-            while len(nodesToPosition) > 0:
-                # first we search for the node with the highest probability
-                node = nodesToPosition[0]
-                for compNode in nodesToPosition:
-                    if self.nodeProbSet[compNode] > self.nodeProbSet[node]:
-                        node = compNode
-
-                nodesToPosition.remove(node)
-                self.posMatrix[(curr_x, curr_y)] = node
-                self.nodes[node].x = curr_x
-                self.nodes[node].y = curr_y
-                curr_y += 1
+                # if no position was found, we increase the x position of the batch
+                normal_pos = (normal_pos[0] + 1, normal_pos[1])
+                starting_pos = normal_pos
 
     def convert_to_petri_net(self):
         # Define a DFG (Directly Follows Graph) from nodes and edges
@@ -291,9 +272,24 @@ class Prediction:
                 # Flatten the nested dictionary structure
                 dfg[(edgeStart, edgeEnd)] = dfg.get((edgeStart, edgeEnd), 0) + 1
 
-        # Convert DFG to Petri net
+        # Define start and end activities
+        start_activities = {edge for edge in self.edges["starting_with_key:0"]}
+        end_activities = {
+            edge
+            for edge in self.edges
+            if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+        }
+
+        # Convert DFG to Petri net with parameters
+        parameters = {
+            "start_activities": start_activities,
+            "end_activities": end_activities,
+        }
+
         try:
-            net, initial_marking, final_marking = dfg_to_petri_net(dfg)
+            net, initial_marking, final_marking = dfg_to_petri_net(
+                dfg, parameters=parameters
+            )
         except Exception as e:
             raise ValueError(f"Error converting DFG to Petri Net: {e}")
 
@@ -308,14 +304,35 @@ class Prediction:
 
         # Places
         for place in places:
-            dot.node(
-                place,
-                shape="circle",
-                width="1",
-                height="1",
-                style="filled",
-                fillcolor="lightgray",
-            )
+            if place == "source":
+                dot.node(
+                    place,
+                    shape="circle",
+                    width="1",
+                    height="1",
+                    style="filled",
+                    fillcolor="lightblue",
+                    pos="0,0!",
+                )
+            elif place == "sink":
+                dot.node(
+                    place,
+                    shape="circle",
+                    width="1",
+                    height="1",
+                    style="filled",
+                    fillcolor="lightgreen",
+                    pos="10,0!",
+                )
+            else:
+                dot.node(
+                    place,
+                    shape="circle",
+                    width="1",
+                    height="1",
+                    style="filled",
+                    fillcolor="lightgray",
+                )
 
         # Transitions
         for transition in transitions:
@@ -346,8 +363,6 @@ class Prediction:
         # Deserialize the graph and get all the traces
         self.deserializeGraph(graph)
 
-        traces = self.getAllSequences()
-
         numNodes = len(self.nodes)
 
         self.preview_nodes = {}
@@ -355,50 +370,40 @@ class Prediction:
         # Calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
-        i = 0
-        for trace in traces:
-            predictions = []
-            try:
-                predictions = self.matrix.predict(
-                    trace, self.AUTO_PROB_MIN if self.auto else self.probMin
-                )
-            except Exception as e:
-                print("Error getting prediction from MyCsv: ", e)
+        predictions = self.matrix.predict_using_edges(
+            self.edges, self.probMin if not self.auto else self.AUTO_PROB_MIN
+        )
 
-            for [node, probability] in predictions:
-                lastNodeId = (
-                    "starting_with_key:0"
-                    if len(traces[i]) == 0
-                    else traces[i][len(traces[i]) - 1]
-                )
+        for prediction in predictions:
+            (node, lastNodeId) = prediction
+            probability = predictions[prediction]["probability"]
+            support = predictions[prediction]["support"]
 
-                print("node: ", node)
+            print("node: ", node)
 
-                # Check if the edge to the node from lastNodeId exists, we do not add anything
-                if lastNodeId in self.edges and node in self.edges[lastNodeId]:
-                    continue
+            # Check if the edge to the node from lastNodeId exists, we do not add anything
+            if lastNodeId in self.edges and node in self.edges[lastNodeId]:
+                continue
 
-                # Check if a preview node with the actual key already exists
-                existsKey = False
+            # Check if a preview node with the actual key already exists
+            existsKey = False
 
-                # Check if this node already exists with edge from lastNode
-                if lastNodeId in self.edges:
-                    for edgeEnd in self.edges[lastNodeId]:
-                        if node == self.nodes[edgeEnd].actualKey:
-                            existsKey = True
-                            break
+            # Check if this node already exists with edge from lastNode
+            if lastNodeId in self.edges:
+                for edgeEnd in self.edges[lastNodeId]:
+                    if node == self.nodes[edgeEnd].actualKey:
+                        existsKey = True
+                        break
 
-                # If the predicted node exists, update the probability if it is higher
-                if existsKey:
-                    if self.nodeProbSet[self.actualKeySet[node]] < probability:
-                        self.nodeProbSet[self.actualKeySet[node]] = probability
-                    continue
+            # If the predicted node exists, update the probability if it is higher
+            if existsKey:
+                if self.nodeProbSet[self.actualKeySet[node]] < probability:
+                    self.nodeProbSet[self.actualKeySet[node]] = probability
+                continue
 
-                # We add the node with edge from lastNode
-                if lastNodeId in self.nodes:
-                    self.addNode(lastNodeId, True, node, probability)
-
-            i += 1
+            # We add the node with edge from lastNode
+            if lastNodeId in self.nodes:
+                self.addNode(lastNodeId, True, node, probability, support)
 
         print("Nodes: ", self.nodes)
 
@@ -419,7 +424,7 @@ class Prediction:
                             for edgeEnd in edge_nodes
                             if edgeEnd in self.preview_nodes
                         ),
-                        key=lambda edgeEnd: self.nodeProbSet[edgeEnd],
+                        key=lambda edgeEnd: self.supportDict[edgeEnd],
                         default=None,
                     )
 
@@ -429,6 +434,7 @@ class Prediction:
                     del self.nodeProbSet[smallestEdge]
                     self.nodes.pop(smallestEdge, None)
                     self.preview_nodes.pop(smallestEdge, None)
+                    self.supportDict.pop(smallestEdge, None)
                     self.deletedKeys.append(smallestEdge)
 
                     # Remove smallestEdge from all edges
@@ -439,40 +445,41 @@ class Prediction:
                     # Decrease the preview count for the current edge
                     numPreview -= 1
 
-        # If the number of preview nodes exceeds the allowed number
-        if len(self.preview_nodes) > numNodesToAdd:
-            print(
-                "Exceeded number of preview nodes",
-                len(self.preview_nodes),
-                numNodesToAdd,
-            )
-            # Find the minimum probability needed to keep `numNodesToAdd` nodes
-            calculatedProbMin = sorted(self.nodeProbSet.values(), reverse=True)[
-                numNodesToAdd
-            ]
+            # If the number of preview nodes exceeds the allowed number
+            if len(self.preview_nodes) > numNodesToAdd:
+                print(
+                    "Exceeded number of preview nodes",
+                    len(self.preview_nodes),
+                    numNodesToAdd,
+                )
+                # Find the minimum support needed to keep `numNodesToAdd` nodes
+                calculatedSupportMin = sorted(self.supportDict.values(), reverse=True)[
+                    numNodesToAdd
+                ]
 
-            print("Calculated prob min: ", calculatedProbMin)
+                print("Calculated prob min: ", calculatedSupportMin)
 
-            # Collect nodes to remove that have probabilities lower than the calculated threshold
-            nodes_to_remove = [
-                node
-                for node in self.nodeProbSet
-                if self.nodeProbSet[node] < calculatedProbMin
-            ]
+                # Collect nodes to remove that have probabilities lower than the calculated threshold
+                nodes_to_remove = [
+                    node
+                    for node in self.supportDict
+                    if self.supportDict[node] < calculatedSupportMin
+                ]
 
-            print("Nodes to remove: ", nodes_to_remove)
+                print("Nodes to remove: ", nodes_to_remove)
 
-            # Remove these nodes and track them in deletedKeys
-            for node in nodes_to_remove:
-                del self.nodeProbSet[node]
-                self.nodes.pop(node, None)
-                self.preview_nodes.pop(node, None)
-                self.deletedKeys.append(node)
+                # Remove these nodes and track them in deletedKeys
+                for node in nodes_to_remove:
+                    del self.nodeProbSet[node]
+                    self.nodes.pop(node, None)
+                    self.preview_nodes.pop(node, None)
+                    self.supportDict.pop(node, None)
+                    self.deletedKeys.append(node)
 
-                # Remove node from all edges
-                for edge, edge_nodes in self.edges.items():
-                    if node in edge_nodes:
-                        edge_nodes.remove(node)
+                    # Remove node from all edges
+                    for edge, edge_nodes in self.edges.items():
+                        if node in edge_nodes:
+                            edge_nodes.remove(node)
 
         self.positionNodes()
 
@@ -480,7 +487,7 @@ class Prediction:
 
         return self.serializeGraph()
 
-    def addNode(self, edge_start, isPreview, givenKey, probability):
+    def addNode(self, edge_start, isPreview, givenKey, probability, support):
         print("Adding node with key: ", givenKey)
         if givenKey in self.deletedKeys:
             self.deletedKeys.remove(givenKey)
@@ -501,6 +508,7 @@ class Prediction:
             self.preview_nodes[newNode.id] = True
 
         self.actualKeySet[newNode.actualKey] = newNode.id
+        self.supportDict[newNode.id] = support
         return newNode.id
 
     def addEdge(self, start, end):

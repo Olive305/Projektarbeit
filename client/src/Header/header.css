@@ -7,16 +7,15 @@
 }
 
 .dropdown-button {
-	border: none;
-	border-radius: 0.5rem;
 	background-color: none;
-	color: #000000;
+	color: #333;
 	font-size: 16px;
 	cursor: pointer;
 	display: inline-flex;
+
 	justify-content: center;
 	align-items: center;
-	padding: 0.5rem 0.75rem; /* Adjust padding to size the button based on text */
+	padding: 0.25rem 0.5rem; /* Adjust padding to size the button based on text */
 	transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
@@ -28,14 +27,16 @@
 
 /* Custom styles for the dropdown menu */
 .dropdown-menu {
+	color: #333;
 	position: absolute;
 	padding: 0.5rem;
 	z-index: 10;
 	width: 14rem; /* Dropdown menu width */
 	margin-top: 0.5rem;
-	border-radius: 1rem; /* rounded-md */
-	background-color: #ffffff;
-	border: 1px solid #000000;
+	border-radius: 0.5rem; /* rounded-md */
+	background-color: rgba(255, 255, 255, 0.3); /* Semi-transparent background */
+	backdrop-filter: blur(5px); /* Blur effect */
+	border: 1px solid gray;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	transition: transform 0.1s ease-out, opacity 0.1s ease-out;
 	display: block; /* Ensure the dropdown itself is block-level */
@@ -82,27 +83,21 @@
 	transform: scale(1.05);
 }
 
-hr {
-	border: 1px solid black;
-}
-
 /* Styling for the nav container to align items horizontally */
 nav {
 	display: flex;
 	flex-direction: row;
 	justify-content: start; /* Align items at the start of the nav */
 	align-items: center;
-	gap: 1rem; /* Space between menu buttons */
+	gap: 0.5rem; /* Space between menu buttons */
+	padding-left: 1rem;
 }
 
 header {
-	background-color: #ffffff;
+	background-color: lightgray;
 	color: #000000;
-	padding: 1rem;
 	margin: 0rem;
 	border: none;
-	border-bottom-left-radius: 1rem;
-	border-bottom-right-radius: 1rem;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	transition: background-color 0.3s ease, color 0.3s ease;
 }

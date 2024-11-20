@@ -1,28 +1,30 @@
-body {
-	@apply font-sans;
-}
-
 .workspace {
 	display: flex;
 }
 
 .left-bar-div {
-	background-color: white;
+	background-color: lightgray;
 	height: auto;
-	margin: 0.4rem;
-	margin-left: 0rem;
+	margin: 0;
 	padding: 0.5rem;
-	border-radius: 1rem;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	border: 1px solid gray; /* Adds a small gray border */
+	border-right: none; /* Removes the right border */
 }
 
 .canvas-div {
 	margin: 0;
 	padding: 0;
+	height: auto;
+	width: auto;
 }
 
 .tabs-div {
 	margin: 0;
 	padding: 0;
+	height: auto;
+	width: auto;
+	border: 1px solid gray; /* Adds a small gray border */
 }
 
 .tab {

@@ -5,16 +5,21 @@ import time
 
 class MyCsv:
     def __init__(self):
-        self.df = None
+        self.df = pd.DataFrame()
         self.PROBABILITY_MIN = 0.3  # Minimum probability threshold
         self.cached_prefixes = None
         self.probability_columns = None
 
+        self.outgoing_edges_cache = {}
+        self.support_cache = {}
+
     def to_dict(self):
         return {
             "df": self.df.to_dict(),  # type: ignore
-            "cached_prefixes": self.cached_prefixes,
+            "support_cache": self.support_cache,
             "probability_columns": self.probability_columns,
+            "outgoing_edges_cache": self.outgoing_edges_cache,
+            "cached_prefixes": self.cached_prefixes,
         }
 
     @classmethod
@@ -27,6 +32,8 @@ class MyCsv:
         matrix.df = matrix.df.map(lambda x: tuple(x) if isinstance(x, list) else x)
         matrix.cached_prefixes = data["cached_prefixes"]
         matrix.probability_columns = data["probability_columns"]
+        matrix.outgoing_edges_cache = data["outgoing_edges_cache"]
+        matrix.cached_prefixes = data["cached_prefixes"]
         return matrix
 
     def getPrefixes(self):
@@ -34,7 +41,7 @@ class MyCsv:
         Returns the cached unique prefixes if already computed.
         If not, it computes and caches the unique prefixes.
         """
-        if self.cached_prefixes is None:
+        if self.cached_prefixes is None and self.df is not None:
             self.cached_prefixes = list(self.df["prefixes"].unique())  # type: ignore
         return self.cached_prefixes
 
@@ -59,29 +66,103 @@ class MyCsv:
             col for col in self.df.columns if col not in fixed_columns
         ]
 
-    def predict(self, input_sequence: tuple, probMin: float = None):
+        # Create a dictionary to cache outgoing edges and support for each node
+        self.outgoing_edges_cache = {}
+        self.support_cache = {}
+        if self.df is not None:
+            # Use vectorized operations to improve performance
+            start_time = time.time()
+            grouped = (
+                self.df.groupby("prefixes")
+                .agg({"targets": "first", "Support": "sum"})
+                .reset_index()
+            )
+            for _, row in grouped.iterrows():
+                prefix = row["prefixes"]
+                target = row["targets"].strip()
+                support = int(row["Support"])
+                if len(prefix) > 0:
+                    last_node = prefix[-1]
+                    if last_node not in self.outgoing_edges_cache:
+                        self.outgoing_edges_cache[last_node] = set()
+                    self.outgoing_edges_cache[last_node].add(target)
+                    # Cache the support for the edge
+                    if target not in self.support_cache:
+                        self.support_cache[target] = 0
+                    self.support_cache[target] += support
+                else:
+                    if "starting_with_key:0" not in self.outgoing_edges_cache:
+                        self.outgoing_edges_cache["starting_with_key:0"] = set()
+                    self.outgoing_edges_cache["starting_with_key:0"].add(target)
+            end_time = time.time()
+            print(
+                f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
+            )
+
+    def predict_using_edges(self, edges: dict, probMin: float = 0):
         """
-        Predicts possible next nodes based on the input sequence using cached probability columns.
-        Filters predictions based on the minimum probability threshold.
+        Predicts the possible predictions by iterating over all the prefixes and checking if the path is possible in the edges
+
+        Args:
+            edges (dict): edges of the discovered process graph
+            probMin (float, optional): Minimum probability threshold. Defaults to None.
+
+        Returns:
+            valid_predictions (dict): Dictionary of valid predictions with their support and probability
         """
-        if probMin is None:
-            probMin = self.PROBABILITY_MIN
 
-        # Vectorized comparison to filter rows with matching prefixes
-        matching_rows = self.df[self.df["prefixes"] == input_sequence]
+        prefixes = self.getPrefixes()
 
-        if matching_rows.empty:
-            return []  # Return an empty list if no matching prefixes found
+        predictions = {}
 
-        # Use only the first matching row
-        first_row = matching_rows.iloc[0, :]
+        # Cache for prefix coverage status
+        prefix_coverage_cache = {}
 
-        # Vectorized filtering of predictions using cached probability columns
-        valid_predictions = first_row[self.probability_columns][
-            first_row[self.probability_columns] > probMin
-        ]
+        for prefix in prefixes:
+            # Check if the prefix is covered by the model
+            if prefix in prefix_coverage_cache:
+                covered = prefix_coverage_cache[prefix]
+            else:
+                covered = True
+                for i in range(len(prefix) - 1):
+                    if prefix[i] not in edges or prefix[i + 1] not in edges[prefix[i]]:
+                        covered = False
+                        break
+                prefix_coverage_cache[prefix] = covered
 
-        return valid_predictions.items()
+            # If it is covered, we get the predictions
+            if covered:
+                # Vectorized comparison to filter rows with matching prefixes
+                matching_rows = self.df[self.df["prefixes"] == prefix]
+
+                if matching_rows.empty:
+                    continue
+
+                # Iterate over the targets and update the count
+                for _, row in matching_rows.iterrows():
+                    target = row["targets"].strip()
+                    key = (
+                        target,
+                        prefix[-1] if len(prefix) > 0 else "starting_with_key:0",
+                    )
+                    if key not in predictions:
+                        predictions[key] = {"support": 0, "probability": 0}
+                    predictions[key]["support"] += row["Support"]
+                    predictions[key]["probability"] += row[target] * row["Support"]
+
+        # Normalize the probabilities
+        for prediction in predictions:
+            predictions[prediction]["probability"] /= predictions[prediction]["support"]
+
+        # Filter predictions based on the minimum probability threshold
+        valid_predictions = {
+            prediction: predictions[prediction]
+            for prediction in predictions
+            if predictions[prediction]["probability"] >= probMin
+        }
+
+        # Return the valid predictions
+        return valid_predictions
 
     def replay_fitness(self, traces: list):
         """
@@ -101,9 +182,6 @@ class MyCsv:
         cost_insert = 1
         cost_skip = 2
 
-        prefixes = self.getPrefixes()
-
-        # Process traces in a vectorized manner using DataFrame operations
         for trace in traces:
             if "[EOC]" in trace:
                 continue
@@ -149,7 +227,7 @@ class MyCsv:
         Measures the simplicity of the model based on the number of duplicate and missing activities.
 
         Args:
-            traces (list): List of observed traces (each trace is a tuple).
+            act for prefix in self.df["prefixes"] for act in prefix if self.df is not None
             nodes_in_process_tree (int): The number of nodes in the process tree (provided as input).
 
         Returns:
@@ -191,93 +269,45 @@ class MyCsv:
 
         return simplicity_score
 
-    def precision(self, traces: list, edges: dict, previewNodes: list):
+    def precision(self, edges: dict, previewNodes: list):
         """
         Measures the precision of the model.
 
         Args:
-            traces (list): List of observed traces (each trace is a tuple).
             edges (dict): The edges in the traces.
+            previewNodes (list): List of preview nodes to be excluded from the precision calculation.
 
         Returns:
             float: Precision score between 0 and 1.
         """
-        # Filter out traces with '[EOC]'
-        traces = [trace for trace in traces if "[EOC]" not in trace]
-
-        # Calculate the total visits of nodes (activities) in the traces
-        visitsOfNode = {"starting_with_key:0": len(traces)}
-        for trace in traces:
-            for node in trace:
-                visitsOfNode[node] = visitsOfNode.get(node, 0) + 1
 
         # Initialize the node sum to accumulate precision metrics per node
         nodeSum = 0
-
-        # Create a dictionary to cache outgoing edges for each node
-        outgoing_edges_cache = {}
-        if self.df is not None:
-            # Use vectorized operations to improve performance
-            start_time = time.time()
-            grouped = self.df.groupby("prefixes")["targets"].first().reset_index()
-            for _, row in grouped.iterrows():
-                prefix = row["prefixes"]
-                target = row["targets"].strip()
-                if len(prefix) > 0:
-                    last_node = prefix[-1]
-                    if last_node not in outgoing_edges_cache:
-                        outgoing_edges_cache[last_node] = set()
-                    outgoing_edges_cache[last_node].add(target)
-                else:
-                    if "starting_with_key:0" not in outgoing_edges_cache:
-                        outgoing_edges_cache["starting_with_key:0"] = set()
-                    outgoing_edges_cache["starting_with_key:0"].add(target)
-            end_time = time.time()
-            print(
-                f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
-            )
 
         # Iterate over edges (keys of edges) to calculate precision per node
         for node in edges:
             if node in previewNodes or node == "[EOC]":  # Skip preview nodes
                 continue
 
-            # Get the cached outgoing edges for the current node
-            outgoing_edges = outgoing_edges_cache.get(node, set())
-
-            # Number of nodes not existing in the outgoing edges
-            wrongEdges = sum(
-                1
-                for edge in edges[node]
-                if edge not in outgoing_edges and edge not in previewNodes
-            )
+            # Get the cached outgoing edges and the support for the current node
+            outgoing_edges = self.outgoing_edges_cache.get(node, set())
+            support = self.support_cache.get(node, 0)
 
             # Number of missed edges
-            missedEdges = (
-                len(outgoing_edges)
-                - len([edge for edge in edges[node] if edge not in previewNodes])
-                + wrongEdges
-            )
+            missedEdges = sum([1 for edge in outgoing_edges if edge not in edges[node]])
 
             # Calculate the precision of the current node
             nodeValue = (
-                (missedEdges + wrongEdges) / len(outgoing_edges)
-                if len(outgoing_edges) > 0
-                else 1
+                missedEdges / len(outgoing_edges) if len(outgoing_edges) > 0 else 1
             )
 
             # Update the node sum with the precision of the current node
-            nodeSum += nodeValue * visitsOfNode.get(node, 1)
-
-        # Return 1 if there are no visits; otherwise, calculate and return precision
-        totalVisits = sum(visitsOfNode.values())
-        if totalVisits == 0:
-            return 1.0
+            nodeSum += nodeValue * support
 
         # Calculate final precision score, normalized by the total visits
-        return 1 - nodeSum / totalVisits
+        return 1 - nodeSum / sum(self.support_cache.values())
 
-    def generalization(self, traces, num_nodes_in_tree: int):
+    def generalization(self, nodes, num_nodes_in_tree: int):
         """
         Measures the generalization of the model based on how often nodes in the tree are visited.
 
@@ -288,38 +318,26 @@ class MyCsv:
         Returns:
             float: Generalization score between 0 and 1.
         """
-        traces = [trace for trace in traces if "[EOC]" not in trace]
 
-        if self.df is None:
-            raise ValueError("DataFrame is not loaded. Please load the CSV first.")
+        node_value = 0
 
-        # Initialize visit count for each unique node (prefix)
-        node_visits = pd.Series(0, index=self.df["prefixes"].apply(tuple).unique())
+        for node in nodes:
+            if nodes[node].isPreview or node == "starting_with_key:0":
+                continue
+            # get all the rows where the current node is a target and from there get the support
+            total_executions = 0
+            if self.df is not None:
+                # Filter rows where the current node is the target
+                node_rows = self.df[self.df["targets"].str.strip() == node]
+                # Sum the support values of these rows
+                total_executions = node_rows["Support"].sum()
 
-        # Convert traces to sets for faster subset checks
-        trace_sets = [set(trace) for trace in traces]
-
-        # Count the number of times each node (prefix) is visited in the traces
-        for prefix in node_visits.index:
-            prefix_set = set(prefix)
-            node_visits[prefix] = sum(
-                1 for trace_set in trace_sets if prefix_set.issubset(trace_set)
+            # the node value is 1 divided through the square root of the total execution
+            node_value += (
+                (1 / (math.sqrt(total_executions))) if total_executions != 0 else 0
             )
 
-        # Calculate the generalization score based on the provided formula
-        if num_nodes_in_tree > 0:
-            generalization_score = 1 - (
-                sum(
-                    1 / math.sqrt(visits) for visits in node_visits.values if visits > 0
-                )
-                / num_nodes_in_tree
-            )
-        else:
-            generalization_score = (
-                1  # If there are no nodes, generalization is perfect by default
-            )
-
-        return generalization_score
+        return 1 - node_value / (num_nodes_in_tree - 1)
 
     def get_variant_coverage(self, edges: dict):
         """
@@ -338,6 +356,9 @@ class MyCsv:
         coverage_count = 0
 
         for variant in unique_variants:
+            if len(variant) < 1:
+                continue
+
             # Check if the variant is covered by the model
             covered = True
             for i in range(len(variant) - 1):
@@ -345,7 +366,7 @@ class MyCsv:
                     covered = False
                     break
 
-            if covered:
+            if covered and variant[-1] in edges and "[EOC]" in edges[variant[-1]]:
                 coverage_count += 1
 
         # Calculate the variant coverage score

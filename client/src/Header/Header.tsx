@@ -215,7 +215,6 @@ const Header: React.FC<HeaderProps> = ({
 					</MenuItems>
 				</Menu>
 			</nav>
-			<hr />
 		</header>
 	);
 };

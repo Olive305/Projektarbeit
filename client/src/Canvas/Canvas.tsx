@@ -143,7 +143,7 @@ const Canvas: React.FC<CanvasProps> = ({
 				<Line
 					key={`v_${x}`}
 					points={[x, topLeftY, x, bottomRightY]}
-					stroke="gray"
+					stroke="lightgray"
 					strokeWidth={1} // Keep line thickness consistent based on zoom
 					opacity={scale > 0.6 ? 1 : scale < 0.4 ? 0 : (scale - 0.4) / 0.2}
 				/>
@@ -156,7 +156,7 @@ const Canvas: React.FC<CanvasProps> = ({
 				<Line
 					key={`h_${y}`}
 					points={[topLeftX, y, bottomRightX, y]}
-					stroke="gray"
+					stroke="lightgray"
 					strokeWidth={1} // Keep line thickness consistent based on zoom
 					opacity={scale > 0.6 ? 1 : scale < 0.4 ? 0 : (scale - 0.4) / 0.2}
 				/>
@@ -683,7 +683,7 @@ const Canvas: React.FC<CanvasProps> = ({
 										node.isPreview
 											? rainbowPredictions
 												? node.color
-												: "lightgreen"
+												: "orange"
 											: node.isSelected
 											? "lightblue"
 											: "lightgray"
@@ -691,7 +691,7 @@ const Canvas: React.FC<CanvasProps> = ({
 									cornerRadius={5}
 									stroke={"black"}
 									strokeWidth={1.5}
-									opacity={MyNode.nodeOpacity}
+									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 								/>
 							) : (
 								<Circle
@@ -707,7 +707,7 @@ const Canvas: React.FC<CanvasProps> = ({
 										node.isPreview
 											? rainbowPredictions
 												? node.color
-												: "lightgreen"
+												: "orange"
 											: node.isSelected
 											? "lightblue"
 											: "lightgray"
@@ -715,7 +715,7 @@ const Canvas: React.FC<CanvasProps> = ({
 									cornerRadius={5}
 									stroke={"black"}
 									strokeWidth={1.5}
-									opacity={MyNode.nodeOpacity}
+									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 								/>
 							)}
 							<Circle
@@ -754,6 +754,7 @@ const Canvas: React.FC<CanvasProps> = ({
 								offsetX={node.text ? node.text.width() / 2 : 0}
 								offsetY={node.text ? node.text.height() / 2 : 0}
 								listening={true}
+								opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 							/>
 							{node.isPreview ? (
 								<Text
@@ -767,6 +768,7 @@ const Canvas: React.FC<CanvasProps> = ({
 									offsetX={node.text ? node.text.width() / 2 : 0}
 									offsetY={node.text ? node.text.height() / 2 : 0}
 									listening={true}
+									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 								/>
 							) : (
 								<></>

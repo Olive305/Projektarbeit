@@ -27,6 +27,7 @@
 	max-width: 100%;
 	box-sizing: border-box;
 	transition: border 0.3s ease;
+	background: transparent;
 }
 
 .input:focus {
@@ -73,60 +74,108 @@
 	align-items: flex-start;
 	margin-top: auto;
 	padding: 1rem 0;
+	padding-left: 1rem;
 }
 
-.checkboxSliderContainer {
+.checkBoxContainer {
 	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 0.5rem;
+	align-items: center;
+	margin-bottom: 1rem;
 }
 
-.slidecontainer {
+.sliderContainer {
 	width: 100%;
 	margin-top: 0.5rem;
 }
 
 .slider {
 	-webkit-appearance: none;
+	appearance: none;
 	width: 100%;
-	height: 1rem;
-	border-radius: 0.5rem;
-	background: lightgray;
+	height: 0.25rem; /* Thinner line */
+	border-radius: 0.25rem;
+	background: black; /* Black background color */
 	outline: none;
 	transition: background 0.3s ease;
 }
 
+.slider:disabled {
+	background: darkgray; /* Dark gray when disabled */
+}
 .slider::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
 	width: 1rem;
 	height: 1rem;
+	margin-top: -0.375rem; /* Center the thumb */
 	border-radius: 50%;
 	background: orange;
-	cursor: pointer;
+	cursor: grab;
 	transition: background 0.3s ease;
 }
 
+.slider:disabled::-webkit-slider-thumb {
+	background: #b0b0b0;
+	cursor: not-allowed;
+}
 .slider::-moz-range-thumb {
 	width: 1rem;
 	height: 1rem;
 	border-radius: 50%;
 	background: orange;
-	cursor: pointer;
+	cursor: grab;
 	transition: background 0.3s ease;
+}
+
+.slider:disabled::-moz-range-thumb {
+	background: #b0b0b0;
+	cursor: not-allowed;
 }
 
 .slider:hover {
 	background: #d0d0d0;
 }
 
+.slider:disabled:hover {
+	background: #e0e0e0;
+}
+
 .slider::-webkit-slider-thumb:hover {
 	background: darkorange;
 }
 
+.slider:disabled::-webkit-slider-thumb:hover {
+	background: #b0b0b0;
+}
+
 .slider::-moz-range-thumb:hover {
 	background: darkorange;
+}
+
+.slider:disabled::-moz-range-thumb:hover {
+	background: #b0b0b0;
+}
+
+.slider::-webkit-slider-runnable-track {
+	width: 100%;
+	height: 0.25rem; /* Thinner line */
+	border-radius: 0.25rem;
+	background: black; /* Black background color */
+}
+
+.slider:disabled::-webkit-slider-runnable-track {
+	background: darkgray; /* Dark gray when disabled */
+}
+
+.slider::-moz-range-track {
+	width: 100%;
+	height: 0.25rem; /* Thinner line */
+	border-radius: 0.25rem;
+	background: black; /* Black background color */
+}
+
+.slider:disabled::-moz-range-track {
+	background: darkgray; /* Dark gray when disabled */
 }
 
 .performanceMetrics {
@@ -171,45 +220,63 @@
 }
 
 hr.my-2 {
-	border: 1px solid black;
+	border: 1px solid #333;
 	margin: 0;
 	padding: 0;
 }
 
 /* Collapsible sections */
 .collapsibleSection {
-	margin-bottom: 1rem;
+	margin-bottom: 0.3rem;
 }
 
 .collapsibleButton {
-	background-color: #f0f0f0;
 	border: none;
-	padding: 0.5rem 1rem;
+	padding: 0.2rem 1rem;
 	margin: 0;
-	font-size: 1rem;
-	font-weight: bold;
 	color: #333;
 	cursor: pointer;
 	width: 100%;
 	text-align: left;
-	border-radius: 0.5rem;
-	transition: background-color 0.3s ease;
+	transition: color 0.3s ease;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 }
 
 .collapsibleButton:hover {
-	background-color: #d0d0d0;
+	color: orange;
+}
+
+.collapsibleButton:hover .dropdownIcon {
+	filter: invert(42%) sepia(100%) saturate(1000%) hue-rotate(330deg)
+		brightness(100%) contrast(100%);
+}
+
+.collapsibleButton:hover .dropdownIconExpanded {
+	filter: invert(42%) sepia(100%) saturate(1000%) hue-rotate(330deg)
+		brightness(100%) contrast(100%);
 }
 
 .collapsibleContent {
-	padding: 0 1rem;
-	display: none;
+	padding: 0;
+	display: block;
+	overflow: hidden;
+	max-height: 0;
+	transition: max-height 0.3s ease-out, padding 0.3s ease-out;
 }
 
 .collapsibleContent.show {
-	display: block;
+	padding: 0 1rem;
+	max-height: 500px; /* Adjust this value based on your content's maximum height */
+	transition: max-height 0.3s ease-in, padding 0.3s ease-in;
+}
+
+.collapsibleButton .dropdownIcon {
+	transition: transform 0.3s ease;
+}
+.collapsibleButton .dropdownIconExpanded {
+	transform: rotate(180deg);
 }
 
 .variantsContainer {
@@ -222,12 +289,15 @@ hr.my-2 {
 	margin-bottom: 1rem;
 }
 
+.searchSortContainer .input {
+	border: 1px solid rgb(147, 147, 147);
+}
+
 .sortButtonContainer {
 	position: relative;
 }
 
 .sortButton {
-	background-color: #f0f0f0;
 	border: none;
 	padding: 0.5rem 1rem;
 	font-size: 1rem;
@@ -235,26 +305,27 @@ hr.my-2 {
 	color: #333;
 	cursor: pointer;
 	border-radius: 0.5rem;
-	transition: background-color 0.3s ease;
+	transition: color 0.3s ease;
 }
 
 .sortButton:hover {
-	background-color: #d0d0d0;
+	color: orange;
 }
 
 .sortMenu {
 	position: absolute;
+	font-size: 0.7rem;
 	top: 100%;
 	left: 0;
-	background-color: white;
-	border: 1px solid lightgray;
-	border-radius: 0.5rem;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	background-color: rgba(255, 255, 255, 0.3);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px); /* Add this line for Safari support */
 	z-index: 1;
+	border: 1px solid gray;
+	border-radius: 0.5rem;
 }
 
 .sortMenu button {
-	background-color: white;
 	border: none;
 	padding: 0.5rem 1rem;
 	font-size: 1rem;
@@ -262,10 +333,11 @@ hr.my-2 {
 	cursor: pointer;
 	width: 100%;
 	text-align: left;
+	transition: color 0.3s ease;
 }
 
 .sortMenu button:hover {
-	background-color: #f0f0f0;
+	color: orange;
 }
 
 .variantsListContainer {

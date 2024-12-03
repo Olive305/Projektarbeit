@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Line, Group, Rect, Circle, Text } from "react-konva";
+import {
+	Stage,
+	Layer,
+	Line,
+	Group,
+	Rect,
+	Circle,
+	Text,
+	Label,
+} from "react-konva";
 import "./canvas.css"; // Import the external CSS file
 import MyNode from "./NodeType";
 import GraphController from "../ControlBar/GraphController";
@@ -24,6 +33,9 @@ const Canvas: React.FC<CanvasProps> = ({
 	const selectionRecRef = useRef<Konva.Rect>(null);
 	const [nodes, setNodes] = useState<Map<string, MyNode>>(controller.nodes);
 	const [edges, setEdges] = useState<[string, string][]>(controller.edges);
+	const [subTraceCoverage, setSubTraceCoverage] = useState<Map<string, number>>(
+		controller.sub_trace_coverage
+	);
 	const [draggingEdge, setDraggingEdge] = useState<{
 		startNode: MyNode;
 		endX: number;
@@ -57,6 +69,14 @@ const Canvas: React.FC<CanvasProps> = ({
 		const handleControllerChange = () => {
 			setNodes(new Map(controller.nodes));
 			setEdges([...controller.edges]);
+		};
+
+		controller.addListener(handleControllerChange);
+
+		return () => {
+			setNodes(new Map(controller.nodes));
+			setEdges([...controller.edges]);
+			setSubTraceCoverage(new Map(controller.sub_trace_coverage));
 		};
 
 		controller.addListener(handleControllerChange);
@@ -809,6 +829,33 @@ const Canvas: React.FC<CanvasProps> = ({
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
 					<button onClick={handleDeleteNode}>Delete Node</button>
 					<button onClick={handleAddNode}>Add Node</button>
+					<input
+						type="text"
+						placeholder="Add a comment"
+						value={contextMenu.node?.comment || ""}
+						onClick={(e) => e.stopPropagation()}
+						onChange={(e) => {
+							const node = contextMenu.node;
+							if (node) {
+								const targetNode = contextMenu.node
+									? controller.nodes.get(contextMenu.node.id)
+									: undefined;
+								if (targetNode) {
+									targetNode.comment = e.target.value;
+									controller.notifyListeners();
+								}
+								setNodes(new Map(nodes));
+							}
+						}}
+					/>
+					<Label>
+						Sub-trace coverage:{" "}
+						{Math.round((subTraceCoverage.get(contextMenu.node.id) || 0) * 100)}
+						%
+					</Label>
+					<progress
+						value={subTraceCoverage.get(contextMenu.node.id) || 0}
+						max="100"></progress>
 				</div>
 			)}
 

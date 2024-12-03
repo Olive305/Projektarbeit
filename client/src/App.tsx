@@ -44,7 +44,7 @@ const App: React.FC = () => {
 	const [precision, setPrecision] = useState(0);
 	const [variantCoverage, setVariantCoverage] = useState(0);
 	const [logCoverage, setLogCoverage] = useState(0);
-	const [variants, setVariants] = useState([]);
+	const [variants, setVariants] = useState<any[][]>([]);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -115,7 +115,15 @@ const App: React.FC = () => {
 			if (activeGraphController) {
 				activeGraphController.sequences = parsedVariants.sequences;
 			}
-			return parsedVariants.variants;
+			var variant_list = [];
+			for (const variant_dict of parsedVariants.variants) {
+				variant_list.push([
+					variant_dict.variant,
+					variant_dict.covered,
+					variant_dict.support,
+				]);
+			}
+			return variant_list;
 		} catch (error) {
 			console.error("Failed to get variants from dictionary:", error);
 			return [];

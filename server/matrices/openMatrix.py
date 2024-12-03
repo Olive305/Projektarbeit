@@ -10,8 +10,8 @@ class MyCsv:
         self.cached_prefixes = None
         self.probability_columns = None
 
-        self.outgoing_edges_cache = {}
-        self.support_cache = {}
+        self.outgoing_edges_cache: dict = {}
+        self.support_cache: dict = {}
 
     def to_dict(self):
         return {
@@ -84,16 +84,16 @@ class MyCsv:
                 if len(prefix) > 0:
                     last_node = prefix[-1]
                     if last_node not in self.outgoing_edges_cache:
-                        self.outgoing_edges_cache[last_node] = set()
-                    self.outgoing_edges_cache[last_node].add(target)
+                        self.outgoing_edges_cache[last_node] = []
+                    self.outgoing_edges_cache[last_node].append(target)
                     # Cache the support for the edge
                     if target not in self.support_cache:
                         self.support_cache[target] = 0
                     self.support_cache[target] += support
                 else:
                     if "starting_with_key:0" not in self.outgoing_edges_cache:
-                        self.outgoing_edges_cache["starting_with_key:0"] = set()
-                    self.outgoing_edges_cache["starting_with_key:0"].add(target)
+                        self.outgoing_edges_cache["starting_with_key:0"] = []
+                    self.outgoing_edges_cache["starting_with_key:0"].append(target)
             end_time = time.time()
             print(
                 f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
@@ -118,7 +118,7 @@ class MyCsv:
         # Cache for prefix coverage status
         prefix_coverage_cache = {}
 
-        for prefix in prefixes:
+        for prefix in prefixes or []:
             # Check if the prefix is covered by the model
             if prefix in prefix_coverage_cache:
                 covered = prefix_coverage_cache[prefix]
@@ -290,7 +290,7 @@ class MyCsv:
                 continue
 
             # Get the cached outgoing edges and the support for the current node
-            outgoing_edges = self.outgoing_edges_cache.get(node, set())
+            outgoing_edges = self.outgoing_edges_cache.get(node, [])
             support = self.support_cache.get(node, 0)
 
             # Number of missed edges
@@ -351,30 +351,55 @@ class MyCsv:
         """
 
         # Extract unique variants from the event log
-        unique_variants = [variant["prefixes"] for variant in self.get_variants()]
+        unique_variants = self.get_variants()
+        variant_list = []
 
         coverage_count = 0
+
+        if unique_variants is None:
+            return {}, 0
 
         for variant in unique_variants:
             if len(variant) < 1:
                 continue
-
             # Check if the variant is covered by the model
             covered = True
-            for i in range(len(variant) - 1):
-                if variant[i] not in edges or variant[i + 1] not in edges[variant[i]]:
+            for i in range(len(variant["prefixes"]) - 1):
+                if (
+                    variant["prefixes"][i] not in edges
+                    or variant["prefixes"][i + 1] not in edges[variant["prefixes"][i]]
+                ):
                     covered = False
                     break
 
-            if covered and variant[-1] in edges and "[EOC]" in edges[variant[-1]]:
+            if (
+                covered
+                and variant["prefixes"][-1] in edges
+                and "[EOC]" in edges[variant["prefixes"][-1]]
+            ):
                 coverage_count += 1
+                variant_list.append(
+                    {
+                        "variant": variant["prefixes"],
+                        "covered": True,
+                        "support": variant["Support"],
+                    }
+                )
+            else:
+                variant_list.append(
+                    {
+                        "variant": variant["prefixes"],
+                        "covered": False,
+                        "support": variant["Support"],
+                    }
+                )
 
         # Calculate the variant coverage score
         variant_coverage = (
             coverage_count / len(unique_variants) if len(unique_variants) > 0 else 1
         )
 
-        return variant_coverage
+        return (variant_list, variant_coverage)
 
     def get_event_log_coverage(self, edges: dict):
         """
@@ -401,7 +426,9 @@ class MyCsv:
             if covered:
                 coverage_count += 1
 
-        event_log_coverage = coverage_count / len(prefixes) if len(prefixes) > 0 else 1
+        event_log_coverage = (
+            coverage_count / len(prefixes) if prefixes and len(prefixes) > 0 else 1
+        )
 
         return event_log_coverage
 
@@ -425,3 +452,28 @@ class MyCsv:
         variants_dict = variants.to_dict(orient="records")
 
         return variants_dict
+
+    def sub_trace_coverage(self):
+        """
+        Calculate the sub-trace coverage of the model based on the edges. For each sub-trace, checks if a path through the model exists.
+
+        Args:
+            None
+
+        Returns:
+            dict: Sub-trace coverage score for each node.
+        """
+        variants = self.get_variants()
+        sub_trace_coverage = {}
+
+        for variant in variants:
+            for activity in variant:
+                if activity not in sub_trace_coverage:
+                    sub_trace_coverage[activity] = 1
+                else:
+                    sub_trace_coverage[activity] += 1
+
+        for activity in sub_trace_coverage:
+            sub_trace_coverage[activity] = sub_trace_coverage[activity] / len(variants)
+
+        return sub_trace_coverage

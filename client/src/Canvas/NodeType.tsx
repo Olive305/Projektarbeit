@@ -20,6 +20,7 @@ class MyNode {
 	isCircle: boolean;
 	probability: number;
 	color: string;
+	comment: string;
 	private real_x: number;
 	private real_y: number;
 
@@ -57,6 +58,7 @@ class MyNode {
 		this.isCircle = circle ? circle : false;
 		this.probability = probability ? probability : 0;
 		this.color = "";
+		this.comment = "";
 
 		this.calculateRealPos();
 	}

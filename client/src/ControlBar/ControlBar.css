@@ -342,14 +342,31 @@ hr.my-2 {
 
 .variantsListContainer {
 	max-height: 200px;
+	max-width: 100%; /* Set max width to default space inside the control bar */
 	overflow-y: auto;
 	border: 1px solid lightgray;
 	border-radius: 0.5rem;
 	padding: 0.5rem;
+	white-space: nowrap; /* Prevent horizontal expansion */
+}
+
+.variantsListContainer::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.variantsListContainer::-webkit-scrollbar-thumb {
+	background-color: orange;
+	border-radius: 0.25rem;
+}
+
+.variantsListContainer::-webkit-scrollbar-track {
+	background-color: #f1f1f1;
+	border-radius: 0.25rem;
 }
 
 .variantItem {
-	padding: 0.5rem;
+	padding-top: 1rem;
 	border-bottom: 1px solid lightgray;
 	cursor: pointer;
 }

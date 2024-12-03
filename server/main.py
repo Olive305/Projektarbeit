@@ -1,4 +1,6 @@
 import time
+
+import pm4py
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
@@ -35,12 +37,24 @@ matrix_paths = [
     ),
 ]
 
+# Paths to predefined logs
+logs_paths = {
+    "PDC_2020_1211111_TrainTest": os.path.join(
+        project_folder, "logs", "pdc_2020_1211111.xes"
+    )
+}
+
 # Load predefined matrices
 matrices = {}
 for path, name in matrix_paths:
     matrix = MyCsv()
     matrix.openCsv(path)
     matrices[name] = matrix
+
+# Load predefined logs
+logs = {}
+for name, path in logs_paths.items():
+    logs[name] = pm4py.read_xes(path)
 
 
 @app.route("/")
@@ -287,7 +301,10 @@ def get_metrics():
     # Time to initialize the prediction
     print("%s seconds for initialization in metrics" % (time.time() - start_time))
 
-    metrics = prediction.getMetrics()
+    # Retrieve the log from either predefined logs or custom logs in the session
+    log = logs.get(session["lastUsedMatrix"], None)
+
+    metrics = prediction.getMetrics(log)
 
     # Time to get the metrics
     print("%s seconds for metrics" % (time.time() - start_time))
@@ -329,8 +346,10 @@ def predict_outcome():
     if not matrix:
         return jsonify({"error": "Given matrix not available in this session."}), 400
 
+    prediction_data = session["prediction"]
+
     # Load Prediction from session and update it with new data
-    prediction = Prediction.from_json(session["prediction"], matrix)
+    prediction = Prediction.from_json(prediction_data, matrix)
     predictions = prediction.getPredictions(graph_input)
 
     # Time to get the predictions

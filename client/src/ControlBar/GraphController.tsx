@@ -10,6 +10,7 @@ class GraphController {
 	public deletedKeys: string[]; // List to store keys of deleted nodes
 	public probabilityMin: number;
 	public showPreview: boolean;
+	public sub_trace_coverage: Map<string, number>;
 
 	public calls: number;
 
@@ -45,6 +46,7 @@ class GraphController {
 		this.isGettingPreviewNodes = false;
 		this.auto = true;
 		this.sequences = [[]];
+		this.sub_trace_coverage = new Map();
 
 		if (!notAddStartingNode)
 			this.addMyRect(
@@ -481,6 +483,7 @@ class GraphController {
 					actualKey: node.actualKey,
 					probability: node.probability,
 					color: node.color,
+					comment: node.comment,
 				})),
 			edges: this.edges.filter(
 				(edge) =>
@@ -490,6 +493,7 @@ class GraphController {
 					!this.nodes.get(edge[1])?.isSelected
 			),
 
+			sub_trace_coverage: this.sub_trace_coverage,
 			deletedKeys: this.deletedKeys,
 			probability: this.probabilityMin,
 			auto: this.auto,
@@ -530,6 +534,7 @@ class GraphController {
 				node.set_real_x(nodeData.realX);
 				node.set_real_y(nodeData.realY);
 				node.color = nodeData.color;
+				node.comment = nodeData.comment;
 
 				// Map old ID to new ID
 				new_ids.push([nodeData.id, node.id]);
@@ -556,6 +561,9 @@ class GraphController {
 			// Set remaining properties from deserialized data
 			this.deletedKeys = graphData.deletedKeys;
 			this.activeMatrix = graphData.matrix;
+			this.probabilityMin = graphData.probability;
+			this.auto = graphData.auto;
+			this.sub_trace_coverage = graphData.sub_trace_coverage;
 
 			console.log("nodes and edges:", this.nodes, this.edges);
 		} catch (error) {
@@ -578,6 +586,15 @@ class GraphController {
 				throw new Error("Failed to parse JSON data: " + error.message);
 			} else {
 				throw new Error("Failed to parse JSON data: Unknown error");
+			}
+		}
+
+		// Extract sub_trace_coverage from parsed data
+		const subTraceCoverage = parsedData.sub_trace_coverage;
+		if (subTraceCoverage) {
+			// Iterate over the keys of sub_trace_coverage and update the map
+			for (const [key, value] of Object.entries(subTraceCoverage)) {
+				this.sub_trace_coverage.set(key, value as number);
 			}
 		}
 

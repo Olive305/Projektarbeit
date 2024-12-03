@@ -40,28 +40,29 @@ class Node:
 
 class Prediction:
     def __init__(self, matrix) -> None:
-        self.nodes = {}
-        self.preview_nodes = {}
-        self.edges = {}
+        self.nodes: dict = {}
+        self.preview_nodes: dict = {}
+        self.edges: dict = {}
 
-        self.actualKeySet = {}
+        self.actualKeySet: dict = {}
 
-        self.posMatrix = {}  # {(x, y): nodeId}
-        self.deletedKeys = []
+        self.posMatrix: dict = {}  # {(x, y): nodeId}
+        self.deletedKeys: list = []
 
         self.matrix: MyCsv = matrix
 
-        self.probMin = 0.3
-        self.nodeProbSet = {}
-        self.auto = False
-        self.AUTO_PROB_MIN = 0.0
+        self.probMin: float = 0.3
+        self.nodeProbDict: dict = {}
+        self.auto: bool = False
+        self.AUTO_PROB_MIN: float = 0.0
 
-        self.fitness = 0
-        self.simplicity = 0
-        self.precision = 0
-        self.generalization = 0
+        self.fitness: float = 0.0
+        self.simplicity: float = 0.0
+        self.precision: float = 0.0
+        self.generalization: float = 0.0
+        self.variantCoverage: float = 0.0
 
-        self.supportDict = {}  # {nodeId: support} not serialized and deserialized
+        self.supportDict: dict = {}  # {nodeId: support} not serialized and deserialized
 
     def to_dict(self):
         # Serialize each node in nodes and preview_nodes using their to_dict method, if nodes are not empty
@@ -80,7 +81,7 @@ class Prediction:
             "posMatrix": posMatrix_serialized,
             "deletedKeys": self.deletedKeys,
             "probMin": self.probMin,
-            "nodeProbSet": self.nodeProbSet,
+            "nodeProbDict": self.nodeProbDict,
             "auto": self.auto,
             "AUTO_PROB_MIN": self.AUTO_PROB_MIN,
             "fitness": self.fitness,
@@ -117,7 +118,7 @@ class Prediction:
         prediction.posMatrix = posMatrix_deserialized
         prediction.deletedKeys = data["deletedKeys"]
         prediction.probMin = data["probMin"]
-        prediction.nodeProbSet = data["nodeProbSet"]
+        prediction.nodeProbDict = data["nodeProbDict"]
         prediction.auto = data["auto"]
         prediction.AUTO_PROB_MIN = data["AUTO_PROB_MIN"]
         prediction.fitness = data["fitness"]
@@ -138,7 +139,7 @@ class Prediction:
         data = json.loads(json_data)
         return Prediction.from_dict(data, matrix)
 
-    def getMetrics(self):
+    def getMetrics(self, log):
         import concurrent.futures
 
         traces = self.getAllSequences()
@@ -155,16 +156,93 @@ class Prediction:
         def calculate_generalization():
             return self.matrix.generalization(self.nodes, len(self.nodes))
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_fitness = executor.submit(calculate_fitness)
-            future_simplicity = executor.submit(calculate_simplicity)
-            future_precision = executor.submit(calculate_precision)
-            future_generalization = executor.submit(calculate_generalization)
+        # set remaining metrix to -1 if log is not provided
+        fitness = -1
+        simplicity = -1
+        precision = -1
+        generalization = -1
 
-            fitness = future_fitness.result()
-            simplicity = future_simplicity.result()
-            precision = future_precision.result()
-            generalization = future_generalization.result()
+        if log is not None:
+            # use pm4py for fitness, simplicity, precision, and generalization
+            # Define a DFG (Directly Follows Graph) from nodes and edges
+            dfg = {}
+            for edgeStart in self.edges:
+                for edgeEnd in self.edges[edgeStart]:
+                    # Check if edgeEnd is a preview node
+                    if edgeEnd in self.preview_nodes:
+                        continue
+
+                    # If edgeStart or edgeEnd are starting_with_key:0 or [EOC], skip them
+                    if edgeStart == "starting_with_key:0" or edgeEnd == "[EOC]":
+                        continue
+
+                    # Flatten the nested dictionary structure
+                    dfg[(edgeStart, edgeEnd)] = dfg.get((edgeStart, edgeEnd), 0) + 1
+
+            # Define start and end activities
+            start_activities = {edge for edge in self.edges["starting_with_key:0"]}
+            end_activities = {
+                edge
+                for edge in self.edges
+                if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+            }
+
+            # Convert DFG to Petri net with parameters
+            parameters = {
+                "start_activities": start_activities,
+                "end_activities": end_activities,
+            }
+
+            try:
+                net, initial_marking, final_marking = dfg_to_petri_net(
+                    dfg, parameters=parameters
+                )
+            except Exception as e:
+                raise ValueError(f"Error converting DFG to Petri Net: {e}")
+
+            # calculate the metrics in parallel
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future_fitness_pm4py = executor.submit(
+                    pm4py.algo.evaluation.replay_fitness.algorithm.apply,
+                    log,
+                    net,
+                    initial_marking,
+                    final_marking,
+                    None,
+                    pm4py.algo.evaluation.replay_fitness.algorithm.Variants.ALIGNMENT_BASED,
+                )
+                future_simplicity_pm4py = executor.submit(
+                    pm4py.algo.evaluation.simplicity.variants.arc_degree.apply, net
+                )
+                future_precision_pm4py = executor.submit(
+                    pm4py.algo.evaluation.precision.algorithm.apply,
+                    log,
+                    net,
+                    initial_marking,
+                    final_marking,
+                    None,
+                    pm4py.algo.evaluation.precision.algorithm.Variants.ALIGN_ETCONFORMANCE,
+                )
+
+                def calculate_generalization_pm4py():
+                    return (
+                        pm4py.algo.evaluation.generalization.variants.token_based.apply(
+                            log, net, initial_marking, final_marking
+                        )
+                    )
+
+                future_generalization_pm4py = executor.submit(
+                    calculate_generalization_pm4py
+                )
+
+                try:
+                    fitness = future_fitness_pm4py.result()["averageFitness"]
+                except Exception as e:
+                    print(f"Error calculating fitness: {e}")
+                    fitness = -1
+                simplicity = future_simplicity_pm4py.result()
+                precision = future_precision_pm4py.result()
+                generalization = future_generalization_pm4py.result()
 
         serializedMetrics = {
             "fitness": fitness,
@@ -172,16 +250,18 @@ class Prediction:
             "precision": precision,
             "generalization": generalization,
         }
-        variant_coverage = self.matrix.get_variant_coverage(self.edges)
         event_log_coverage = self.matrix.get_event_log_coverage(self.edges)
 
-        serializedMetrics["variant_coverage"] = variant_coverage
+        self.getVariants()
+
+        serializedMetrics["variant_coverage"] = self.variantCoverage
         serializedMetrics["event_log_coverage"] = event_log_coverage
 
         return json.dumps(serializedMetrics)
 
     def getVariants(self):
-        variants = self.matrix.get_variants()
+        (variants, self.variantCoverage) = self.matrix.get_variant_coverage(self.edges)
+        print("variant_coverage: ", self.variantCoverage)
 
         # return the variants and the discovered variants
         return json.dumps({"variants": variants, "sequences": self.getAllSequences()})
@@ -196,7 +276,7 @@ class Prediction:
 
         def position_batch(starting_pos, nodes):
             # sort the nodes by the probability of the node
-            nodes.sort(key=lambda node: self.nodeProbSet[node], reverse=True)
+            nodes.sort(key=lambda node: self.nodeProbDict[node], reverse=True)
 
             for node in nodes_to_position:
                 self.nodes[node].x = starting_pos[0]
@@ -397,8 +477,8 @@ class Prediction:
 
             # If the predicted node exists, update the probability if it is higher
             if existsKey:
-                if self.nodeProbSet[self.actualKeySet[node]] < probability:
-                    self.nodeProbSet[self.actualKeySet[node]] = probability
+                if self.nodeProbDict[self.actualKeySet[node]] < probability:
+                    self.nodeProbDict[self.actualKeySet[node]] = probability
                 continue
 
             # We add the node with edge from lastNode
@@ -431,7 +511,7 @@ class Prediction:
                     if smallestEdge is None:
                         break
 
-                    del self.nodeProbSet[smallestEdge]
+                    del self.nodeProbDict[smallestEdge]
                     self.nodes.pop(smallestEdge, None)
                     self.preview_nodes.pop(smallestEdge, None)
                     self.supportDict.pop(smallestEdge, None)
@@ -470,7 +550,7 @@ class Prediction:
 
                 # Remove these nodes and track them in deletedKeys
                 for node in nodes_to_remove:
-                    del self.nodeProbSet[node]
+                    del self.nodeProbDict[node]
                     self.nodes.pop(node, None)
                     self.preview_nodes.pop(node, None)
                     self.supportDict.pop(node, None)
@@ -501,7 +581,7 @@ class Prediction:
 
         # Add the new node to nodes and establish the edge
         self.nodes[newNode.id] = newNode
-        self.nodeProbSet[newNode.id] = probability
+        self.nodeProbDict[newNode.id] = probability
         self.addEdge(edge_start, newNode.id)
 
         if isPreview:
@@ -583,8 +663,6 @@ class Prediction:
 
         self.auto = graph.get("auto", False)
 
-        m = graph.get("matrix", "")
-
         nodes = graph.get("nodes", [])
         edges = graph.get("edges", [])
         self.deletedKeys = graph.get("deletedKeys", [])
@@ -628,11 +706,15 @@ class Prediction:
                         "nodeId": edgeEnd,
                         "edgeStart": edgeStart,
                         "node": self.nodes[edgeEnd].to_dict(),  # Convert Node to dict
-                        "probability": self.nodeProbSet[edgeEnd],
+                        "probability": self.nodeProbDict[edgeEnd],
                     }
 
         serialized_graph = {
-            "dfg": {"returnNodes": returnNodes, "deletedKeys": self.deletedKeys}
+            "dfg": {
+                "returnNodes": returnNodes,
+                "deletedKeys": self.deletedKeys,
+                "sub_trace_coverage": self.matrix.sub_trace_coverage(),
+            },
         }
 
         return json.dumps(serialized_graph)

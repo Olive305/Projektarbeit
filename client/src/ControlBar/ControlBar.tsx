@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import GraphController from "./GraphController";
 import "./ControlBar.css";
 import MultiGraphs from "./MultiGraphs";
@@ -39,22 +39,39 @@ const ControlBar: React.FC<ControlsProps> = ({
 	const [showVariants, setShowVariants] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [displayedVariants, setDisplayedVariants] = useState<
-		[string, number][]
+		[string, boolean, number][]
 	>([]);
 	const [sortOrder, setSortOrder] = useState("default");
 	const [showSortMenu, setShowSortMenu] = useState(false);
+	const sortMenuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		getDisplayedVariants();
 	}, [variants, sortOrder, searchTerm]);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				sortMenuRef.current &&
+				!sortMenuRef.current.contains(event.target as Node)
+			) {
+				setShowSortMenu(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [sortMenuRef]);
 
 	const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchTerm(event.target.value);
 	};
 
 	const getDisplayedVariants = () => {
-		// convert the variant dict to a tuple of the trace and the support
-		const newDisplayedVariants: [string, number][] = [];
+		// convert the variant dict to a tuple of the trace, is_covered, and the support
+		const newDisplayedVariants: [string, boolean, number][] = [];
 		for (const variant of variants) {
 			// check for search term
 			const searchTerms = searchTerm
@@ -63,18 +80,18 @@ const ControlBar: React.FC<ControlsProps> = ({
 				.filter(Boolean);
 			if (
 				searchTerms.every((term) =>
-					String(variant.prefixes).toLowerCase().includes(term)
+					String(variant[0]).toLowerCase().includes(term)
 				) ||
 				searchTerm === ""
 			) {
-				newDisplayedVariants.push([variant.prefixes, variant.Support]);
+				newDisplayedVariants.push([variant[0], variant[1], variant[2]]);
 			}
 		}
 
 		// sort the displayed variants
 		if (sortOrder === "support") {
 			newDisplayedVariants.sort((a, b) => {
-				return b[1] - a[1];
+				return b[2] - a[2];
 			});
 		}
 
@@ -276,16 +293,22 @@ const ControlBar: React.FC<ControlsProps> = ({
 										onClick={() => setShowSortMenu(!showSortMenu)}>
 										Sort
 									</button>
-									{showSortMenu && (
-										<div className="sortMenu">
-											<button onClick={() => setSortOrder("default")}>
-												Default
-											</button>
-											<button onClick={() => setSortOrder("support")}>
-												Support
-											</button>
-										</div>
-									)}
+									<div
+										ref={sortMenuRef}
+										onBlur={() => setShowSortMenu(false)}
+										tabIndex={0} // Ensure the element can receive focus
+									>
+										{showSortMenu && (
+											<div className="sortMenu">
+												<button onClick={() => setSortOrder("default")}>
+													Default
+												</button>
+												<button onClick={() => setSortOrder("support")}>
+													Support
+												</button>
+											</div>
+										)}
+									</div>
 								</div>
 							</div>
 							<div className="variantsListContainer">
@@ -298,13 +321,15 @@ const ControlBar: React.FC<ControlsProps> = ({
 								) : (
 									displayedVariants.map((variant: any) => (
 										<div key={variant[0]}>
-											<div className="variantItem">
-												{variant[0].join(" → ")}
+											<div
+												className="variantItem"
+												style={{ color: variant[1] ? "orange" : "black" }}>
+												{variant[0].join(" ➔ ")}
 											</div>
 											<div
 												className="variantSupport"
 												style={{ color: "gray", fontSize: "small" }}>
-												Support: {variant[1] !== undefined ? variant[1] : "N/A"}
+												Support: {variant[2] !== undefined ? variant[2] : "N/A"}
 											</div>
 										</div>
 									))

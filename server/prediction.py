@@ -8,6 +8,8 @@ from pm4py.objects.conversion.dfg.variants.to_petri_net_activity_defines_place i
 )
 import graphviz
 
+from collections import deque
+
 
 class Node:
     def __init__(self, id, x, y, actualKey, isPreview) -> None:
@@ -139,6 +141,93 @@ class Prediction:
         data = json.loads(json_data)
         return Prediction.from_dict(data, matrix)
 
+    def positionGraph(self):
+        # Position the nodes in the graph
+
+        gap_size_dict = {}
+        visited_nodes = set()
+
+        # recursive function to calculate all gap sizes
+        def gap_size(node):
+            visited_nodes.add(node)
+            if (
+                node not in self.edges
+                or sum(
+                    1
+                    for edgeEnd in self.edges[node]
+                    if edgeEnd not in self.preview_nodes
+                )
+                == 0
+            ):
+                gap_size_dict[node] = 1
+                return 1
+
+            gap_size_dict[node] = sum(
+                [
+                    gap_size(edgeEnd) if edgeEnd not in visited_nodes else 1
+                    for edgeEnd in self.edges[node]
+                    if edgeEnd not in self.preview_nodes
+                ]
+            )
+            return gap_size_dict[node]
+
+        gap_size("starting_with_key:0")
+
+        # store only position of the starting node
+        x = self.nodes["starting_with_key:0"].x
+        y = self.nodes["starting_with_key:0"].y
+
+        self.posMatrix = {(x, y): "starting_with_key:0"}
+
+        # Use a queue for BFS
+        queue = deque(["starting_with_key:0"])
+        positioned_nodes = set()
+
+        while queue:
+            node = queue.popleft()
+
+            # Check if the node has already been positioned
+            if node in self.preview_nodes:
+                continue
+
+            # Specify the gap already filled for this node
+            gap_filled = 0
+            gap_size_this = gap_size_dict[node]
+
+            gap_start = self.nodes[node].y - gap_size_this // 2
+
+            # Position all the successor nodes of the node
+            for edgeEnd in self.edges[node]:
+                if edgeEnd in self.preview_nodes or edgeEnd in positioned_nodes:
+                    continue
+
+                positioned_nodes.add(edgeEnd)
+
+                print(f"Node: {node}, EdgeEnd: {edgeEnd}")
+
+                # Get the gap size of the successor node
+                gap_size_succ = gap_size_dict[edgeEnd]
+
+                y_pos = gap_start + gap_filled + gap_size_succ // 2
+
+                self.nodes[edgeEnd].x = self.nodes[node].x + (
+                    1
+                    if sum(
+                        1
+                        for edgeEnd in self.edges[node]
+                        if edgeEnd not in self.preview_nodes
+                    )
+                    < 3
+                    else 3
+                )
+                self.nodes[edgeEnd].y = y_pos
+                self.posMatrix[(self.nodes[edgeEnd].x, self.nodes[edgeEnd].y)] = edgeEnd
+                gap_filled += gap_size_succ
+
+                queue.append(edgeEnd)
+
+        self.positionNodes()
+
     def getMetrics(self, log):
         import concurrent.futures
 
@@ -162,7 +251,14 @@ class Prediction:
         precision = -1
         generalization = -1
 
-        if log is not None:
+        # check if the petri net is empty
+        if len(self.edges) < 1:
+            fitness = 0
+            simplicity = 0
+            precision = 0
+            generalization = 0
+
+        if False and log is not None and len(self.edges) > 0:
             # use pm4py for fitness, simplicity, precision, and generalization
             # Define a DFG (Directly Follows Graph) from nodes and edges
             dfg = {}
@@ -200,49 +296,45 @@ class Prediction:
             except Exception as e:
                 raise ValueError(f"Error converting DFG to Petri Net: {e}")
 
-            # calculate the metrics in parallel
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future_fitness_pm4py = executor.submit(
-                    pm4py.algo.evaluation.replay_fitness.algorithm.apply,
-                    log,
-                    net,
-                    initial_marking,
-                    final_marking,
-                    None,
-                    pm4py.algo.evaluation.replay_fitness.algorithm.Variants.ALIGNMENT_BASED,
-                )
-                future_simplicity_pm4py = executor.submit(
-                    pm4py.algo.evaluation.simplicity.variants.arc_degree.apply, net
-                )
-                future_precision_pm4py = executor.submit(
-                    pm4py.algo.evaluation.precision.algorithm.apply,
-                    log,
-                    net,
-                    initial_marking,
-                    final_marking,
-                    None,
-                    pm4py.algo.evaluation.precision.algorithm.Variants.ALIGN_ETCONFORMANCE,
-                )
-
-                def calculate_generalization_pm4py():
-                    return (
-                        pm4py.algo.evaluation.generalization.variants.token_based.apply(
-                            log, net, initial_marking, final_marking
-                        )
+            try:
+                # calculate the metrics in parallel
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future_fitness_pm4py = executor.submit(
+                        pm4py.algo.evaluation.replay_fitness.algorithm.apply,
+                        log,
+                        net,
+                        initial_marking,
+                        final_marking,
+                        None,
+                        pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED,
+                    )
+                    future_simplicity_pm4py = executor.submit(
+                        pm4py.algo.evaluation.simplicity.variants.arc_degree.apply, net
+                    )
+                    future_precision_pm4py = executor.submit(
+                        pm4py.algo.evaluation.precision.algorithm.apply,
+                        log,
+                        net,
+                        initial_marking,
+                        final_marking,
+                        None,
+                        pm4py.algo.evaluation.precision.algorithm.Variants.ETCONFORMANCE_TOKEN,
                     )
 
-                future_generalization_pm4py = executor.submit(
-                    calculate_generalization_pm4py
-                )
+                    def calculate_generalization_pm4py():
+                        return pm4py.algo.evaluation.generalization.variants.token_based.apply(
+                            log, net, initial_marking, final_marking
+                        )
 
-                try:
-                    fitness = future_fitness_pm4py.result()["averageFitness"]
-                except Exception as e:
-                    print(f"Error calculating fitness: {e}")
-                    fitness = -1
-                simplicity = future_simplicity_pm4py.result()
-                precision = future_precision_pm4py.result()
-                generalization = future_generalization_pm4py.result()
+                    future_generalization_pm4py = executor.submit(
+                        calculate_generalization_pm4py
+                    )
+                    fitness = future_fitness_pm4py.result()["log_fitness"]
+                    simplicity = future_simplicity_pm4py.result()
+                    precision = future_precision_pm4py.result()
+                    generalization = future_generalization_pm4py.result()
+            except Exception as e:
+                raise ValueError(f"Error calculating metrics: {e}")
 
         serializedMetrics = {
             "fitness": fitness,
@@ -261,7 +353,6 @@ class Prediction:
 
     def getVariants(self):
         (variants, self.variantCoverage) = self.matrix.get_variant_coverage(self.edges)
-        print("variant_coverage: ", self.variantCoverage)
 
         # return the variants and the discovered variants
         return json.dumps({"variants": variants, "sequences": self.getAllSequences()})
@@ -448,7 +539,7 @@ class Prediction:
         self.preview_nodes = {}
 
         # Calculate the maximal Number of nodes that should be added (for auto mode)
-        numNodesToAdd = round(4 * (np.log(numNodes) * np.log(numNodes)) + 3)
+        numNodesToAdd = round(2 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
         predictions = self.matrix.predict_using_edges(
             self.edges, self.probMin if not self.auto else self.AUTO_PROB_MIN
@@ -458,8 +549,6 @@ class Prediction:
             (node, lastNodeId) = prediction
             probability = predictions[prediction]["probability"]
             support = predictions[prediction]["support"]
-
-            print("node: ", node)
 
             # Check if the edge to the node from lastNodeId exists, we do not add anything
             if lastNodeId in self.edges and node in self.edges[lastNodeId]:
@@ -485,15 +574,12 @@ class Prediction:
             if lastNodeId in self.nodes:
                 self.addNode(lastNodeId, True, node, probability, support)
 
-        print("Nodes: ", self.nodes)
-
         if self.auto:
             # Ensure that no more than three preview nodes are connected to the same edge
             for edge, edge_nodes in self.edges.items():
                 numPreview = sum(
                     1 for edgeEnd in edge_nodes if edgeEnd in self.preview_nodes
                 )
-                print("NumPreview: ", numPreview, " on edge: ", edge)
 
                 # If more than three preview nodes, delete the ones with the smallest probability
                 while numPreview > 3:
@@ -527,17 +613,10 @@ class Prediction:
 
             # If the number of preview nodes exceeds the allowed number
             if len(self.preview_nodes) > numNodesToAdd:
-                print(
-                    "Exceeded number of preview nodes",
-                    len(self.preview_nodes),
-                    numNodesToAdd,
-                )
                 # Find the minimum support needed to keep `numNodesToAdd` nodes
                 calculatedSupportMin = sorted(self.supportDict.values(), reverse=True)[
                     numNodesToAdd
                 ]
-
-                print("Calculated prob min: ", calculatedSupportMin)
 
                 # Collect nodes to remove that have probabilities lower than the calculated threshold
                 nodes_to_remove = [
@@ -545,8 +624,6 @@ class Prediction:
                     for node in self.supportDict
                     if self.supportDict[node] < calculatedSupportMin
                 ]
-
-                print("Nodes to remove: ", nodes_to_remove)
 
                 # Remove these nodes and track them in deletedKeys
                 for node in nodes_to_remove:
@@ -563,12 +640,9 @@ class Prediction:
 
         self.positionNodes()
 
-        print("Nodes: ", self.nodes)
-
         return self.serializeGraph()
 
     def addNode(self, edge_start, isPreview, givenKey, probability, support):
-        print("Adding node with key: ", givenKey)
         if givenKey in self.deletedKeys:
             self.deletedKeys.remove(givenKey)
 
@@ -576,8 +650,6 @@ class Prediction:
         newNode = Node(
             self.getAvailableKey() if isPreview else givenKey, 0, 0, givenKey, isPreview
         )
-
-        print("New node: ", newNode.id)
 
         # Add the new node to nodes and establish the edge
         self.nodes[newNode.id] = newNode
@@ -695,8 +767,13 @@ class Prediction:
 
             self.addEdge(start_node, end_node)
 
+    def serializeNodePositions(self):
+        nodePos = {}
+        for node in self.nodes:
+            nodePos[node] = (self.nodes[node].x, self.nodes[node].y)
+        return json.dumps(nodePos)
+
     def serializeGraph(self):
-        print(self.posMatrix)
         returnNodes = {}
         for edgeStart in self.edges:
             for edgeEnd in self.edges[edgeStart]:
@@ -707,6 +784,7 @@ class Prediction:
                         "edgeStart": edgeStart,
                         "node": self.nodes[edgeEnd].to_dict(),  # Convert Node to dict
                         "probability": self.nodeProbDict[edgeEnd],
+                        "support": self.supportDict[edgeEnd],
                     }
 
         serialized_graph = {

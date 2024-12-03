@@ -7,12 +7,9 @@ You have to install graphviz and add it to the path (in Windows and Linux, not t
 
 ## Broken Features
 
-- Generalization and precision are calculated wrongly (partly).
-
 ## Partially Broken Features
 
-- Special case when positioning the predicted nodes: When there is a node directly below the found gap, the gap is displaced on the y-coordinate lower for some reason.
-- There is an issue when deleting nodes; they will not be added again correctly (only in manual probability, not in auto probability).
+- from a node with no edge going to it, the node is recognized as a node with an edge from the starting node and therefore predictions are shown incorrectly
 
 ## Not tested
 

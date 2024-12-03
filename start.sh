@@ -4,6 +4,7 @@
 echo "Installing frontend dependencies..."
 cd client || { echo "Failed to navigate to client directory"; exit 1; }
 npm install || { echo "Failed to install npm dependencies"; exit 1; }
+npm fund || { echo "Failed to install npm dependencies"; exit 1; }
 npm run build || { echo "Failed to build frontend"; exit 1; }
 
 # Navigate to the backend directory

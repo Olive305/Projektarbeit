@@ -15,6 +15,7 @@ interface HeaderProps {
 	matrices: any;
 	deleteMatrix: (matrixName: string) => void;
 	toggleShowGrid: () => void;
+	handleAutoPosition: () => Promise<any>;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -28,6 +29,7 @@ const Header: React.FC<HeaderProps> = ({
 	matrices,
 	deleteMatrix,
 	toggleShowGrid,
+	handleAutoPosition,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -209,6 +211,13 @@ const Header: React.FC<HeaderProps> = ({
 									href="#"
 									onClick={toggleRainbowPredictions}>
 									Rainbow Prediction
+								</a>
+							</MenuItem>
+							<MenuItem>
+								<a
+									href="#"
+									onClick={handleAutoPosition}>
+									Auto Position Graph
 								</a>
 							</MenuItem>
 						</div>

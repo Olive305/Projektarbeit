@@ -22,6 +22,7 @@ const App: React.FC = () => {
 		getMetrics,
 		removeMatrix,
 		getVariants,
+		autoPosition,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -45,6 +46,8 @@ const App: React.FC = () => {
 	const [variantCoverage, setVariantCoverage] = useState(0);
 	const [logCoverage, setLogCoverage] = useState(0);
 	const [variants, setVariants] = useState<any[][]>([]);
+
+	const [gettingMetrics, setGettingMetrics] = useState(false);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -73,7 +76,7 @@ const App: React.FC = () => {
 
 					setVariants(await getVariantsFromDict());
 
-					getMetrics(
+					handleGetMetrics(
 						setFitness,
 						setGeneralization,
 						setSimplicity,
@@ -154,7 +157,7 @@ const App: React.FC = () => {
 			setVariants(await getVariantsFromDict());
 
 			// Update metrics for the new active tab
-			getMetrics(
+			handleGetMetrics(
 				setFitness,
 				setGeneralization,
 				setSimplicity,
@@ -165,6 +168,27 @@ const App: React.FC = () => {
 		} else {
 			console.error("Controller is undefined or null");
 		}
+	};
+
+	const handleGetMetrics = async (
+		setFitness: (val: number) => void,
+		setGeneralization: (val: number) => void,
+		setSimplicity: (val: number) => void,
+		setPrecision: (val: number) => void,
+		setVariantCoverage: (val: number) => void,
+		setLogCoverage: (val: number) => void
+	) => {
+		if (gettingMetrics) return;
+		setGettingMetrics(true);
+		await getMetrics(
+			setFitness,
+			setGeneralization,
+			setSimplicity,
+			setPrecision,
+			setVariantCoverage,
+			setLogCoverage
+		);
+		setGettingMetrics(false);
 	};
 
 	const handleConvertToPetriNet = async (_: number) => {
@@ -180,7 +204,7 @@ const App: React.FC = () => {
 		setVariants(await getVariantsFromDict());
 
 		// Update metrics for the new active tab
-		getMetrics(
+		handleGetMetrics(
 			setFitness,
 			setGeneralization,
 			setSimplicity,
@@ -235,7 +259,7 @@ const App: React.FC = () => {
 		setVariants(await getVariantsFromDict());
 
 		// Update metrics after closing a tab and setting a new active tab
-		getMetrics(
+		handleGetMetrics(
 			setFitness,
 			setGeneralization,
 			setSimplicity,
@@ -259,6 +283,10 @@ const App: React.FC = () => {
 		activeGraphController?.get_preview_nodes();
 	};
 
+	const handleAutoPosition = async () => {
+		activeGraphController?.deserializeNodePositions(await autoPosition());
+	};
+
 	return (
 		<>
 			<Header
@@ -275,6 +303,7 @@ const App: React.FC = () => {
 				matrices={matrices}
 				deleteMatrix={handleDeleteMatrix}
 				toggleShowGrid={() => setShowGrid(!showGrid)}
+				handleAutoPosition={handleAutoPosition}
 			/>
 			<section className="workspace">
 				<div className="left-bar-div">

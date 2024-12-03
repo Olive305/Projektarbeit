@@ -7,6 +7,7 @@ cd client || exit /b
 :: Install frontend dependencies using npm
 echo Installing frontend dependencies...
 call npm install || exit /b
+call npm fund || exit /b
 call npm run build || exit /b
 
 :: Navigate to the backend directory

@@ -484,6 +484,7 @@ class GraphController {
 					probability: node.probability,
 					color: node.color,
 					comment: node.comment,
+					support: node.support,
 				})),
 			edges: this.edges.filter(
 				(edge) =>
@@ -528,7 +529,8 @@ class GraphController {
 					false,
 					nodeData.actualKey,
 					false,
-					nodeData.probability
+					nodeData.probability,
+					nodeData.support
 				);
 
 				node.set_real_x(nodeData.realX);
@@ -631,7 +633,8 @@ class GraphController {
 						true,
 						node.actualKey,
 						false,
-						probability
+						probability,
+						node.support
 					)
 				);
 
@@ -641,6 +644,29 @@ class GraphController {
 
 				// Add the edge information
 				this.edges.push([previous, id]);
+			}
+		}
+
+		this.notifyListeners();
+	}
+
+	public deserializeNodePositions(data: any) {
+		console.log("Deserializing node positions:", data);
+		let nodeData = JSON.parse(data.positions);
+		console.log("Node data:", nodeData);
+
+		// Iterate over the keys of the object
+		for (const id in nodeData) {
+			console.log("ID:", id);
+			if (nodeData.hasOwnProperty(id)) {
+				const nodePos = nodeData[id]; // Get the node data for each edgeEnd
+				const node = this.nodes.get(id); // Extract the node details
+
+				if (node) {
+					console.log("Updating node position:", id, nodePos);
+					node.set_x(nodePos[0]);
+					node.set_y(nodePos[1]);
+				}
 			}
 		}
 

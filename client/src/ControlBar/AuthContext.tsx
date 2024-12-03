@@ -26,6 +26,7 @@ interface AuthContextProps {
 	testConnection: () => Promise<{ status: string }>;
 	removeMatrix: (matrixName: string) => Promise<any>;
 	getVariants: () => Promise<any>;
+	autoPosition: () => Promise<any>;
 }
 
 // Add children prop in AuthProviderProps
@@ -64,6 +65,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 	const generatePetriNet = async () => {
 		return await sessionResponse.generatePetriNet();
+	};
+
+	const autoPosition = async () => {
+		return await sessionResponse.autoPosition();
 	};
 
 	const getMetrics = async (
@@ -113,6 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				testConnection,
 				removeMatrix,
 				getVariants,
+				autoPosition,
 			}}>
 			{children}
 		</AuthContext.Provider>

@@ -163,6 +163,21 @@ export class SessionAuth {
 		return response.data;
 	}
 
+	// Automatically position the nodes of the current graph
+	async autoPosition(): Promise<{ positions: any }> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		try {
+			const response: AxiosResponse<{ positions: any }> = await axios.get(
+				`${this.apiUrl}/autoPosition`
+			);
+			return response.data;
+		} catch (error) {
+			console.error("Error auto positioning nodes:", error);
+			throw error;
+		}
+	}
+
 	// Get variants based on the last used matrix
 	async getVariants(): Promise<{ variants: any }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");

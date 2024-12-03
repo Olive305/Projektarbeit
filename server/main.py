@@ -4,6 +4,7 @@ import pm4py
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
+from pm4py.objects.log.importer.xes import importer as xes_importer
 from flask_cors import CORS
 import os
 import uuid
@@ -54,7 +55,7 @@ for path, name in matrix_paths:
 # Load predefined logs
 logs = {}
 for name, path in logs_paths.items():
-    logs[name] = pm4py.read_xes(path)
+    logs[name] = xes_importer.apply(path)
 
 
 @app.route("/")
@@ -71,6 +72,29 @@ def serve_frontend(path=""):
 def test_connection():
     """API endpoint to test server connection."""
     return jsonify({"status": "Connection successful"})
+
+
+@app.route("/api/autoPosition", methods=["GET"])
+def auto_position():
+    """
+    Position the nodes of the current graph.
+    """
+
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices.get(session["lastUsedMatrix"])
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+    prediction.positionGraph()
+    return jsonify({"positions": prediction.serializeNodePositions()})
 
 
 @app.route("/api/startSession", methods=["POST"])

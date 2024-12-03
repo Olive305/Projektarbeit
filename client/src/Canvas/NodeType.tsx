@@ -21,6 +21,7 @@ class MyNode {
 	probability: number;
 	color: string;
 	comment: string;
+	support: number;
 	private real_x: number;
 	private real_y: number;
 
@@ -39,7 +40,8 @@ class MyNode {
 		preview?: boolean,
 		actualKey?: string,
 		circle?: boolean,
-		probability?: number
+		probability?: number,
+		support?: number
 	) {
 		this.id = id;
 		this.x = x;
@@ -59,6 +61,7 @@ class MyNode {
 		this.probability = probability ? probability : 0;
 		this.color = "";
 		this.comment = "";
+		this.support = support ? support : 0;
 
 		this.calculateRealPos();
 	}

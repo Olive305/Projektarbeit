@@ -17,9 +17,8 @@
 
 # Start the Site
 
-- Run `start.sh` for Windows or `start.bat` for Linux and Mac to start the site (opens frontend and backend).
-- You may need to install dependencies and start both the frontend and backend.
-- Ensure Graphviz is installed and added to the PATH (in Windows and Linux, not tested on MacOS).
+- Run `start.sh` for Windows or `start.bat` for Linux and Mac to start the site (opens frontend and backend)
+- This starts the site in `localhost:8081`
 
 ## Broken Features
 

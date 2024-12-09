@@ -54,6 +54,8 @@ const App: React.FC = () => {
 	const [gettingPm4pyMetrics, setGettingPm4pyMetrics] = useState(false);
 	const [recalculateMetrics, setRecalculateMetrics] = useState(false);
 
+	const [showPetriNet, _] = useState(true);
+
 	// Initialize session on initial render only once
 	useEffect(() => {
 		if (!sessionStarted && sessionId === null) {
@@ -285,7 +287,7 @@ const App: React.FC = () => {
 	};
 
 	return (
-		<>
+		<div className="siteBody">
 			<Header
 				createNewGraph={handleCreateNewGraph}
 				readGraphFromFile={handleReadGraphFromFile}
@@ -360,9 +362,21 @@ const App: React.FC = () => {
 							/>
 						)}
 					</div>
+
+					{showPetriNet && (
+						<div className="petri-canvas-div">
+							{activeGraphController && activeGraphController.petriNet &&
+								<Canvas
+									controller={activeGraphController.petriNet}
+									rainbowPredictions={false}
+									showGrid={false}
+								/>
+							}
+						</div>
+					)}
 				</section>
 			</section>
-		</>
+		</div>
 	);
 };
 

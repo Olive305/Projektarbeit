@@ -24,6 +24,8 @@ class GraphController {
 
 	public sequences: any[][]; // List of tuples with arbitrary length
 
+	public petriNet: GraphController | null
+
 
 	// constructor for the GraphController
 	public constructor(
@@ -63,6 +65,9 @@ class GraphController {
 
 		this.activeMatrix = "Simple IOR Choice";
 		this.getPredictions = handleGetPredictions;
+
+		if (this.showPreview) this.petriNet = new GraphController(gridSize, false, true);
+		else this.petriNet = null;
 	}
 
 	public calculateColor = (id: string) => {
@@ -79,12 +84,10 @@ class GraphController {
 			"magenta",
 			"lime",
 			"olive",
-			"teal",
 			"navy",
 			"indigo",
 			"violet",
 			"gold",
-			"beige",
 			"chocolate",
 		];
 
@@ -580,8 +583,10 @@ class GraphController {
 			);
 
 		let parsedData;
+		let petriData;
 		try {
 			parsedData = JSON.parse(data).dfg;
+			petriData = JSON.parse(data).petri_net;
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error("Failed to parse JSON data: " + error.message);
@@ -589,6 +594,8 @@ class GraphController {
 				throw new Error("Failed to parse JSON data: Unknown error");
 			}
 		}
+		if (!petriData)
+			this.petriNet?.deserializePetriNet(petriData);
 
 		// Extract sub_trace_coverage from parsed data
 		const subTraceCoverage = parsedData.sub_trace_coverage;
@@ -743,6 +750,8 @@ class GraphController {
 			// Add the arc (edge) to the graph
 			this.addEdge(sourceId, targetId);
 		});
+
+		this.notifyListeners();
 	}
 }
 

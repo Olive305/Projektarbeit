@@ -392,7 +392,146 @@ class Prediction:
                 # if no position was found, we increase the x position of the batch
                 normal_pos = (normal_pos[0] + 1, normal_pos[1])
                 starting_pos = normal_pos
+                
+    def get_petri_net(self):
+        if len(self.edges) - len(self.preview_nodes) <= 1:
+            return json.dumps({})
+        # Define a DFG (Directly Follows Graph) from nodes and edges
+        dfg = {}
+        for edgeStart in self.edges:
+            for edgeEnd in self.edges[edgeStart]:
+                # Check if edgeEnd is a preview node
+                if edgeEnd in self.preview_nodes:
+                    continue
 
+                # If edgeStart or edgeEnd are starting_with_key:0 or [EOC], skip them
+                if edgeStart == "starting_with_key:0" or edgeEnd == "[EOC]":
+                    continue
+
+                # Flatten the nested dictionary structure
+                dfg[(edgeStart, edgeEnd)] = dfg.get((edgeStart, edgeEnd), 0) + 1
+
+        # Define start and end activities
+        start_activities = {edge for edge in self.edges["starting_with_key:0"]}
+        end_activities = {
+            edge
+            for edge in self.edges
+            if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+        }
+
+        # Convert DFG to Petri net with parameters
+        parameters = {
+            "start_activities": start_activities,
+            "end_activities": end_activities,
+        }
+
+        try:
+            net, initial_marking, final_marking = dfg_to_petri_net(
+                dfg, parameters=parameters
+            )
+        except Exception as e:
+            raise ValueError(f"Error converting DFG to Petri Net: {e}")
+
+        # Extract places, transitions, and arcs from the Petri net
+        places = [place.name for place in net.places]
+        transitions = [trans.name for trans in net.transitions]
+        arcs = [(arc.source.name, arc.target.name) for arc in net.arcs]
+        
+        
+        # Position the nodes in the graph
+
+        gap_size_dict = {}
+        visited_nodes = set()
+        nodes = places + transitions
+        
+        edges = {}
+        for arc in arcs:
+            if arc[0] not in edges:
+                edges[arc[0]] = []
+            edges[arc[0]].append(arc[1])
+            if arc[1] in nodes:
+                nodes.remove(arc[1])
+                
+        posDict = {}
+        invertPosDict = {}
+        x = 2
+        y = 3
+        for node in nodes:
+            posDict[(x, y)] = node
+            invertPosDict[node] = (x, y)
+            y+=1   
+            
+        for node in places + transitions:
+            if node not in edges:
+                edges[node] = []
+
+        # recursive function to calculate all gap sizes
+        def gap_size(node):
+            visited_nodes.add(node)
+            if (
+                node not in edges
+            ):
+                gap_size_dict[node] = 1
+                return 1
+
+            gap_size_dict[node] = sum(
+                [
+                    gap_size(edgeEnd) if edgeEnd not in visited_nodes else 1
+                    for edgeEnd in edges[node]
+                ]
+            )
+            return gap_size_dict[node]
+
+        size = 0
+        for im in nodes:
+            posDict[(x, y + size)] = posDict.pop(invertPosDict[im])
+            invertPosDict[im] = (invertPosDict[im][0], invertPosDict[im][1] + size)
+            size = gap_size(im)
+
+        # Use a queue for BFS
+        queue = deque(nodes)
+        positioned_nodes = set()
+
+        while queue:
+            node = queue.popleft()
+
+            # Specify the gap already filled for this node
+            gap_filled = 0
+            gap_size_this = gap_size_dict[node]
+
+            gap_start = invertPosDict[node][1] - gap_size_this // 2
+
+            # Position all the successor nodes of the node
+            for edgeEnd in edges[node]:
+                if edgeEnd in positioned_nodes:
+                    continue
+
+                positioned_nodes.add(edgeEnd)
+
+                print(f"Node: {node}, EdgeEnd: {edgeEnd}")
+
+                # Get the gap size of the successor node
+                gap_size_succ = gap_size_dict[edgeEnd]
+
+                y_pos = gap_start + gap_filled + gap_size_succ // 2
+
+                invertPosDict[edgeEnd] = (invertPosDict[node][0] + 1, y_pos)
+                posDict[invertPosDict[edgeEnd]] = edgeEnd
+                gap_filled += gap_size_succ
+
+                queue.append(edgeEnd)
+            
+        print(posDict)
+                
+        petriNetDict = {
+            "places": [{"id": place, "x": invertPosDict[place][0], "y": invertPosDict[place][1]} for place in places],
+            "transitions": [{"id": trans, "x": invertPosDict[trans][0], "y": invertPosDict[trans][1], "label": trans} for trans in transitions],
+            "arcs": [{"source": arc[0], "target": arc[1]} for arc in arcs]
+        }
+        
+        return json.dumps(petriNetDict)
+        
+        
     def convert_to_petri_net(self):
         # Define a DFG (Directly Follows Graph) from nodes and edges
         dfg = {}
@@ -759,6 +898,7 @@ class Prediction:
                 "deletedKeys": self.deletedKeys,
                 "sub_trace_coverage": self.matrix.sub_trace_coverage(),
             },
+            "petri_net": self.get_petri_net(),
         }
 
         return json.dumps(serialized_graph)

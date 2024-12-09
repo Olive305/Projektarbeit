@@ -385,3 +385,13 @@ hr.my-2 {
 	color: gray;
 	font-size: small;
 }
+
+.noLogLabel {
+	font-size: 0.875rem; /* Smaller font size */
+	font-weight: bold;
+	color: lightgray; /* Light gray color */
+	margin: 0;
+	padding: 0;
+	margin-right: 0.5rem;
+	padding-left: 1rem;
+}

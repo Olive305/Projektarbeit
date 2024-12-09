@@ -24,6 +24,7 @@ class GraphController {
 
 	public sequences: any[][]; // List of tuples with arbitrary length
 
+
 	// constructor for the GraphController
 	public constructor(
 		gridSize: number,
@@ -31,7 +32,6 @@ class GraphController {
 		notAddStartingNode?: boolean,
 		handleGetPredictions?: any
 	) {
-		console.log("starting controller");
 		this.nodes = new Map();
 		this.preview_nodes = [];
 		this.gridSize = gridSize;
@@ -129,7 +129,9 @@ class GraphController {
 	selectNode(id: string) {
 		const node = this.nodes.get(id);
 		if (!node) return;
+		if (this.preview_nodes.includes(id)) return;
 
+		this.selectedNodes.push(id);
 		node.isSelected = true;
 	}
 
@@ -248,6 +250,9 @@ class GraphController {
 				if (edge[1] === oldKey) {
 					edge[1] = n.id;
 				}
+
+				const edgeEnd = this.nodes.get(edge[1]);
+				if (edgeEnd) edgeEnd.support += n.support;
 			}
 
 			// Finally, remove the old node from the collection
@@ -317,6 +322,9 @@ class GraphController {
 		this.unselectAllNodes(); // First, unselect all nodes
 
 		this.nodes.forEach((node) => {
+			if (this.preview_nodes.includes(node.id)) {
+				return;
+			}
 			const nodeRect = {
 				x: node.get_real_x(),
 				y: node.get_real_y(),
@@ -439,15 +447,11 @@ class GraphController {
 					!this.deletedKeys.includes(edge[1])
 			);
 
-			console.log("gettingPredictions");
-
 			// Fetch new preview nodes from the backend
 			const response = await this.getPredictions(
 				this.serializeGraph(),
 				this.activeMatrix
 			);
-
-			console.log("response", response);
 
 			// Check if the response is valid and contains predictions
 			if (response && response.predictions) {
@@ -468,8 +472,6 @@ class GraphController {
 	}
 
 	public serializeGraph(): string {
-		console.log("preview nodes", this.preview_nodes);
-		console.log("deleted keys", this.deletedKeys);
 		const graphData = {
 			nodes: Array.from(this.nodes.values())
 				.filter((node) => !node.isPreview) // Exclude preview nodes
@@ -501,7 +503,6 @@ class GraphController {
 			matrix: this.activeMatrix,
 		};
 		const data = JSON.stringify(graphData);
-		console.log("serialized data", data);
 		return data;
 	}
 
@@ -509,7 +510,6 @@ class GraphController {
 	public deserializeGraph(data: string) {
 		try {
 			const graphData = JSON.parse(data);
-			console.log("graphData", graphData);
 			const new_ids: [string, string][] = [];
 
 			// Clear existing nodes and edges
@@ -566,8 +566,6 @@ class GraphController {
 			this.probabilityMin = graphData.probability;
 			this.auto = graphData.auto;
 			this.sub_trace_coverage = graphData.sub_trace_coverage;
-
-			console.log("nodes and edges:", this.nodes, this.edges);
 		} catch (error) {
 			console.error("Failed to deserialize graph:", error);
 			throw new Error("Deserialization error: Graph data is malformed.");
@@ -575,6 +573,7 @@ class GraphController {
 	}
 
 	public deserializePredictNodes(data: string) {
+		console.log("getting predictions", data);
 		if (!data || typeof data !== "string")
 			throw new Error(
 				"Parsed data does not exist or is not a valid JSON string"
@@ -617,6 +616,7 @@ class GraphController {
 				const previous = nodeData.edgeStart; // Extract the edgeStart
 				const node = nodeData.node; // Extract the node details
 				const probability = nodeData.probability;
+				const support = nodeData.support; // Extract the support value
 
 				// Add to preview nodes
 				this.preview_nodes.push(id);
@@ -634,7 +634,7 @@ class GraphController {
 						node.actualKey,
 						false,
 						probability,
-						node.support
+						support // Pass the support value
 					)
 				);
 
@@ -651,19 +651,15 @@ class GraphController {
 	}
 
 	public deserializeNodePositions(data: any) {
-		console.log("Deserializing node positions:", data);
 		let nodeData = JSON.parse(data.positions);
-		console.log("Node data:", nodeData);
 
 		// Iterate over the keys of the object
 		for (const id in nodeData) {
-			console.log("ID:", id);
 			if (nodeData.hasOwnProperty(id)) {
 				const nodePos = nodeData[id]; // Get the node data for each edgeEnd
 				const node = this.nodes.get(id); // Extract the node details
 
 				if (node) {
-					console.log("Updating node position:", id, nodePos);
 					node.set_x(nodePos[0]);
 					node.set_y(nodePos[1]);
 				}
@@ -675,15 +671,12 @@ class GraphController {
 
 	public deserializePetriNet(petriNet: any) {
 		// First, ensure this.petriNet and this.petriNet.net are defined
-		console.log(petriNet);
 		if (!petriNet || !petriNet.net) {
 			throw new Error("petriNet data is missing or malformed.");
 		}
 
 		const netData = JSON.parse(petriNet.net); // Access the `net` object
 		const new_ids: [string, string][] = []; // Store old-to-new ID mappings
-
-		console.log("net data", netData);
 
 		// Now, check for the existence of `places`, `transitions`, and `arcs`
 		if (!netData.places || !netData.transitions || !netData.arcs) {

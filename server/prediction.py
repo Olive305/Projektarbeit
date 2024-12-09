@@ -91,6 +91,7 @@ class Prediction:
             "precision": self.precision,
             "generalization": self.generalization,
         }
+        
 
     @classmethod
     def from_dict(cls, data, matrix):
@@ -227,39 +228,24 @@ class Prediction:
                 queue.append(edgeEnd)
 
         self.positionNodes()
-
-    def getMetrics(self, log):
+        
+    def getPm4pyMetrics(self, log):
         import concurrent.futures
 
-        traces = self.getAllSequences()
+        # Initialize metrics to default values
+        metrics = {
+            "fitness": -1.,
+            "simplicity": -1.,
+            "precision": -1.,
+            "generalization": -1.,
+        }
 
-        def calculate_fitness():
-            return self.matrix.replay_fitness(traces)
-
-        def calculate_simplicity():
-            return self.matrix.simplicity(traces, len(self.nodes))
-
-        def calculate_precision():
-            return self.matrix.precision(self.edges, list(self.preview_nodes.keys()))
-
-        def calculate_generalization():
-            return self.matrix.generalization(self.nodes, len(self.nodes))
-
-        # set remaining metrix to -1 if log is not provided
-        fitness = -1
-        simplicity = -1
-        precision = -1
-        generalization = -1
-
-        # check if the petri net is empty
+        # Check if the Petri net is empty
         if len(self.edges) < 1:
-            fitness = 0
-            simplicity = 0
-            precision = 0
-            generalization = 0
+            metrics.update({"fitness": 0., "simplicity": 0., "precision": 0., "generalization": 0.})
+            return json.dumps(metrics)
 
-        if False and log is not None and len(self.edges) > 0:
-            # use pm4py for fitness, simplicity, precision, and generalization
+        if log is not None and len(self.edges) > 0:
             # Define a DFG (Directly Follows Graph) from nodes and edges
             dfg = {}
             for edgeStart in self.edges:
@@ -278,70 +264,50 @@ class Prediction:
             # Define start and end activities
             start_activities = {edge for edge in self.edges["starting_with_key:0"]}
             end_activities = {
-                edge
-                for edge in self.edges
-                if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+                edge for edge in self.edges if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
             }
 
             # Convert DFG to Petri net with parameters
-            parameters = {
-                "start_activities": start_activities,
-                "end_activities": end_activities,
-            }
+            parameters = {"start_activities": start_activities, "end_activities": end_activities}
 
             try:
-                net, initial_marking, final_marking = dfg_to_petri_net(
-                    dfg, parameters=parameters
-                )
+                net, initial_marking, final_marking = dfg_to_petri_net(dfg, parameters=parameters)
             except Exception as e:
                 raise ValueError(f"Error converting DFG to Petri Net: {e}")
 
             try:
-                # calculate the metrics in parallel
+                # Calculate the metrics concurrently
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future_fitness_pm4py = executor.submit(
+                    future_fitness = executor.submit(
                         pm4py.algo.evaluation.replay_fitness.algorithm.apply,
-                        log,
-                        net,
-                        initial_marking,
-                        final_marking,
-                        None,
-                        pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED,
+                        log, net, initial_marking, final_marking, None,
+                        pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED
                     )
-                    future_simplicity_pm4py = executor.submit(
+                    future_simplicity = executor.submit(
                         pm4py.algo.evaluation.simplicity.variants.arc_degree.apply, net
                     )
-                    future_precision_pm4py = executor.submit(
+                    future_precision = executor.submit(
                         pm4py.algo.evaluation.precision.algorithm.apply,
-                        log,
-                        net,
-                        initial_marking,
-                        final_marking,
-                        None,
-                        pm4py.algo.evaluation.precision.algorithm.Variants.ETCONFORMANCE_TOKEN,
+                        log, net, initial_marking, final_marking, None,
+                        pm4py.algo.evaluation.precision.algorithm.Variants.ETCONFORMANCE_TOKEN
+                    )
+                    future_generalization = executor.submit(
+                        pm4py.algo.evaluation.generalization.variants.token_based.apply,
+                        log, net, initial_marking, final_marking
                     )
 
-                    def calculate_generalization_pm4py():
-                        return pm4py.algo.evaluation.generalization.variants.token_based.apply(
-                            log, net, initial_marking, final_marking
-                        )
-
-                    future_generalization_pm4py = executor.submit(
-                        calculate_generalization_pm4py
-                    )
-                    fitness = future_fitness_pm4py.result()["log_fitness"]
-                    simplicity = future_simplicity_pm4py.result()
-                    precision = future_precision_pm4py.result()
-                    generalization = future_generalization_pm4py.result()
+                    metrics["fitness"] = future_fitness.result()["log_fitness"]
+                    metrics["simplicity"] = future_simplicity.result()
+                    metrics["precision"] = future_precision.result()
+                    metrics["generalization"] = future_generalization.result()
             except Exception as e:
                 raise ValueError(f"Error calculating metrics: {e}")
 
-        serializedMetrics = {
-            "fitness": fitness,
-            "simplicity": simplicity,
-            "precision": precision,
-            "generalization": generalization,
-        }
+        return json.dumps(metrics)
+
+    def getMetrics(self):
+
+        serializedMetrics = {}
         event_log_coverage = self.matrix.get_event_log_coverage(self.edges)
 
         self.getVariants()

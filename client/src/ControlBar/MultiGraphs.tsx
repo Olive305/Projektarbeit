@@ -10,7 +10,6 @@ class MultiController {
 	}
 
 	async readGraphFromFile(file: File, handleGetPredictions: any) {
-		console.log("Reading file", file);
 		const name = file.name;
 		const index =
 			this.graphs.push([
@@ -99,7 +98,6 @@ class MultiController {
 	}
 
 	public convertToPetriNet = (index: any, petriNetData: any) => {
-		console.log(petriNetData);
 		const petriController = new GraphController(this.gridSize, false, true);
 		petriController.deserializePetriNet(petriNetData);
 		return this.graphs.push([

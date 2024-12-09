@@ -226,6 +226,8 @@ const Canvas: React.FC<CanvasProps> = ({
 
 		const isPreviewEdge = start.isPreview || target.isPreview;
 
+		const highestSupport = Math.max(...Array.from(nodes.values()).map(node => node.support || 0));
+
 		return (
 			<Group key={`edge_${start.id}_${target.id}`}>
 				{/* Hitbox - Invisible but interactive */}
@@ -263,7 +265,7 @@ const Canvas: React.FC<CanvasProps> = ({
 						endY,
 					]}
 					stroke={isPreviewEdge ? "blue" : "black"}
-					strokeWidth={1.5}
+					strokeWidth={!isPreviewEdge ? (0.3 + 2.5 * (nodes.get(connection[1])?.support || 0) / (highestSupport || 1)) : 1}
 					lineCap="round"
 					lineJoin="round"
 					opacity={isPreviewEdge ? 0.5 : 1}
@@ -527,8 +529,6 @@ const Canvas: React.FC<CanvasProps> = ({
 		selectionRecRef.current?.height(0);
 
 		selecting = true;
-
-		console.log("Selecting started at: ", { x1, y1 });
 	};
 
 	const handleLineRightClick = (
@@ -613,20 +613,6 @@ const Canvas: React.FC<CanvasProps> = ({
 
 	const handleCanvasClick = () => {
 		setContextMenu({ visible: false, x: 0, y: 0, edge: null, node: null }); // Close the context menu when clicking on the canvas
-	};
-
-	const handleAddNode = () => {
-		if (contextMenu.node) {
-			// Use the node ID from the context menu as the starting point for the new node
-			controller.addNode(contextMenu.node.id);
-
-			// Update the state with the new set of nodes and edges
-			setNodes(new Map(controller.nodes));
-			setEdges([...controller.edges]);
-		}
-
-		// Close the context menu after the node is added
-		setContextMenu({ visible: false, x: 0, y: 0, edge: null, node: null });
 	};
 
 	const handleStageDragMove = (e: KonvaEventObject<DragEvent>) => {
@@ -828,7 +814,6 @@ const Canvas: React.FC<CanvasProps> = ({
 					className="popover"
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
 					<button onClick={handleDeleteNode}>Delete Node</button>
-					<button onClick={handleAddNode}>Add Node</button>
 					<input
 						type="text"
 						placeholder="Add a comment"
@@ -848,6 +833,10 @@ const Canvas: React.FC<CanvasProps> = ({
 							}
 						}}
 					/>
+					<Label>
+						Support:{" "}
+						{(contextMenu.node.support || 0)}
+					</Label>
 					<Label>
 						Sub-trace coverage:{" "}
 						{Math.round((subTraceCoverage.get(contextMenu.node.id) || 0) * 100)}

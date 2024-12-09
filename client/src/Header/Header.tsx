@@ -12,10 +12,15 @@ interface HeaderProps {
 	setActiveMatrix: (matrix: string, file?: File) => void;
 	toggleRainbowPredictions: () => void;
 	handleToPetriNet: () => void;
-	matrices: any;
+	defaultMatrices: any;
+	customMatrices: any;
+	customLogs: any;
+	showGrid: boolean;
+	rainbowPredictions: boolean;
 	deleteMatrix: (matrixName: string) => void;
 	toggleShowGrid: () => void;
 	handleAutoPosition: () => Promise<any>;
+	uploadLog: (matrixName: string, file: File) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -26,10 +31,15 @@ const Header: React.FC<HeaderProps> = ({
 	setActiveMatrix,
 	toggleRainbowPredictions,
 	handleToPetriNet,
-	matrices,
+	defaultMatrices,
+	customMatrices,
+	customLogs,
 	deleteMatrix,
 	toggleShowGrid,
+	showGrid,
+	rainbowPredictions,
 	handleAutoPosition,
+	uploadLog,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -129,8 +139,8 @@ const Header: React.FC<HeaderProps> = ({
 					</div>
 					<MenuItems className="dropdown-menu">
 						<div className="py-1">
-							{matrices.length > 0 ? (
-								matrices.map((matrix: any) => (
+							{defaultMatrices.length > 0 ? (
+								defaultMatrices.map((matrix: any) => (
 									<MenuItem key={matrix}>
 										<div className="matrix-item">
 											<a
@@ -160,6 +170,57 @@ const Header: React.FC<HeaderProps> = ({
 							)}
 						</div>
 						<hr className="my-2" /> {/* Horizontal line to separate items */}
+						{customMatrices.length > 0 ? (
+							customMatrices.map((matrix: any) => (
+								<MenuItem key={matrix}>
+									<div className="matrix-item">
+										<a
+											href="#"
+											onClick={async () => setActiveMatrix(matrix)}>
+											{matrix}
+										</a>
+										<button
+											className="deleteMatrixButton"
+											style={{ display: "inline-block", marginLeft: "10px" }}
+											onClick={(event) => {
+												event.stopPropagation();
+												deleteMatrix(matrix);
+											}}>
+											<img
+												src={CloseIcon}
+												alt="Close"
+											/>
+										</button>
+										{!customLogs[matrix] && (
+											<button
+												className="uploadLogButton"
+												style={{ display: "inline-block", marginLeft: "10px" }}
+												onClick={(_) => {
+													const input = document.createElement("input");
+													input.type = "file";
+													input.onchange = async (event: Event) => {
+														const file = (event.target as HTMLInputElement)
+															.files?.[0];
+														console.log("reading from file");
+														if (file) {
+															uploadLog(
+																matrix ? matrix : "Matrix",
+																file
+															);
+														}
+													};
+													input.click();
+												}}>
+												Upload Log
+											</button>
+										)}
+									</div>
+								</MenuItem>
+							))
+						) : (
+							<div className="px-4 py-2 text-sm text-gray-500">No custom matrices</div>
+						)}
+
 						<MenuItem>
 							{() => (
 								<a
@@ -203,15 +264,30 @@ const Header: React.FC<HeaderProps> = ({
 								<a
 									href="#"
 									onClick={toggleShowGrid}>
-									Show Grid
+									<input
+										className="checkbox"
+										type="checkbox"
+										checked={showGrid}
+										onChange={toggleShowGrid}
+									/>
+									<label>Show Grid</label>
 								</a>
 							</MenuItem>
 							<MenuItem>
 								<a
 									href="#"
 									onClick={toggleRainbowPredictions}>
-									Rainbow Prediction
+									<input
+										className="checkbox"
+										type="checkbox"
+										checked={rainbowPredictions}
+										onChange={toggleRainbowPredictions}
+									/>
+									<label>Rainbow Prediction</label>
 								</a>
+							</MenuItem>
+							<MenuItem>
+							<hr className="my-2" />
 							</MenuItem>
 							<MenuItem>
 								<a

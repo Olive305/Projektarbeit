@@ -148,7 +148,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				<button
 					onClick={toggleMetrics}
 					className="collapsibleButton">
-					Performance Metrics
+					Metrics
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"
@@ -157,41 +157,46 @@ const ControlBar: React.FC<ControlsProps> = ({
 				</button>
 				{showMetrics && (
 					<div className="performanceMetrics">
-						<div className="metric">
-							<label>Fitness: {fitness ? Math.round(fitness * 100) : 0}%</label>
-							<progress
-								value={fitness}
-								max="1"
-								className="progressBar"></progress>
-						</div>
-						<div className="metric">
-							<label>
-								Simplicity: {simplicity ? Math.round(simplicity * 100) : 0}%
-							</label>
-							<progress
-								value={simplicity}
-								max="1"
-								className="progressBar"></progress>
-						</div>
-						<div className="metric">
-							<label>
-								Precision: {precision ? Math.round(precision * 100) : 0}%
-							</label>
-							<progress
-								value={precision}
-								max="1"
-								className="progressBar"></progress>
-						</div>
-						<div className="metric">
-							<label>
-								Generalization:{" "}
-								{generalization ? Math.round(generalization * 100) : 0}%
-							</label>
-							<progress
-								value={generalization}
-								max="1"
-								className="progressBar"></progress>
-						</div>
+						{fitness !== -1 ? (
+							<div className="metric">
+								<label>Fitness: {Math.round(fitness * 100)}%</label>
+								<progress value={fitness} max="1" className="progressBar"></progress>
+							</div>
+						) : (
+							<div className="metric">
+								<label className="noLogLabel">Fitness: No log available</label>
+							</div>
+						)}
+						{simplicity !== -1 ? (
+							<div className="metric">
+								<label>Simplicity: {Math.round(simplicity * 100)}%</label>
+								<progress value={simplicity} max="1" className="progressBar"></progress>
+							</div>
+						) : (
+							<div className="metric">
+								<label className="noLogLabel">Simplicity: No log available</label>
+							</div>
+						)}
+						{precision !== -1 ? (
+							<div className="metric">
+								<label>Precision: {Math.round(precision * 100)}%</label>
+								<progress value={precision} max="1" className="progressBar"></progress>
+							</div>
+						) : (
+							<div className="metric">
+								<label className="noLogLabel">Precision: No log available</label>
+							</div>
+						)}
+						{generalization !== -1 ? (
+							<div className="metric">
+								<label>Generalization: {Math.round(generalization * 100)}%</label>
+								<progress value={generalization} max="1" className="progressBar"></progress>
+							</div>
+						) : (
+							<div className="metric">
+								<label className="noLogLabel">Generalization: No log available</label>
+							</div>
+						)}
 						<div className="metric">
 							<label>
 								Variant Coverage:{" "}
@@ -221,7 +226,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				<button
 					onClick={toggleProbability}
 					className="collapsibleButton">
-					Probability Settings
+					Probability
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"
@@ -269,7 +274,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				<button
 					onClick={toggleVariants}
 					className="collapsibleButton">
-					Event Log Variants
+					Variants
 					<img
 						src={ArrowDropDownIcon}
 						alt="Toggle"

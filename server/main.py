@@ -225,12 +225,42 @@ def remove_matrix():
             os.remove(custom_path)
             del matrix_paths[matrix_name]
             session["matrix_paths"] = matrix_paths
+            
+        if "custom_logs" in session and matrix_name in session["custom_logs"]:
+            del session["custom_logs"][matrix_name]
 
         # Check if the last used matrix is the deleted matrix
         if session.get("lastUsedMatrix") == matrix_name:
             session["lastUsedMatrix"] = "Simple IOR Choice"
 
     return jsonify({"message": "Matrix removed successfully"})
+
+@app.route("/api/addLog", methods=["POST"])
+def add_log():
+    # add a log to an existing custom matrix
+    data = request.form or {}
+    matrix_name = data.get("matrix_name")
+    custom_log = request.files.get("file") if "file" in request.files else None
+    
+    if matrix_name not in session.get("custom_matrices", {}):
+        return jsonify({"error": "Matrix not found in session"}), 400
+    
+    if not custom_log:
+        return jsonify({"error": "Please provide a log file"}), 400
+    
+    # Save the uploaded log to a temporary file
+    tmp_dir = os.path.join(os.path.sep, "tmp")
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    custom_log_path = os.path.join(tmp_dir, f"{uuid.uuid4()}.xes")
+    custom_log.save(custom_log_path)
+    
+    # Store the log in the session
+    if "custom_logs" not in session:
+        session["custom_logs"] = {}
+    session["custom_logs"][matrix_name] = custom_log_path
+    
+    return jsonify({"message": "Log added successfully"})
 
 
 @app.route("/api/getAvailableMatrices", methods=["GET"])
@@ -239,10 +269,16 @@ def get_available_matrices():
     # Ensure custom matrices are initialized in session
     custom_matrices = session.get("custom_matrices", {})
 
-    # Combine predefined and custom matrix names
-    available_matrices = list(matrices.keys()) + list(custom_matrices.keys())
-
-    return jsonify(available_matrices)
+    # Get predefined and custom matrices and the logs of custom matrices
+    default_matrices = list(matrices.keys())
+    custom_matrices = list(custom_matrices.keys())
+    custom_log = list(session.get("custom_logs", {}).keys())
+    
+    return jsonify({
+        "default_matrices": default_matrices,
+        "custom_matrices": custom_matrices,
+        "custom_logs": custom_log
+    })
 
 
 @app.route("/api/generatePetriNet", methods=["POST"])
@@ -325,13 +361,55 @@ def get_metrics():
     # Time to initialize the prediction
     print("%s seconds for initialization in metrics" % (time.time() - start_time))
 
-    # Retrieve the log from either predefined logs or custom logs in the session
-    log = logs.get(session["lastUsedMatrix"], None)
 
-    metrics = prediction.getMetrics(log)
+    metrics = prediction.getMetrics()
 
     # Time to get the metrics
     print("%s seconds for metrics" % (time.time() - start_time))
+
+    return jsonify({"metrics": metrics})
+
+@app.route("/api/getPm4pyMetrics", methods=["POST"])
+def get_pm4py_metrics():
+    """
+    Retrieve metrics from the current prediction session.
+    This endpoint expects a graph input to calculate metrics.
+    """
+
+    # Get the starting time to check for prerformance
+    start_time = time.time()
+
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices.get(session["lastUsedMatrix"])
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+
+    # Time to initialize the prediction
+    print("%s seconds for initialization in metrics" % (time.time() - start_time))
+    
+    log = None
+
+    # Retrieve the log from either predefined logs or custom logs in the session
+    if "custom_logs" in session:
+        if session["lastUsedMatrix"] in session["custom_logs"]:
+            log = xes_importer.apply(session["custom_logs"][session["lastUsedMatrix"]])
+            
+    if not log:        
+        log = logs.get(session["lastUsedMatrix"], None)
+
+    metrics = prediction.getPm4pyMetrics(log)
+
+    # Time to get the metrics
+    print("%s seconds for pm4py metrics" % (time.time() - start_time))
 
     return jsonify({"metrics": metrics})
 

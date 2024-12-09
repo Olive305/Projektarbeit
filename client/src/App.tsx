@@ -23,6 +23,8 @@ const App: React.FC = () => {
 		removeMatrix,
 		getVariants,
 		autoPosition,
+		getPm4pyMetrics,
+		uploadLog,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -38,6 +40,8 @@ const App: React.FC = () => {
 	const [tabs, setTabs] = useState(multiController.current.graphs);
 
 	const [matrices, setMatrices] = useState<string[]>([]); // Matrices fetched from API
+	const [customMatrices, setCustomMatrices] = useState<string[]>([]); // Custom matrices uploaded by user
+	const [customLogs, setCustomLogs] = useState<string[]>([]); // Custom logs uploaded by user
 
 	const [fitness, setFitness] = useState(0);
 	const [generalization, setGeneralization] = useState(0);
@@ -47,7 +51,8 @@ const App: React.FC = () => {
 	const [logCoverage, setLogCoverage] = useState(0);
 	const [variants, setVariants] = useState<any[][]>([]);
 
-	const [gettingMetrics, setGettingMetrics] = useState(false);
+	const [gettingPm4pyMetrics, setGettingPm4pyMetrics] = useState(false);
+	const [recalculateMetrics, setRecalculateMetrics] = useState(false);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -77,12 +82,6 @@ const App: React.FC = () => {
 					setVariants(await getVariantsFromDict());
 
 					handleGetMetrics(
-						setFitness,
-						setGeneralization,
-						setSimplicity,
-						setPrecision,
-						setVariantCoverage,
-						setLogCoverage
 					);
 					return prediction;
 				}
@@ -102,13 +101,26 @@ const App: React.FC = () => {
 	}, [sessionStarted, activeGraphController]);
 
 	useEffect(() => {
-		const getMatrices = async () => {
-			if (sessionStarted) {
-				setMatrices(await getAvailableMatrices());
-			}
-		};
 		getMatrices();
 	}, [sessionStarted]);
+
+	useEffect(() => {
+		if (!gettingPm4pyMetrics && recalculateMetrics) {
+			setRecalculateMetrics(false);
+			handleGetPm4pyMetrics()
+		}
+	}, [gettingPm4pyMetrics, recalculateMetrics]);
+
+	const getMatrices = async () => {
+		if (sessionStarted) {
+			const matricesData = await getAvailableMatrices();
+			console.log("Matrices data:", matricesData);
+			setMatrices(matricesData.default_matrices);
+			setCustomMatrices(matricesData.custom_matrices);
+			setCustomLogs(matricesData.custom_logs);
+			console.log("Matrices:", matrices);
+		}
+	};
 
 	const getVariantsFromDict = async () => {
 		try {
@@ -145,6 +157,13 @@ const App: React.FC = () => {
 		setTabs([...multiController.current.graphs]); // Update tabs state
 	};
 
+	const handleUploadLog = async (matrixName: string, file: File) => {
+		const data = await uploadLog(matrixName, file);
+		getMatrices();
+		activeGraphController?.get_preview_nodes();
+		return data
+	}
+
 	const handleTabClick = async (index: number): Promise<void> => {
 		const controller = multiController.current.graphs[index]?.[0];
 		if (controller) {
@@ -158,37 +177,37 @@ const App: React.FC = () => {
 
 			// Update metrics for the new active tab
 			handleGetMetrics(
-				setFitness,
-				setGeneralization,
-				setSimplicity,
-				setPrecision,
-				setVariantCoverage,
-				setLogCoverage
 			);
 		} else {
 			console.error("Controller is undefined or null");
 		}
 	};
 
-	const handleGetMetrics = async (
-		setFitness: (val: number) => void,
-		setGeneralization: (val: number) => void,
-		setSimplicity: (val: number) => void,
-		setPrecision: (val: number) => void,
-		setVariantCoverage: (val: number) => void,
-		setLogCoverage: (val: number) => void
-	) => {
-		if (gettingMetrics) return;
-		setGettingMetrics(true);
-		await getMetrics(
+	const handleGetPm4pyMetrics = async () => {
+		if (gettingPm4pyMetrics){
+			setRecalculateMetrics(true);
+			return;
+		}
+		setGettingPm4pyMetrics(true);
+		console.log("Getting PM4Py metrics");
+		await getPm4pyMetrics(
 			setFitness,
-			setGeneralization,
 			setSimplicity,
 			setPrecision,
+			setGeneralization
+		);
+		console.log("Got PM4Py metrics");
+		setGettingPm4pyMetrics(false);
+	}
+
+	const handleGetMetrics = async (
+	) => {
+		await getMetrics(
 			setVariantCoverage,
 			setLogCoverage
 		);
-		setGettingMetrics(false);
+
+		handleGetPm4pyMetrics();
 	};
 
 	const handleConvertToPetriNet = async (_: number) => {
@@ -205,12 +224,6 @@ const App: React.FC = () => {
 
 		// Update metrics for the new active tab
 		handleGetMetrics(
-			setFitness,
-			setGeneralization,
-			setSimplicity,
-			setPrecision,
-			setVariantCoverage,
-			setLogCoverage
 		);
 	};
 
@@ -223,11 +236,7 @@ const App: React.FC = () => {
 
 	const handleDeleteMatrix = async (matrixName: string) => {
 		await removeMatrix(matrixName);
-		const getMatrices = async () => {
-			if (sessionStarted) {
-				setMatrices(await getAvailableMatrices());
-			}
-		};
+		
 		if (activeGraphController?.activeMatrix === matrixName) {
 			activeGraphController.activeMatrix = "Simple IOR Choice";
 		}
@@ -260,24 +269,12 @@ const App: React.FC = () => {
 
 		// Update metrics after closing a tab and setting a new active tab
 		handleGetMetrics(
-			setFitness,
-			setGeneralization,
-			setSimplicity,
-			setPrecision,
-			setVariantCoverage,
-			setLogCoverage
 		);
 	};
 
 	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
 		await changeMatrix(matrixName, file);
 		if (activeGraphController) activeGraphController.activeMatrix = matrixName;
-		const getMatrices = async () => {
-			if (sessionStarted) {
-				const updatedMatrices = await getAvailableMatrices();
-				setMatrices(updatedMatrices);
-			}
-		};
 		await getMatrices();
 
 		activeGraphController?.get_preview_nodes();
@@ -300,10 +297,15 @@ const App: React.FC = () => {
 					setRainbowPredictions(!rainbowPredictions)
 				}
 				handleToPetriNet={() => handleConvertToPetriNet(activeTabIndex)}
-				matrices={matrices}
+				defaultMatrices={matrices}
+				customMatrices={customMatrices}
+				customLogs={customLogs}
 				deleteMatrix={handleDeleteMatrix}
 				toggleShowGrid={() => setShowGrid(!showGrid)}
 				handleAutoPosition={handleAutoPosition}
+				uploadLog={handleUploadLog}
+				showGrid={showGrid}
+				rainbowPredictions={rainbowPredictions}
 			/>
 			<section className="workspace">
 				<div className="left-bar-div">

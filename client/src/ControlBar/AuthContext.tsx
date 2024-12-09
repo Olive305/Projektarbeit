@@ -12,13 +12,9 @@ interface AuthContextProps {
 	sessionId: string | null;
 	startSession: (matrixName: string, file?: File) => Promise<void>;
 	changeMatrix: (matrixName: string, file?: File) => Promise<any>;
-	getAvailableMatrices: () => Promise<string[]>;
+	getAvailableMatrices: () => Promise<any>;
 	generatePetriNet: () => Promise<any>;
 	getMetrics: (
-		setFitness: (val: number) => void,
-		setGeneralization: (val: number) => void,
-		setSimplicity: (val: number) => void,
-		setPrecision: (val: number) => void,
 		setVariantCoverage: (val: number) => void,
 		setEventLogCoverage: (val: number) => void
 	) => Promise<void>;
@@ -27,6 +23,13 @@ interface AuthContextProps {
 	removeMatrix: (matrixName: string) => Promise<any>;
 	getVariants: () => Promise<any>;
 	autoPosition: () => Promise<any>;
+	uploadLog: (matrixName: string, file: File) => void;
+	getPm4pyMetrics: (
+		setFitness: (val: number) => void,
+		setSimplicity: (val: number) => void,
+		setPrecision: (val: number) => void,
+		setGeneralization: (val: number) => void
+	) => Promise<void>;
 }
 
 // Add children prop in AuthProviderProps
@@ -59,6 +62,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		return response;
 	};
 
+	const uploadLog = async (matrixName: string, file: File) => {
+		await sessionResponse.addLog(matrixName, file);
+	}
+
 	const getAvailableMatrices = async () => {
 		return await sessionResponse.getAvailableMatrices();
 	};
@@ -72,22 +79,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	};
 
 	const getMetrics = async (
-		setFitness: (val: number) => void,
-		setGeneralization: (val: number) => void,
-		setSimplicity: (val: number) => void,
-		setPrecision: (val: number) => void,
 		setVariantCoverage: (val: number) => void,
 		setEventLogCoverage: (val: number) => void
 	) => {
 		await sessionResponse.getMetrics(
-			setFitness,
-			setGeneralization,
-			setSimplicity,
-			setPrecision,
 			setVariantCoverage,
 			setEventLogCoverage
 		);
 	};
+
+	const getPm4pyMetrics = async (
+		setFitness: (val: number) => void,
+		setSimplicity: (val: number) => void,
+		setPrecision: (val: number) => void,
+		setGeneralization: (val: number) => void
+	) => {
+		await sessionResponse.getPm4pyMetrics(
+			setFitness,
+			setSimplicity,
+			setPrecision,
+			setGeneralization
+		);
+	}
 
 	const predictOutcome = async (graphInput: any, matrix: string) => {
 		return await sessionResponse.predictOutcome(graphInput, matrix);
@@ -119,6 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				removeMatrix,
 				getVariants,
 				autoPosition,
+				getPm4pyMetrics,
+				uploadLog,
 			}}>
 			{children}
 		</AuthContext.Provider>

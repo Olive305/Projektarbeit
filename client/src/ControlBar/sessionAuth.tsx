@@ -16,6 +16,7 @@ type MetricsResponse = {
 export class SessionAuth {
 	public sessionId: string | null = null;
 	private apiUrl: string = "http://localhost:8081/api";
+	private isCalculatingPm4pyMetrics: boolean = false;
 	setSessionStarted: any;
 
 	// Start a new session with either a predefined matrix or a custom file upload
@@ -35,14 +36,12 @@ export class SessionAuth {
 
 		this.sessionId = response.data.session_id;
 		this.setSessionStarted(true);
-		console.log("session has started with id: ", this.sessionId);
 	}
 
 	waitForSessionStart = async (interval = 100) => {
 		while (!this.sessionId) {
 			await new Promise((resolve) => setTimeout(resolve, interval));
 		}
-		console.log("session started with id", this.sessionId);
 	};
 
 	// Change the matrix mid-session by selecting a new predefined matrix or uploading a custom file
@@ -52,12 +51,9 @@ export class SessionAuth {
 	): Promise<MatrixChangeResponse> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
-		console.log("changing matrix", matrixName);
-
 		const formData = new FormData();
 		formData.append("matrix_name", matrixName);
 		if (file) {
-			console.log("file exists");
 			formData.append("file", file);
 		}
 
@@ -70,8 +66,25 @@ export class SessionAuth {
 		return response.data;
 	}
 
+	// Add a log to an existing custom matrix
+	async addLog(matrixName: string, file: File): Promise<{ message: string }> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const formData = new FormData();
+		formData.append("matrix_name", matrixName);
+		formData.append("file", file);
+
+		const response: AxiosResponse<{ message: string }> = await axios.post(
+			`${this.apiUrl}/addLog`,
+			formData,
+			{ headers: { "Content-Type": "multipart/form-data" }}
+		);
+
+		return response.data;
+	}
+
 	// Retrieve available predefined matrices
-	async getAvailableMatrices(): Promise<string[]> {
+	async getAvailableMatrices(): Promise<any> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
 		const response: AxiosResponse<string[]> = await axios.get(
@@ -79,6 +92,7 @@ export class SessionAuth {
 		);
 
 		const data = JSON.parse(JSON.stringify(response.data)); // Ensures response data is in JSON format
+		console.log(data)
 		return data;
 	}
 
@@ -101,10 +115,6 @@ export class SessionAuth {
 
 	// Get metrics for a specific graph input
 	async getMetrics(
-		setFitness: any,
-		setGeneralization: any,
-		setSimplicity: any,
-		setPrecision: any,
 		setVariantCoverage: any,
 		setEventLogCoverage: any
 	) {
@@ -115,19 +125,40 @@ export class SessionAuth {
 		);
 
 		const data = JSON.parse(response.data.metrics);
-		console.log("setting metrics", data);
 
-		setFitness(data.fitness);
-		setGeneralization(data.generalization);
-		setPrecision(data.precision);
-		setSimplicity(data.simplicity);
 		setVariantCoverage(data.variant_coverage);
 		setEventLogCoverage(data.event_log_coverage);
 	}
 
+	// Get metrics for a specific graph input
+	async getPm4pyMetrics(
+		setFitness: any,
+		setSimplicity: any,
+		setPrecision: any,
+		setGeneralization: any
+	) {
+		// do not calculate the metrics if it is already calculating
+		if (this.isCalculatingPm4pyMetrics) return false;
+		this.isCalculatingPm4pyMetrics = true
+
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const response: AxiosResponse<MetricsResponse> = await axios.post(
+			`${this.apiUrl}/getPm4pyMetrics`
+		);
+
+		const data = JSON.parse(response.data.metrics);
+
+		setFitness(data.fitness);
+		setGeneralization(data.generalization);
+		setSimplicity(data.simplicity);
+		setPrecision(data.precision);
+		this.isCalculatingPm4pyMetrics = false;
+		return true;
+	}
+
 	// Generate predictions based on the graph input
 	async predictOutcome(graphInput: any, matrix: string) {
-		console.log(this.sessionId);
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
 		try {
@@ -186,7 +217,6 @@ export class SessionAuth {
 			const response: AxiosResponse<{ variants: any }> = await axios.post(
 				`${this.apiUrl}/getVariants`
 			);
-			console.log("variants", response, response.data);
 			return response.data;
 		} catch (error) {
 			console.error("Error getting variants:", error);

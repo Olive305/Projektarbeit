@@ -10,6 +10,7 @@ class GraphController {
 	public deletedKeys: string[]; // List to store keys of deleted nodes
 	public probabilityMin: number;
 	public showPreview: boolean;
+	public supportMin: number;
 	public sub_trace_coverage: Map<string, number>;
 
 	public calls: number;
@@ -47,6 +48,7 @@ class GraphController {
 		this.auto = true;
 		this.sequences = [[]];
 		this.sub_trace_coverage = new Map();
+		this.supportMin = 1;
 
 		if (!notAddStartingNode)
 			this.addMyRect(
@@ -499,6 +501,7 @@ class GraphController {
 			sub_trace_coverage: this.sub_trace_coverage,
 			deletedKeys: this.deletedKeys,
 			probability: this.probabilityMin,
+			support: this.supportMin,
 			auto: this.auto,
 			matrix: this.activeMatrix,
 		};
@@ -564,6 +567,7 @@ class GraphController {
 			this.deletedKeys = graphData.deletedKeys;
 			this.activeMatrix = graphData.matrix;
 			this.probabilityMin = graphData.probability;
+			this.supportMin = graphData.support;
 			this.auto = graphData.auto;
 			this.sub_trace_coverage = graphData.sub_trace_coverage;
 		} catch (error) {

@@ -66,6 +66,17 @@ export class SessionAuth {
 		return response.data;
 	}
 
+	// Get the maximum support from the current matrix
+	async getMaxSupport(): Promise<number> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const response: AxiosResponse<{ max_support: number }> = await axios.post(
+			`${this.apiUrl}/getMaxSupport`
+		);
+
+		return response.data.max_support;
+	}
+
 	// Add a log to an existing custom matrix
 	async addLog(matrixName: string, file: File): Promise<{ message: string }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");

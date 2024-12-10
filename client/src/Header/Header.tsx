@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./header.css";
 import CloseIcon from "../assets/close_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import UploadIcon from "../assets/upload_file_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 interface HeaderProps {
@@ -148,18 +149,6 @@ const Header: React.FC<HeaderProps> = ({
 												onClick={async () => setActiveMatrix(matrix)}>
 												{matrix}
 											</a>
-											<button
-												className="deleteMatrixButton"
-												style={{ display: "inline-block", marginLeft: "10px" }}
-												onClick={(event) => {
-													event.stopPropagation();
-													deleteMatrix(matrix);
-												}}>
-												<img
-													src={CloseIcon}
-													alt="Close"
-												/>
-											</button>
 										</div>
 									</MenuItem>
 								))
@@ -211,7 +200,10 @@ const Header: React.FC<HeaderProps> = ({
 													};
 													input.click();
 												}}>
-												Upload Log
+												<img
+													src={UploadIcon}
+													alt="Upload"
+												/>
 											</button>
 										)}
 									</div>

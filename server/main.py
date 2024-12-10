@@ -466,6 +466,28 @@ def predict_outcome():
 
     return jsonify({"predictions": predictions})
 
+@app.route("/api/getMaxSupport", methods=["POST"])
+def get_max_support():
+    """
+    Retrieve the max support from the current matrix.
+    """
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Get the last used matrix
+    matrix_name = session["lastUsedMatrix"]
+    
+    # Retrieve the matrix from either predefined matrices or custom matrices in the session
+    matrix = matrices.get(matrix_name) or MyCsv.from_dict(
+        session.get("custom_matrices", {}).get(matrix_name)
+    )
+    
+    max_support = matrix.supportMax
+
+    return jsonify({"max_support": max_support})
+
 
 @app.teardown_appcontext
 def cleanup(exception=None):

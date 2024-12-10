@@ -12,6 +12,7 @@ class MyCsv:
 
         self.outgoing_edges_cache: dict = {}
         self.support_cache: dict = {}
+        self.supportMax = 1
 
     def to_dict(self):
         return {
@@ -98,6 +99,9 @@ class MyCsv:
             print(
                 f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
             )
+            
+            # Cache the maximum support value for normalization
+            self.supportMax = max(self.support_cache.values())
 
     def predict_using_edges(self, edges: dict, probMin: float = 0):
         """

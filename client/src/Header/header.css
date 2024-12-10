@@ -4,15 +4,27 @@
 	text-decoration: none;
 	display: block; /* Ensure links behave like block-level elements */
 	width: 100%; /* Ensure the links take the full width of their container */
+	max-width: 150px; /* Set a maximum width for the links */
+	overflow: hidden; /* Hide overflowed text */
+	white-space: nowrap; /* Prevent text wrapping */
+	text-overflow: ellipsis; /* Add ellipsis for overflowed text */
 }
 
+/* Show full content on hover */
+.dropdown-menu a:hover {
+	overflow: visible; /* Show overflowed text */
+	white-space: normal; /* Allow text wrapping */
+	text-overflow: clip; /* Remove ellipsis */
+	transform: scale(1.05); /* Optional: Add a scale effect on hover */
+}
+
+/* Other existing styles */
 .dropdown-button {
 	background-color: none;
 	color: #333;
 	font-size: 16px;
 	cursor: pointer;
 	display: inline-flex;
-
 	justify-content: center;
 	align-items: center;
 	padding: 0.25rem 0.5rem; /* Adjust padding to size the button based on text */
@@ -93,7 +105,7 @@
 	cursor: pointer;
 	padding: 0.5rem 1rem; /* Padding for better spacing */
 	display: block; /* Display items as block-level elements */
-	width: 100%; /* Ensure items take up full width */
+	max-width: 50px;
 	box-sizing: border-box; /* Prevent padding from overflowing */
 	font-size: 18px;
 	font-weight: bold;
@@ -101,6 +113,18 @@
 }
 
 .deleteMatrixButton {
+	border-radius: 4px;
+	margin-left: 6px; /* Adds more space from text */
+	margin-bottom: 0px;
+	padding: 1px;
+	cursor: pointer;
+	transition: background-color 0.3s ease, border-color 0.3s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.uploadLogButton {
 	border-radius: 4px;
 	margin-left: 6px; /* Adds more space from text */
 	margin-bottom: 0px;
@@ -137,6 +161,11 @@ header {
 	transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.my-2 {
+	margin-top: 2rem;
+	margin-bottom: 2rem;
+}
+
 /* Keyframes for the disappearing animation */
 @keyframes fadeOut {
 	0% {
@@ -147,4 +176,11 @@ header {
 		opacity: 0;
 		transform: scale(0.95);
 	}
+}
+
+/* Flex container for matrix items */
+.matrix-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 }

@@ -16,6 +16,7 @@ interface ControlsProps {
 	variantCoverage: any;
 	logCoverage: any;
 	variants: any;
+	supportMax: number;
 }
 
 const ControlBar: React.FC<ControlsProps> = ({
@@ -29,10 +30,13 @@ const ControlBar: React.FC<ControlsProps> = ({
 	variantCoverage,
 	logCoverage,
 	variants,
+	supportMax,
 }) => {
 	const [sliderValue, setSliderValue] = useState(
 		controller.probabilityMin * 100
 	);
+
+	const [supportValue, setSupportValue] = useState(controller.supportMin);
 	const [isChecked, setIsChecked] = useState(controller.auto);
 	const [showMetrics, setShowMetrics] = useState(false);
 	const [showProbability, setShowProbability] = useState(false);
@@ -108,6 +112,16 @@ const ControlBar: React.FC<ControlsProps> = ({
 		controller.get_preview_nodes();
 	};
 
+	const handleSupportChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const value = Number(event.target.value);
+		setSupportValue(value);
+	}
+
+	const handleSupportMouseUp = () => {
+		controller.supportMin = supportValue / 100;
+		controller.get_preview_nodes();
+	}
+
 	const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setActiveName(event.target.value);
 	};
@@ -157,45 +171,29 @@ const ControlBar: React.FC<ControlsProps> = ({
 				</button>
 				{showMetrics && (
 					<div className="performanceMetrics">
-						{fitness !== -1 ? (
+						{fitness === -1 || simplicity === -1 || precision === -1 || generalization === -1 ? (
 							<div className="metric">
-								<label>Fitness: {Math.round(fitness * 100)}%</label>
-								<progress value={fitness} max="1" className="progressBar"></progress>
+								<label className="noLogLabel">No log available</label>
 							</div>
 						) : (
-							<div className="metric">
-								<label className="noLogLabel">Fitness: No log available</label>
-							</div>
-						)}
-						{simplicity !== -1 ? (
-							<div className="metric">
-								<label>Simplicity: {Math.round(simplicity * 100)}%</label>
-								<progress value={simplicity} max="1" className="progressBar"></progress>
-							</div>
-						) : (
-							<div className="metric">
-								<label className="noLogLabel">Simplicity: No log available</label>
-							</div>
-						)}
-						{precision !== -1 ? (
-							<div className="metric">
-								<label>Precision: {Math.round(precision * 100)}%</label>
-								<progress value={precision} max="1" className="progressBar"></progress>
-							</div>
-						) : (
-							<div className="metric">
-								<label className="noLogLabel">Precision: No log available</label>
-							</div>
-						)}
-						{generalization !== -1 ? (
-							<div className="metric">
-								<label>Generalization: {Math.round(generalization * 100)}%</label>
-								<progress value={generalization} max="1" className="progressBar"></progress>
-							</div>
-						) : (
-							<div className="metric">
-								<label className="noLogLabel">Generalization: No log available</label>
-							</div>
+							<>
+								<div className="metric">
+									<label>Fitness: {Math.round(fitness * 100)}%</label>
+									<progress value={fitness} max="1" className="progressBar"></progress>
+								</div>
+								<div className="metric">
+									<label>Simplicity: {Math.round(simplicity * 100)}%</label>
+									<progress value={simplicity} max="1" className="progressBar"></progress>
+								</div>
+								<div className="metric">
+									<label>Precision: {Math.round(precision * 100)}%</label>
+									<progress value={precision} max="1" className="progressBar"></progress>
+								</div>
+								<div className="metric">
+									<label>Generalization: {Math.round(generalization * 100)}%</label>
+									<progress value={generalization} max="1" className="progressBar"></progress>
+								</div>
+							</>
 						)}
 						<div className="metric">
 							<label>
@@ -264,6 +262,24 @@ const ControlBar: React.FC<ControlsProps> = ({
 								/>
 							</div>
 						</div>
+						<div className="sliderContainer">
+							<div style={{ width: "10px" }}></div>
+							<div className="slidecontainer">
+								<p>Support: {supportMax}</p>
+								<input
+									type="range"
+									min="1"
+									max={supportMax}
+									value={supportValue}
+									className="slider"
+									id="myRange"
+									style={{ background: "lightblue" }}
+									onChange={handleSupportChange}
+									onMouseUp={handleSupportMouseUp}
+									disabled={isChecked}
+								/>
+							</div>
+						</div>
 					</div>
 				)}
 			</div>
@@ -300,7 +316,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 									</button>
 									<div
 										ref={sortMenuRef}
-										onBlur={() => setShowSortMenu(false)}
+										onBlur={() => setShowSortMenu(false)}	
 										tabIndex={0} // Ensure the element can receive focus
 									>
 										{showSortMenu && (

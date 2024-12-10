@@ -30,6 +30,7 @@ interface AuthContextProps {
 		setPrecision: (val: number) => void,
 		setGeneralization: (val: number) => void
 	) => Promise<void>;
+	getSupportMax: () => Promise<any>;
 }
 
 // Add children prop in AuthProviderProps
@@ -50,6 +51,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		await sessionResponse.startSession(matrixName, file);
 		setSessionId(sessionResponse.sessionId);
 	};
+
+	const getSupportMax = async () => {
+		return await sessionResponse.getMaxSupport();
+	}
 
 	const changeMatrix = async (matrixName: string, file?: File) => {
 		const response = await sessionResponse.changeMatrix(matrixName, file);
@@ -134,6 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				autoPosition,
 				getPm4pyMetrics,
 				uploadLog,
+				getSupportMax
 			}}>
 			{children}
 		</AuthContext.Provider>

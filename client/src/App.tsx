@@ -25,6 +25,7 @@ const App: React.FC = () => {
 		autoPosition,
 		getPm4pyMetrics,
 		uploadLog,
+		getSupportMax,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -32,6 +33,7 @@ const App: React.FC = () => {
 	const [activeTabIndex, setActiveTabIndex] = useState(0);
 	const [rainbowPredictions, setRainbowPredictions] = useState(true);
 	const [showGrid, setShowGrid] = useState(true);
+	const [supportMax, setSupportMax] = useState(1);
 
 	const [activeName, setActiveName] = useState("");
 
@@ -65,10 +67,12 @@ const App: React.FC = () => {
 
 	useEffect(() => {
 		activeGraphController?.notifyListeners();
+		
 	}, [activeGraphController]);
 
 	useEffect(() => {
 		activeGraphController?.notifyListeners();
+		updateMaxSupport();
 	}, [activeTabIndex, activeName]);
 
 	// Set initial graph controller on initial render
@@ -91,6 +95,7 @@ const App: React.FC = () => {
 		setTabs([...multiController.current.graphs]);
 
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
+		updateMaxSupport();
 	}, [predictOutcome]);
 
 	// Update preview nodes whenever session starts
@@ -98,10 +103,12 @@ const App: React.FC = () => {
 		if (sessionStarted && activeGraphController) {
 			activeGraphController.get_preview_nodes();
 		}
+		updateMaxSupport();
 	}, [sessionStarted, activeGraphController]);
 
 	useEffect(() => {
 		getMatrices();
+		updateMaxSupport();
 	}, [sessionStarted]);
 
 	useEffect(() => {
@@ -110,6 +117,11 @@ const App: React.FC = () => {
 			handleGetPm4pyMetrics()
 		}
 	}, [gettingPm4pyMetrics, recalculateMetrics]);
+
+	const updateMaxSupport = async () => {
+		const maxSupport = await getSupportMax();
+		setSupportMax(maxSupport);
+	}
 
 	const getMatrices = async () => {
 		if (sessionStarted) {
@@ -322,6 +334,7 @@ const App: React.FC = () => {
 							variantCoverage={variantCoverage}
 							logCoverage={logCoverage}
 							variants={variants}
+							supportMax={supportMax}
 						/>
 					)}
 				</div>

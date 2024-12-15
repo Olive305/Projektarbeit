@@ -1,6 +1,4 @@
-import time
 
-import pm4py
 from matrices.openMatrix import MyCsv
 from prediction import Prediction
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
@@ -267,17 +265,24 @@ def add_log():
 def get_available_matrices():
     """Get the list of available matrices, including predefined and session custom matrices."""
     # Ensure custom matrices are initialized in session
-    custom_matrices = session.get("custom_matrices", {})
+    custom_matrices_dict = session.get("custom_matrices", {})
 
     # Get predefined and custom matrices and the logs of custom matrices
     default_matrices = list(matrices.keys())
-    custom_matrices = list(custom_matrices.keys())
+    custom_matrices = list(custom_matrices_dict.keys())
     custom_log = list(session.get("custom_logs", {}).keys())
+    matrix_max_support_dict = {}
+    for matrix in default_matrices:
+        matrix_max_support_dict[matrix] = matrices[matrix].supportMax
+    
+    for matrix in custom_matrices:
+        matrix_max_support_dict[matrix] = MyCsv.from_dict(custom_matrices_dict[matrix]).supportMax
     
     return jsonify({
         "default_matrices": default_matrices,
         "custom_matrices": custom_matrices,
-        "custom_logs": custom_log
+        "custom_logs": custom_log,
+        "matrix_max_support": matrix_max_support_dict
     })
 
 
@@ -341,9 +346,6 @@ def get_metrics():
     This endpoint expects a graph input to calculate metrics.
     """
 
-    # Get the starting time to check for prerformance
-    start_time = time.time()
-
     if "prediction" not in session:
         return jsonify(
             {"error": "No active session found. Please start a session first."}
@@ -358,14 +360,8 @@ def get_metrics():
         ),
     )
 
-    # Time to initialize the prediction
-    print("%s seconds for initialization in metrics" % (time.time() - start_time))
-
 
     metrics = prediction.getMetrics()
-
-    # Time to get the metrics
-    print("%s seconds for metrics" % (time.time() - start_time))
 
     return jsonify({"metrics": metrics})
 
@@ -376,9 +372,6 @@ def get_pm4py_metrics():
     This endpoint expects a graph input to calculate metrics.
     """
 
-    # Get the starting time to check for prerformance
-    start_time = time.time()
-
     if "prediction" not in session:
         return jsonify(
             {"error": "No active session found. Please start a session first."}
@@ -392,9 +385,6 @@ def get_pm4py_metrics():
             session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
         ),
     )
-
-    # Time to initialize the prediction
-    print("%s seconds for initialization in metrics" % (time.time() - start_time))
     
     log = None
 
@@ -408,9 +398,6 @@ def get_pm4py_metrics():
 
     metrics = prediction.getPm4pyMetrics(log)
 
-    # Time to get the metrics
-    print("%s seconds for pm4py metrics" % (time.time() - start_time))
-
     return jsonify({"metrics": metrics})
 
 
@@ -420,17 +407,12 @@ def predict_outcome():
     Generate predictions based on the graph input provided.
     This will reset the Prediction instance in the session with the latest input.
     """
-    # Get the starting time to check for prerformance
-    start_time = time.time()
 
     data = request.json
     graph_input = data.get("graph_input")  # type: ignore
     matrixName = data.get("matrix")  # type: ignore
 
     session["lastUsedMatrix"] = matrixName
-
-    # Print time to receive the data
-    print("%s seconds for data" % (time.time() - start_time))
 
     if "prediction" not in session:
         return jsonify(
@@ -442,9 +424,6 @@ def predict_outcome():
         session.get("custom_matrices", {}).get(matrixName)
     )
 
-    # Time to retrieve the matrix
-    print("%s seconds for matrix" % (time.time() - start_time))
-
     if not matrix:
         return jsonify({"error": "Given matrix not available in this session."}), 400
 
@@ -454,39 +433,11 @@ def predict_outcome():
     prediction = Prediction.from_json(prediction_data, matrix)
     predictions = prediction.getPredictions(graph_input)
 
-    # Time to get the predictions
-    print("%s seconds for predictions" % (time.time() - start_time))
-
     # Update session with the modified Prediction instance
     session["prediction"] = prediction.to_json()
     session.modified = True  # Ensure session updates are saved
 
-    # Time to update the session
-    print("%s seconds for session" % (time.time() - start_time))
-
     return jsonify({"predictions": predictions})
-
-@app.route("/api/getMaxSupport", methods=["POST"])
-def get_max_support():
-    """
-    Retrieve the max support from the current matrix.
-    """
-    if "prediction" not in session:
-        return jsonify(
-            {"error": "No active session found. Please start a session first."}
-        ), 400
-
-    # Get the last used matrix
-    matrix_name = session["lastUsedMatrix"]
-    
-    # Retrieve the matrix from either predefined matrices or custom matrices in the session
-    matrix = matrices.get(matrix_name) or MyCsv.from_dict(
-        session.get("custom_matrices", {}).get(matrix_name)
-    )
-    
-    max_support = matrix.supportMax
-
-    return jsonify({"max_support": max_support})
 
 
 @app.teardown_appcontext

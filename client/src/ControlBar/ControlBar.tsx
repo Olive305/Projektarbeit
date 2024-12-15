@@ -3,6 +3,9 @@ import GraphController from "./GraphController";
 import "./ControlBar.css";
 import MultiGraphs from "./MultiGraphs";
 import ArrowDropDownIcon from "../assets/arrow_drop_down_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import BarChartIcon from "../assets/bar_chart_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import TuneIcon from "../assets/tune_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import ListIcon from "../assets/list_alt_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 
 interface ControlsProps {
 	controller: GraphController;
@@ -10,9 +13,6 @@ interface ControlsProps {
 	activeName: string;
 	setActiveName: (name: string) => void;
 	fitness: any;
-	simplicity: any;
-	precision: any;
-	generalization: any;
 	variantCoverage: any;
 	logCoverage: any;
 	variants: any;
@@ -24,9 +24,6 @@ const ControlBar: React.FC<ControlsProps> = ({
 	activeName,
 	setActiveName,
 	fitness,
-	precision,
-	generalization,
-	simplicity,
 	variantCoverage,
 	logCoverage,
 	variants,
@@ -118,7 +115,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 	}
 
 	const handleSupportMouseUp = () => {
-		controller.supportMin = supportValue / 100;
+		controller.supportMin = supportValue;
 		controller.get_preview_nodes();
 	}
 
@@ -143,7 +140,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 			<div className="processNameContainer">
 				<label
 					htmlFor="processName"
-					className="label">
+					className="sidebar-label">
 					Process:
 				</label>
 				<input
@@ -152,16 +149,20 @@ const ControlBar: React.FC<ControlsProps> = ({
 					value={activeName}
 					onChange={handleNameChange}
 					placeholder="Enter process name"
-					className="input"
+					className="sidebar-input"
 				/>
 			</div>
 
-			<hr className="my-2" />
+			<hr className="sidebar-my-2" />
 
-			<div className="collapsibleSection">
+			<div className="sidebar-collapsibleSection">
 				<button
 					onClick={toggleMetrics}
-					className="collapsibleButton">
+					className="sidebar-collapsibleButton">
+					<img
+						src={BarChartIcon}
+						alt="Metrics"
+					/>
 					Metrics
 					<img
 						src={ArrowDropDownIcon}
@@ -171,30 +172,11 @@ const ControlBar: React.FC<ControlsProps> = ({
 				</button>
 				{showMetrics && (
 					<div className="performanceMetrics">
-						{fitness === -1 || simplicity === -1 || precision === -1 || generalization === -1 ? (
-							<div className="metric">
-								<label className="noLogLabel">No log available</label>
-							</div>
-						) : (
-							<>
-								<div className="metric">
-									<label>Fitness: {Math.round(fitness * 100)}%</label>
-									<progress value={fitness} max="1" className="progressBar"></progress>
-								</div>
-								<div className="metric">
-									<label>Simplicity: {Math.round(simplicity * 100)}%</label>
-									<progress value={simplicity} max="1" className="progressBar"></progress>
-								</div>
-								<div className="metric">
-									<label>Precision: {Math.round(precision * 100)}%</label>
-									<progress value={precision} max="1" className="progressBar"></progress>
-								</div>
-								<div className="metric">
-									<label>Generalization: {Math.round(generalization * 100)}%</label>
-									<progress value={generalization} max="1" className="progressBar"></progress>
-								</div>
-							</>
-						)}
+						
+						<div className="metric">
+							<label>Fitness: {fitness && fitness !== -1 ? Math.round(fitness * 100) + "%" : "N/A"}</label>
+							<progress value={fitness && fitness >= 0 && fitness <= 1 ? fitness : 0} max="1" className="sidebar-progressBar"></progress>
+						</div>
 						<div className="metric">
 							<label>
 								Variant Coverage:{" "}
@@ -203,7 +185,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 							<progress
 								value={variantCoverage}
 								max="1"
-								className="progressBar"></progress>
+								className="sidebar-progressBar"></progress>
 						</div>
 						<div className="metric">
 							<label>
@@ -212,18 +194,22 @@ const ControlBar: React.FC<ControlsProps> = ({
 							<progress
 								value={logCoverage}
 								max="1"
-								className="progressBar"></progress>
+								className="sidebar-progressBar"></progress>
 						</div>
 					</div>
 				)}
 			</div>
 
-			<hr className="my-2" />
+			<hr className="sidebar-my-2" />
 
-			<div className="collapsibleSection">
+			<div className="sidebar-collapsibleSection">
 				<button
 					onClick={toggleProbability}
-					className="collapsibleButton">
+					className="sidebar-collapsibleButton">
+					<img
+						src={TuneIcon}
+						alt="Probability"
+					/>
 					Probability
 					<img
 						src={ArrowDropDownIcon}
@@ -235,45 +221,78 @@ const ControlBar: React.FC<ControlsProps> = ({
 				</button>
 				{showProbability && (
 					<div className="probabilityContainer">
-						<div className="checkBoxContainer">
+						<div className="sidebar-checkBoxContainer">
 							<input
-								className="checkbox"
+								className="sidebar-checkbox"
 								type="checkbox"
 								checked={isChecked}
 								onChange={handleCheckboxChange}
 							/>
 							<label>Auto Probability</label>
 						</div>
-						<div className="sliderContainer">
+						<div className="sidebar-sliderContainer">
 							<div style={{ width: "10px" }}></div>
-							<div className="slidecontainer">
+							<div className="sidebar-slidecontainer">
 								<p>Probability: {sliderValue}%</p>
 								<input
 									type="range"
 									min="0"
 									max="100"
 									value={sliderValue}
-									className="slider"
+									className="sidebar-slider"
 									id="myRange"
-									style={{ background: "lightblue" }}
 									onChange={handleSliderChange}
 									onMouseUp={handleSliderMouseUp}
 									disabled={isChecked}
 								/>
 							</div>
 						</div>
-						<div className="sliderContainer">
+						<div className="sidebar-sliderContainer">
 							<div style={{ width: "10px" }}></div>
-							<div className="slidecontainer">
-								<p>Support: {supportMax}</p>
+							<div className="sidebar-slidecontainer">
+								<div style={{ display: "flex", justifyContent: "space-between" }}>
+									<p>Support:</p>
+									<input
+										value={supportValue === 0 ? "" : supportValue}
+										className="sidebar-support-input"
+										onChange={(event) => {
+											const value = event.target.value;
+											if (/^\d*$/.test(value)) {
+												setSupportValue(Number(value));
+											}
+										}}
+										onBlur={(event) => {
+											let value = Number(event.target.value);
+											if (isNaN(value) || value < 0) {
+												value = 0;
+											} else {
+												value = Math.min(value, supportMax);
+											}
+											setSupportValue(value);
+											handleSupportMouseUp();
+										}}
+										onKeyDown={(event) => {
+											if (event.key === 'Enter') {
+												let value = Number(event.currentTarget.value);
+												if (isNaN(value) || value < 0) {
+													value = 0;
+												} else {
+													value = Math.min(value, supportMax);
+												}
+												setSupportValue(value);
+												handleSupportMouseUp();
+											}
+										}}
+										disabled={isChecked}
+									/>
+								</div>
 								<input
 									type="range"
 									min="1"
 									max={supportMax}
 									value={supportValue}
-									className="slider"
+									className="sidebar-slider"
 									id="myRange"
-									style={{ background: "lightblue" }}
 									onChange={handleSupportChange}
 									onMouseUp={handleSupportMouseUp}
 									disabled={isChecked}
@@ -284,12 +303,16 @@ const ControlBar: React.FC<ControlsProps> = ({
 				)}
 			</div>
 
-			<hr className="my-2" />
+			<hr className="sidebar-my-2" />
 
-			<div className="collapsibleSection">
+			<div className="sidebar-collapsibleSection">
 				<button
 					onClick={toggleVariants}
-					className="collapsibleButton">
+					className="sidebar-collapsibleButton">
+					<img
+						src={ListIcon}
+						alt="Variants"
+					></img>
 					Variants
 					<img
 						src={ArrowDropDownIcon}
@@ -300,17 +323,17 @@ const ControlBar: React.FC<ControlsProps> = ({
 				{showVariants && (
 					<div className="variantsContainer">
 						<div>
-							<div className="searchSortContainer">
+							<div className="sidebar-searchSortContainer">
 								<input
 									type="text"
 									placeholder="Search variants"
 									value={searchTerm}
 									onChange={handleSearchChange}
-									className="input"
+									className="sidebar-input"
 								/>
-								<div className="sortButtonContainer">
+								<div className="sidebar-sortButtonContainer">
 									<button
-										className="sortButton"
+										className="sidebar-sortButton"
 										onClick={() => setShowSortMenu(!showSortMenu)}>
 										Sort
 									</button>
@@ -320,7 +343,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 										tabIndex={0} // Ensure the element can receive focus
 									>
 										{showSortMenu && (
-											<div className="sortMenu">
+											<div className="sidebar-sortMenu">
 												<button onClick={() => setSortOrder("default")}>
 													Default
 												</button>

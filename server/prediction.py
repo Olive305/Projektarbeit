@@ -54,6 +54,7 @@ class Prediction:
         self.matrix: MyCsv = matrix
 
         self.probMin: float = 0.3
+        self.supportMin: int = 1
         self.nodeProbDict: dict = {}
         self.auto: bool = False
         self.AUTO_PROB_MIN: float = 0.0
@@ -90,6 +91,7 @@ class Prediction:
             "simplicity": self.simplicity,
             "precision": self.precision,
             "generalization": self.generalization,
+            "supportMin": self.supportMin,
         }
         
 
@@ -128,6 +130,7 @@ class Prediction:
         prediction.simplicity = data["simplicity"]
         prediction.precision = data["precision"]
         prediction.generalization = data["generalization"]
+        prediction.supportMin = data["supportMin"]
 
         return prediction
 
@@ -276,30 +279,15 @@ class Prediction:
                 raise ValueError(f"Error converting DFG to Petri Net: {e}")
 
             try:
-                # Calculate the metrics concurrently
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future_fitness = executor.submit(
-                        pm4py.algo.evaluation.replay_fitness.algorithm.apply,
-                        log, net, initial_marking, final_marking, None,
-                        pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED
-                    )
-                    future_simplicity = executor.submit(
-                        pm4py.algo.evaluation.simplicity.variants.arc_degree.apply, net
-                    )
-                    future_precision = executor.submit(
-                        pm4py.algo.evaluation.precision.algorithm.apply,
-                        log, net, initial_marking, final_marking, None,
-                        pm4py.algo.evaluation.precision.algorithm.Variants.ETCONFORMANCE_TOKEN
-                    )
-                    future_generalization = executor.submit(
-                        pm4py.algo.evaluation.generalization.variants.token_based.apply,
-                        log, net, initial_marking, final_marking
-                    )
-
-                    metrics["fitness"] = future_fitness.result()["log_fitness"]
-                    metrics["simplicity"] = future_simplicity.result()
-                    metrics["precision"] = future_precision.result()
-                    metrics["generalization"] = future_generalization.result()
+                # Calculate the fitness metric
+                fitness_result = pm4py.algo.evaluation.replay_fitness.algorithm.apply(
+                    log, net, initial_marking, final_marking, None,
+                    pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED
+                )
+                metrics["fitness"] = fitness_result["log_fitness"]
+                metrics["simplicity"] = 0
+                metrics["precision"] = 0
+                metrics["generalization"] = 0
             except Exception as e:
                 raise ValueError(f"Error calculating metrics: {e}")
 
@@ -508,7 +496,7 @@ class Prediction:
         numNodesToAdd = round(2 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
         predictions = self.matrix.predict_using_edges(
-            self.edges, self.probMin if not self.auto else self.AUTO_PROB_MIN
+            self.edges, self.probMin if not self.auto else self.AUTO_PROB_MIN, self.supportMin if not self.auto else 1
         )
 
         for prediction in predictions:
@@ -706,6 +694,7 @@ class Prediction:
         self.deletedKeys = graph.get("deletedKeys", [])
 
         self.probMin = graph.get("probability", 0.3)
+        self.supportMin = graph.get("support", 1)
 
         # add nodes
         for node in nodes:
@@ -757,7 +746,6 @@ class Prediction:
             "dfg": {
                 "returnNodes": returnNodes,
                 "deletedKeys": self.deletedKeys,
-                "sub_trace_coverage": self.matrix.sub_trace_coverage(),
             },
         }
 

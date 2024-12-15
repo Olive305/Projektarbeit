@@ -1,25 +1,23 @@
 /* Reset default link styles inside the dropdown */
-.dropdown-menu a {
+.header-dropdown-menu a {
 	color: inherit;
 	text-decoration: none;
-	display: block; /* Ensure links behave like block-level elements */
+	display: flex; /* Ensure links behave like block-level elements */
 	width: 100%; /* Ensure the links take the full width of their container */
-	max-width: 150px; /* Set a maximum width for the links */
+	max-width: 200px; /* Set a maximum width for the links */
 	overflow: hidden; /* Hide overflowed text */
 	white-space: nowrap; /* Prevent text wrapping */
 	text-overflow: ellipsis; /* Add ellipsis for overflowed text */
+	align-items: center;
+	gap: 0.5rem; /* Space between the image and text */
 }
 
-/* Show full content on hover */
-.dropdown-menu a:hover {
-	overflow: visible; /* Show overflowed text */
-	white-space: normal; /* Allow text wrapping */
-	text-overflow: clip; /* Remove ellipsis */
-	transform: scale(1.05); /* Optional: Add a scale effect on hover */
+.header-custom-matrix-item a{
+	max-width: 150px;
 }
 
 /* Other existing styles */
-.dropdown-button {
+.header-dropdown-button {
 	background-color: none;
 	color: #333;
 	font-size: 16px;
@@ -31,7 +29,7 @@
 	transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-.checkbox {
+.header-checkbox {
 	appearance: none;
 	width: 1rem;
 	height: 1rem;
@@ -43,12 +41,12 @@
 	margin-right: 0.5rem;
 }
 
-.checkbox:checked {
+.header-checkbox:checked {
 	background-color: orange;
 	border-color: orange;
 }
 
-.checkbox:checked::after {
+.header-checkbox:checked::after {
 	content: "";
 	position: absolute;
 	top: 0.1rem;
@@ -60,14 +58,14 @@
 	transform: rotate(45deg);
 }
 
-.dropdown-button:hover {
+.header-dropdown-button:hover {
 	color: orange;
 	background-color: none;
 	transform: scale(1.05);
 }
 
 /* Custom styles for the dropdown menu */
-.dropdown-menu {
+.header-dropdown-menu {
 	color: #333;
 	position: absolute;
 	padding: 0.5rem;
@@ -85,12 +83,12 @@
 }
 
 /* Apply the fadeOut animation when the dropdown menu is unfocused */
-.dropdown-menu:unfocus {
+.header-dropdown-menu:unfocus {
 	animation: fadeOut 0.3s forwards;
 }
 
 /* Style the add matrix button like a dropdown-menu a just it is centered in the middle */
-.addMatrixButton {
+.header-dropdown-menu .addMatrixButton {
 	color: inherit;
 	text-decoration: none;
 	display: block; /* Ensure links behave like block-level elements */
@@ -99,8 +97,14 @@
 	margin: 0 auto; /* Center the button itself */
 }
 
+.header-notavailable-label {
+	color: gray;
+	font-size: 0.75rem;
+	text-align: center;
+}
+
 /* Ensure each menu item is displayed as a block and takes up full width */
-.dropdown-menu-item {
+.header-dropdown-menu-item {
 	text-align: left;
 	cursor: pointer;
 	padding: 0.5rem 1rem; /* Padding for better spacing */
@@ -137,7 +141,7 @@
 }
 
 /* Hover effect for menu items */
-.dropdown-menu-item:hover {
+.header-dropdown-menu-item:hover {
 	background-color: #f0f0f0; /* bg-gray-100 */
 	transform: scale(1.05);
 }
@@ -161,9 +165,12 @@ header {
 	transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.my-2 {
-	margin-top: 2rem;
-	margin-bottom: 2rem;
+.header-my-2 {
+	border: 1px solid #333;
+	margin: 0;
+	padding: 0;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
 }
 
 /* Keyframes for the disappearing animation */
@@ -183,4 +190,9 @@ header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+}
+
+.header-dropdown-menu img {
+    width: 20px; /* Adjust the size of the icons as needed */
+    height: 20px;
 }

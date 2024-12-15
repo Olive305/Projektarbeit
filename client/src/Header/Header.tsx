@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./header.css";
 import CloseIcon from "../assets/close_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
-import UploadIcon from "../assets/upload_file_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import UploadFileIcon from "../assets/upload_file_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import SaveIcon from "../assets/save_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import ImageIcon from "../assets/image_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import FolderIcon from "../assets/folder_open_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import AddIcon from "../assets/add_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import GraphIcon from "../assets/graph_1_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 interface HeaderProps {
@@ -22,6 +27,8 @@ interface HeaderProps {
 	toggleShowGrid: () => void;
 	handleAutoPosition: () => Promise<any>;
 	uploadLog: (matrixName: string, file: File) => void;
+	toggleShowLineThickness: () => void;
+	showLineThickness: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -41,6 +48,8 @@ const Header: React.FC<HeaderProps> = ({
 	rainbowPredictions,
 	handleAutoPosition,
 	uploadLog,
+	toggleShowLineThickness,
+	showLineThickness,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -79,19 +88,24 @@ const Header: React.FC<HeaderProps> = ({
 					as="div"
 					className="">
 					<div>
-						<MenuButton className="dropdown-button">File</MenuButton>
+						<MenuButton className="header-dropdown-button">File</MenuButton>
 					</div>
-					<MenuItems className="dropdown-menu">
+					<MenuItems className="header-dropdown-menu">
 						<div className="py-1">
 							<MenuItem>
 								{() => (
 									<a
 										href="#"
 										onClick={handleCreateNew}>
+										<img
+											src={AddIcon}
+											alt="Add"
+										/>
 										New
 									</a>
 								)}
 							</MenuItem>
+							<hr className="header-my-2" /> {/* Horizontal line to separate items */}
 							<MenuItem>
 								{() => (
 									<a
@@ -105,7 +119,11 @@ const Header: React.FC<HeaderProps> = ({
 												);
 											input.click();
 										}}>
-										Open from File
+										<img
+											src={FolderIcon}
+											alt="Folder"
+										/>
+										Open file
 									</a>
 								)}
 							</MenuItem>
@@ -113,16 +131,25 @@ const Header: React.FC<HeaderProps> = ({
 								<a
 									href="#"
 									onClick={handleSaveCurrent}>
+									<img
+										src={SaveIcon}
+										alt="Save"
+									/>
 									Save
 								</a>
 							</MenuItem>
+							<hr className="header-my-2" /> {/* Horizontal line to separate items */}
 							<MenuItem>
 								<a
 									href="#"
 									onClick={() => {
 										handleToPetriNet();
 									}}>
-									Zu Petri Netz
+									<img
+										src={ImageIcon}
+										alt="PetriNet"
+									/>
+									Petri net picture
 								</a>
 							</MenuItem>
 						</div>
@@ -134,11 +161,11 @@ const Header: React.FC<HeaderProps> = ({
 					as="div"
 					className="">
 					<div>
-						<MenuButton className="dropdown-button">
+						<MenuButton className="header-dropdown-button">
 							{loading ? "Loading..." : "Matrix"}
 						</MenuButton>
 					</div>
-					<MenuItems className="dropdown-menu">
+					<MenuItems className="header-dropdown-menu">
 						<div className="py-1">
 							{defaultMatrices.length > 0 ? (
 								defaultMatrices.map((matrix: any) => (
@@ -153,16 +180,16 @@ const Header: React.FC<HeaderProps> = ({
 									</MenuItem>
 								))
 							) : (
-								<div className="px-4 py-2 text-sm text-gray-500">
+								<label className="header-notavailable-label">
 									No matrices available
-								</div>
+								</label>
 							)}
 						</div>
-						<hr className="my-2" /> {/* Horizontal line to separate items */}
+						<hr className="header-my-2" /> {/* Horizontal line to separate items */}
 						{customMatrices.length > 0 ? (
 							customMatrices.map((matrix: any) => (
 								<MenuItem key={matrix}>
-									<div className="matrix-item">
+									<div className="header-custom-matrix-item">
 										<a
 											href="#"
 											onClick={async () => setActiveMatrix(matrix)}>
@@ -201,7 +228,7 @@ const Header: React.FC<HeaderProps> = ({
 													input.click();
 												}}>
 												<img
-													src={UploadIcon}
+													src={UploadFileIcon}
 													alt="Upload"
 												/>
 											</button>
@@ -210,7 +237,7 @@ const Header: React.FC<HeaderProps> = ({
 								</MenuItem>
 							))
 						) : (
-							<div className="px-4 py-2 text-sm text-gray-500">No custom matrices</div>
+							<label className="header-notavailable-label">No custom matrices</label>
 						)}
 
 						<MenuItem>
@@ -248,16 +275,16 @@ const Header: React.FC<HeaderProps> = ({
 					as="div"
 					className="">
 					<div>
-						<MenuButton className="dropdown-button">Appearance</MenuButton>
+						<MenuButton className="header-dropdown-button">Appearance</MenuButton>
 					</div>
-					<MenuItems className="dropdown-menu">
+					<MenuItems className="header-dropdown-menu">
 						<div className="py-1">
 							<MenuItem>
 								<a
 									href="#"
 									onClick={toggleShowGrid}>
 									<input
-										className="checkbox"
+										className="header-checkbox"
 										type="checkbox"
 										checked={showGrid}
 										onChange={toggleShowGrid}
@@ -270,21 +297,39 @@ const Header: React.FC<HeaderProps> = ({
 									href="#"
 									onClick={toggleRainbowPredictions}>
 									<input
-										className="checkbox"
+										className="header-checkbox"
 										type="checkbox"
 										checked={rainbowPredictions}
 										onChange={toggleRainbowPredictions}
 									/>
-									<label>Rainbow Prediction</label>
+									<label>Color Predictions</label>
 								</a>
 							</MenuItem>
 							<MenuItem>
-							<hr className="my-2" />
+								<a
+									href="#"
+									onClick={toggleShowLineThickness}>
+									<input
+										className="header-checkbox"
+										type="checkbox"
+										checked={showLineThickness}
+										onChange={toggleShowLineThickness}
+									/>
+									<label>Show Line Thickness</label>
+								</a>
+							</MenuItem>
+							<MenuItem>
+							<hr className="header-my-2" />
 							</MenuItem>
 							<MenuItem>
 								<a
 									href="#"
 									onClick={handleAutoPosition}>
+									<img
+										src={GraphIcon}
+										alt="Auto Position"
+										style={{ transform: "rotate(270deg)" }}
+									/>
 									Auto Position Graph
 								</a>
 							</MenuItem>

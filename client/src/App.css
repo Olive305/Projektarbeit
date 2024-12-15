@@ -2,6 +2,10 @@
 	display: flex;
 }
 
+header {
+	height: 30px;
+}
+
 .left-bar-div {
 	background-color: lightgray;
 	height: auto;
@@ -16,27 +20,24 @@
 .canvas-div {
 	margin: 0;
 	padding: 0;
-	height: auto;
-	width: auto;
+	width: calc(100vw - 300px); /* Full viewport width minus left-bar-div width */
+    height: calc(100vh - 70px); /* Full viewport height minus header and tabs height */
+
 }
 
 .tabs-div {
 	margin: 0;
 	padding: 0;
-	height: auto;
+	height: 30px;
 	width: auto;
 	border: 1px solid gray; /* Adds a small gray border */
 }
 
 .tab {
 	cursor: pointer;
+	height: auto;
 	user-select: none;
 	padding: 3px 5px;
-	border-top-left-radius: 8px;
-	border-top-right-radius: 8px;
-	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0;
-	background-color: white;
 	max-width: 200px; /* Limiting max width */
 	overflow: hidden;
 	text-overflow: ellipsis; /* For long text */
@@ -51,13 +52,9 @@
 
 .tabactive {
 	cursor: pointer;
+	height: auto;
 	user-select: none;
 	padding: 3px 5px;
-	border-top-left-radius: 8px;
-	border-top-right-radius: 8px;
-	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0;
-	background-color: white;
 	max-width: 200px; /* Limiting max width */
 	overflow: hidden;
 	text-overflow: ellipsis; /* For long text */

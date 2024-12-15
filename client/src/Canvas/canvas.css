@@ -7,7 +7,7 @@
 	border: 1px solid grey;
 }
 
-.popover {
+.canvas-popover {
 	position: absolute;
 	padding: 0.5rem;
 	z-index: 1000;
@@ -23,13 +23,13 @@
 	gap: 0.5rem;
 }
 
-.popover p {
+.canvas-popover p {
 	margin: 0;
 	padding: 0;
 	font-size: 1rem;
 }
 
-.popover button {
+.canvas-popover button {
 	background-color: orange;
 	color: white;
 	border: none;
@@ -39,32 +39,28 @@
 	transition: background-color 0.2s ease;
 }
 
-.label {
+.canvas-label {
 	display: flex;
 	justify-content: space-between;
 	margin-top: 0.3rem;
 }
 
-.popover button:hover {
+.canvas-popover button:hover {
 	background-color: rgb(214, 139, 0);
 }
 
-.popover input[type="text"] {
+.canvas-popover input[type="text"] {
 	width: 100%;
 	padding: 0.5rem;
 	border: 1px solid #ccc;
 	border-radius: 0.25rem;
 }
 
-.popover progress {
+.canvas-popover progress {
 	width: 100%;
 	height: 1rem;
 	border-radius: 0.25rem;
 	overflow: hidden;
-}
-
-.center-button:hover {
-	background-color: lightgray;
 }
 
 /* Styling for the canvas */

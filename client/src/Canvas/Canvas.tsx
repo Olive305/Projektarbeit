@@ -20,12 +20,14 @@ interface CanvasProps {
 	controller: GraphController;
 	rainbowPredictions: boolean;
 	showGrid: boolean;
+	showLineThickness: boolean;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
 	controller,
 	rainbowPredictions,
 	showGrid,
+	showLineThickness
 }) => {
 	const gridSize = controller.gridSize;
 	const stageRef = useRef<Konva.Stage>(null);
@@ -33,9 +35,6 @@ const Canvas: React.FC<CanvasProps> = ({
 	const selectionRecRef = useRef<Konva.Rect>(null);
 	const [nodes, setNodes] = useState<Map<string, MyNode>>(controller.nodes);
 	const [edges, setEdges] = useState<[string, string][]>(controller.edges);
-	const [subTraceCoverage, setSubTraceCoverage] = useState<Map<string, number>>(
-		controller.sub_trace_coverage
-	);
 	const [draggingEdge, setDraggingEdge] = useState<{
 		startNode: MyNode;
 		endX: number;
@@ -76,7 +75,6 @@ const Canvas: React.FC<CanvasProps> = ({
 		return () => {
 			setNodes(new Map(controller.nodes));
 			setEdges([...controller.edges]);
-			setSubTraceCoverage(new Map(controller.sub_trace_coverage));
 		};
 
 		controller.addListener(handleControllerChange);
@@ -200,20 +198,113 @@ const Canvas: React.FC<CanvasProps> = ({
 		let controlPoint1X, controlPoint1Y, controlPoint2X, controlPoint2Y;
 
 		if (startX > endX) {
-			if (startY === endY) {
-				// Case: Nodes are horizontally aligned
-				const midX = (startX + endX) / 2;
-				const arcHeight =
-					(GraphController.node_distance + MyNode.h_val / 2) * gridSize;
-				controlPoint1X = midX;
-				controlPoint1Y = startY - arcHeight;
-				controlPoint2X = midX;
-				controlPoint2Y = endY - arcHeight;
+			if (Math.abs(startY - endY) <= 2 * gridSize) {
+				// Create a looping arc around the nodes with additional control points
+				const loopOffset = gridSize * 3; // Adjust the loop size as needed
+				controlPoint1X = startX + loopOffset;
+				controlPoint1Y = startY;
+				controlPoint2X = startX - loopOffset;
+				controlPoint2Y = startY - loopOffset * 2;
+				const controlMiddlePointX = (startX + endX) / 2;
+				const controlMiddlePointy = (startY + endY) / 2;
+				const controlPoint3X = endX + loopOffset;
+				const controlPoint3Y = endY + loopOffset * 2;
+				const controlPoint4X = endX - loopOffset;
+				const controlPoint4Y = endY;
+
+				const isPreviewEdge = start.isPreview || target.isPreview;
+
+				const highestSupport = Math.max(...Array.from(nodes.values()).map(node => node.support || 0));
+
+				return (
+					<Group key={`edge_${start.id}_${target.id}`}>
+						{/* Hitbox - Invisible but interactive */}
+						<Line
+							bezier
+							points={[
+								startX,
+								startY,
+								controlPoint1X,
+								controlPoint1Y,
+								controlPoint2X,
+								controlPoint2Y,
+								controlMiddlePointX,
+								controlMiddlePointy,
+							]}
+							stroke={isPreviewEdge ? "blue" : "transparent"}
+							strokeWidth={15} // Wider hitbox for easy interaction
+							lineCap="round"
+							lineJoin="round"
+							opacity={0}
+							onContextMenu={(e) => handleLineRightClick(e, connection)}
+						/>
+						<Line
+							bezier
+							points={[
+								controlMiddlePointX,
+								controlMiddlePointy,
+								controlPoint3X,
+								controlPoint3Y,
+								controlPoint4X,
+								controlPoint4Y,
+								endX,
+								endY,
+							]}
+							stroke={isPreviewEdge ? "blue" : "transparent"}
+							strokeWidth={15} // Wider hitbox for easy interaction
+							lineCap="round"
+							lineJoin="round"
+							opacity={0}
+							onContextMenu={(e) => handleLineRightClick(e, connection)}
+						/>
+
+						{/* Visible line */}
+						<Line
+							bezier
+							points={[
+								startX,
+								startY,
+								controlPoint1X,
+								controlPoint1Y,
+								controlPoint2X,
+								controlPoint2Y,
+								controlMiddlePointX,
+								controlMiddlePointy,
+							]}
+							stroke={isPreviewEdge ? "blue" : "black"}
+							strokeWidth={!isPreviewEdge && showLineThickness ? (0.3 + 2.5 * (nodes.get(connection[1])?.support || 0) / (highestSupport || 1)) : 1}
+							lineCap="round"
+							lineJoin="round"
+							opacity={isPreviewEdge ? 0.5 : 1}
+							dash={isPreviewEdge ? [5, 3] : []}
+						/>
+						<Line
+							bezier
+							points={[
+								controlMiddlePointX,
+								controlMiddlePointy,
+								controlPoint3X,
+								controlPoint3Y,
+								controlPoint4X,
+								controlPoint4Y,
+								endX,
+								endY,
+							]}
+							stroke={isPreviewEdge ? "blue" : "black"}
+							strokeWidth={!isPreviewEdge && showLineThickness ? (0.3 + 2.5 * (nodes.get(connection[1])?.support || 0) / (highestSupport || 1)) : 1}
+							lineCap="round"
+							lineJoin="round"
+							opacity={isPreviewEdge ? 0.5 : 1}
+							dash={isPreviewEdge ? [5, 3] : []}
+						/>
+					</Group>
+				);
 			} else {
 				// General case when startX > endX and Y values differ
-				controlPoint1X = startX + gridSize * 2.5;
+				const distanceFactor = 2.5 * Math.max(1.25 * Math.log((startX - endX) / gridSize), 1);
+				controlPoint1X = startX + gridSize * distanceFactor;
 				controlPoint1Y = startY;
-				controlPoint2X = endX - gridSize * 2.5;
+				controlPoint2X = endX - gridSize * distanceFactor;
 				controlPoint2Y = endY;
 			}
 		} else {
@@ -265,7 +356,7 @@ const Canvas: React.FC<CanvasProps> = ({
 						endY,
 					]}
 					stroke={isPreviewEdge ? "blue" : "black"}
-					strokeWidth={!isPreviewEdge ? (0.3 + 2.5 * (nodes.get(connection[1])?.support || 0) / (highestSupport || 1)) : 1}
+					strokeWidth={!isPreviewEdge && showLineThickness ? (0.3 + 2.5 * (nodes.get(connection[1])?.support || 0) / (highestSupport || 1)) : 1}
 					lineCap="round"
 					lineJoin="round"
 					opacity={isPreviewEdge ? 0.5 : 1}
@@ -620,6 +711,13 @@ const Canvas: React.FC<CanvasProps> = ({
 		setStagePos(newPos);
 	};
 
+	const [update, setUpdate] = useState(false);
+
+	useEffect(() => {
+		// Trigger a re-render to ensure text dimensions are calculated
+		setUpdate(!update);
+	}, [nodes]);
+
 	return (
 		<div
 			className="canvas-container"
@@ -677,7 +775,20 @@ const Canvas: React.FC<CanvasProps> = ({
 								controller.nodeOnClick(targetNode);
 
 								setNodes(controller.nodes);
-							}}>
+							}}
+							onMouseEnter={(e) => {
+								const container = e.target.getStage()?.container();
+								if (container) {
+									container.style.cursor = "pointer";
+								}
+							}}
+							onMouseLeave={(e) => {
+								const container = e.target.getStage()?.container();
+								if (container) {
+									container.style.cursor = "default";
+								}
+							}}
+						>
 							{!node.isCircle ? (
 								<Rect
 									ref={(n) => {
@@ -755,27 +866,38 @@ const Canvas: React.FC<CanvasProps> = ({
 								}}
 								text={node.caption}
 								fill="black"
-								x={node.w / 2}
-								y={node.h / 2}
-								offsetX={node.text ? node.text.width() / 2 : 0}
-								offsetY={node.text ? node.text.height() / 2 : 0}
+								width={node.w - 10} // Predefined width with some padding
+								align="center" // Center the text within the predefined width
+								x={5} // Padding from the left
+								y={node.h / 2 - (node.text?.height() || 0) / 2}
 								listening={true}
 								opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 							/>
 							{node.isPreview ? (
-								<Text
-									ref={(n) => {
-										node.text = n;
-									}}
-									text={Math.max(node.probability, 0.01).toFixed(2)}
-									fill="black"
-									x={16}
-									y={9}
-									offsetX={node.text ? node.text.width() / 2 : 0}
-									offsetY={node.text ? node.text.height() / 2 : 0}
-									listening={true}
-									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
-								/>
+								<>
+									<Text
+										ref={(n) => {
+											node.text = n;
+										}}
+										text={`Probability: ${Math.max(node.probability, 0.01).toFixed(2)}`}
+										fill="black"
+										x={5}
+										y={5}
+										listening={false}
+										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
+									/>
+									<Text
+										ref={(n) => {
+											node.text = n;
+										}}
+										text={`Support: ${(node.support || 0).toFixed(0)}`}
+										fill="black"
+										x={5}
+										y={node.h - 15}
+										listening={false}
+										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
+									/>
+								</>
 							) : (
 								<></>
 							)}
@@ -811,7 +933,7 @@ const Canvas: React.FC<CanvasProps> = ({
 
 			{contextMenu.visible && contextMenu.node && (
 				<div
-					className="popover"
+					className="canvas-popover"
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
 					<button onClick={handleDeleteNode}>Delete Node</button>
 					<input
@@ -837,20 +959,12 @@ const Canvas: React.FC<CanvasProps> = ({
 						Support:{" "}
 						{(contextMenu.node.support || 0)}
 					</Label>
-					<Label>
-						Sub-trace coverage:{" "}
-						{Math.round((subTraceCoverage.get(contextMenu.node.id) || 0) * 100)}
-						%
-					</Label>
-					<progress
-						value={subTraceCoverage.get(contextMenu.node.id) || 0}
-						max="100"></progress>
 				</div>
 			)}
 
 			{contextMenu.visible && contextMenu.edge && (
 				<div
-					className="popover"
+					className="canvas-popover"
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
 					<button onClick={handleDeleteEdge}>Delete Edge</button>
 				</div>

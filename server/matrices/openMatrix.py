@@ -21,6 +21,7 @@ class MyCsv:
             "probability_columns": self.probability_columns,
             "outgoing_edges_cache": self.outgoing_edges_cache,
             "cached_prefixes": self.cached_prefixes,
+            "supportMax": self.supportMax,
         }
 
     @classmethod
@@ -35,6 +36,7 @@ class MyCsv:
         matrix.probability_columns = data["probability_columns"]
         matrix.outgoing_edges_cache = data["outgoing_edges_cache"]
         matrix.cached_prefixes = data["cached_prefixes"]
+        matrix.supportMax = data["supportMax"]
         return matrix
 
     def getPrefixes(self):
@@ -72,7 +74,6 @@ class MyCsv:
         self.support_cache = {}
         if self.df is not None:
             # Use vectorized operations to improve performance
-            start_time = time.time()
             grouped = (
                 self.df.groupby("prefixes")
                 .agg({"targets": "first", "Support": "sum"})
@@ -95,15 +96,11 @@ class MyCsv:
                     if "starting_with_key:0" not in self.outgoing_edges_cache:
                         self.outgoing_edges_cache["starting_with_key:0"] = []
                     self.outgoing_edges_cache["starting_with_key:0"].append(target)
-            end_time = time.time()
-            print(
-                f"Time taken to cache outgoing edges: {end_time - start_time} seconds"
-            )
             
             # Cache the maximum support value for normalization
             self.supportMax = max(self.support_cache.values())
 
-    def predict_using_edges(self, edges: dict, probMin: float = 0):
+    def predict_using_edges(self, edges: dict, probMin: float = 0, supportMin: int = 1):
         """
         Predicts the possible predictions by iterating over all the prefixes and checking if the path is possible in the edges
 
@@ -155,6 +152,7 @@ class MyCsv:
                     predictions[key]["probability"] += row[target] * row["Support"]
 
         # Normalize the probabilities
+        # Since we are summing the probabilities, we need to divide by the support to get the average probability (multiple prefixes leading to the same prediction)
         for prediction in predictions:
             predictions[prediction]["probability"] /= predictions[prediction]["support"]
 
@@ -162,186 +160,11 @@ class MyCsv:
         valid_predictions = {
             prediction: predictions[prediction]
             for prediction in predictions
-            if predictions[prediction]["probability"] >= probMin
+            if predictions[prediction]["probability"] >= probMin and predictions[prediction]["support"] >= supportMin
         }
 
         # Return the valid predictions
         return valid_predictions
-
-    def replay_fitness(self, traces: list):
-        """
-        Calculate fitness of the given traces against the model stored in the DataFrame.
-
-        Args:
-            traces (list): List of event sequences (each sequence is a tuple).
-
-        Returns:
-            float: Fitness score between 0 and 1.
-        """
-        total_cost_inserted = 0
-        total_cost_skipped = 0
-        total_possible_insertions = 0
-
-        # Cost functions for skipping and inserting activities
-        cost_insert = 1
-        cost_skip = 2
-
-        for trace in traces:
-            if "[EOC]" in trace:
-                continue
-
-            # Vectorized check to find matching prefixes in the DataFrame
-            matching_prefixes = self.df[self.df["prefixes"] == trace]
-
-            if matching_prefixes.empty:
-                # If no matching prefix, consider all activities as inserted
-                total_cost_inserted += len(trace) * cost_insert
-                total_possible_insertions += len(trace) * cost_insert
-            else:
-                # Assume first matching prefix (for performance reasons)
-                matching_prefix = matching_prefixes.iloc[0]["prefixes"]
-
-                # Calculate skipped activities (present in prefix but not in trace)
-                skipped_activities = [
-                    act for act in matching_prefix if act not in trace
-                ]
-                total_cost_skipped += len(skipped_activities) * cost_skip
-
-                # Calculate inserted activities (present in trace but not in the model prefix)
-                inserted_activities = [
-                    act for act in trace if act not in matching_prefix
-                ]
-                total_cost_inserted += len(inserted_activities) * cost_insert
-
-                # Update possible insertion costs
-                total_possible_insertions += len(trace) * cost_insert
-
-        # Fitness formula: 1 - (cost of skipped + inserted activities) / max possible insertion cost
-        total_deviation_cost = total_cost_inserted + total_cost_skipped
-        fitness = (
-            1 - (total_deviation_cost / total_possible_insertions)
-            if total_possible_insertions > 0
-            else 1
-        )
-
-        return fitness
-
-    def simplicity(self, traces: list, nodes_in_process_tree: int):
-        """
-        Measures the simplicity of the model based on the number of duplicate and missing activities.
-
-        Args:
-            act for prefix in self.df["prefixes"] for act in prefix if self.df is not None
-            nodes_in_process_tree (int): The number of nodes in the process tree (provided as input).
-
-        Returns:
-            float: Simplicity score between 0 and 1.
-        """
-        traces = [trace for trace in traces if "[EOC]" not in trace]
-
-        # Extract unique activities from the df
-        unique_activities_in_log = set(
-            act for prefix in self.df["prefixes"] for act in prefix
-        )
-
-        # Extract all activities in the traces
-        unique_activities_in_tree = set(act for trace in traces for act in trace)
-
-        # Duplicate activities: activities that appear more than once in the process tree
-        activity_counts_in_tree = {}
-        for trace in traces:
-            for activity in trace:
-                if activity in activity_counts_in_tree:
-                    activity_counts_in_tree[activity] += 1
-                else:
-                    activity_counts_in_tree[activity] = 1
-
-        duplicate_activities = sum(
-            1 for count in activity_counts_in_tree.values() if count > 1
-        )
-
-        # Missing activities: activities in the tree that are not in the event log
-        missing_activities = len(unique_activities_in_tree - unique_activities_in_log)
-
-        # Event classes in the log: number of unique activities in the event log
-        event_classes_in_log = len(unique_activities_in_log)
-
-        # Simplicity formula: provided nodes_in_process_tree is used
-        simplicity_score = 1 - (duplicate_activities + missing_activities) / (
-            nodes_in_process_tree + event_classes_in_log
-        )
-
-        return simplicity_score
-
-    def precision(self, edges: dict, previewNodes: list):
-        """
-        Measures the precision of the model.
-
-        Args:
-            edges (dict): The edges in the traces.
-            previewNodes (list): List of preview nodes to be excluded from the precision calculation.
-
-        Returns:
-            float: Precision score between 0 and 1.
-        """
-
-        # Initialize the node sum to accumulate precision metrics per node
-        nodeSum = 0
-
-        # Iterate over edges (keys of edges) to calculate precision per node
-        for node in edges:
-            if node in previewNodes or node == "[EOC]":  # Skip preview nodes
-                continue
-
-            # Get the cached outgoing edges and the support for the current node
-            outgoing_edges = self.outgoing_edges_cache.get(node, [])
-            support = self.support_cache.get(node, 0)
-
-            # Number of missed edges
-            missedEdges = sum([1 for edge in outgoing_edges if edge not in edges[node]])
-
-            # Calculate the precision of the current node
-            nodeValue = (
-                missedEdges / len(outgoing_edges) if len(outgoing_edges) > 0 else 1
-            )
-
-            # Update the node sum with the precision of the current node
-            nodeSum += nodeValue * support
-
-        # Calculate final precision score, normalized by the total visits
-        return 1 - nodeSum / sum(self.support_cache.values())
-
-    def generalization(self, nodes, num_nodes_in_tree: int):
-        """
-        Measures the generalization of the model based on how often nodes in the tree are visited.
-
-        Args:
-            traces (list): List of observed sequences (i.e., traces from the event log).
-            num_nodes_in_tree (int): The number of nodes in the process tree, provided as input.
-
-        Returns:
-            float: Generalization score between 0 and 1.
-        """
-
-        node_value = 0
-
-        for node in nodes:
-            if nodes[node].isPreview or node == "starting_with_key:0":
-                continue
-            # get all the rows where the current node is a target and from there get the support
-            total_executions = 0
-            if self.df is not None:
-                # Filter rows where the current node is the target
-                node_rows = self.df[self.df["targets"].str.strip() == node]
-                # Sum the support values of these rows
-                total_executions = node_rows["Support"].sum()
-
-            # the node value is 1 divided through the square root of the total execution
-            node_value += (
-                (1 / (math.sqrt(total_executions))) if total_executions != 0 else 0
-            )
-
-        return 1 - node_value / (num_nodes_in_tree - 1)
 
     def get_variant_coverage(self, edges: dict):
         """
@@ -456,28 +279,3 @@ class MyCsv:
         variants_dict = variants.to_dict(orient="records")
 
         return variants_dict
-
-    def sub_trace_coverage(self):
-        """
-        Calculate the sub-trace coverage of the model based on the edges. For each sub-trace, checks if a path through the model exists.
-
-        Args:
-            None
-
-        Returns:
-            dict: Sub-trace coverage score for each node.
-        """
-        variants = self.get_variants()
-        sub_trace_coverage = {}
-
-        for variant in variants:
-            for activity in variant:
-                if activity not in sub_trace_coverage:
-                    sub_trace_coverage[activity] = 1
-                else:
-                    sub_trace_coverage[activity] += 1
-
-        for activity in sub_trace_coverage:
-            sub_trace_coverage[activity] = sub_trace_coverage[activity] / len(variants)
-
-        return sub_trace_coverage

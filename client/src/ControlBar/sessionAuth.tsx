@@ -66,17 +66,6 @@ export class SessionAuth {
 		return response.data;
 	}
 
-	// Get the maximum support from the current matrix
-	async getMaxSupport(): Promise<number> {
-		if (!this.sessionId) throw new Error("Session has not been started.");
-
-		const response: AxiosResponse<{ max_support: number }> = await axios.post(
-			`${this.apiUrl}/getMaxSupport`
-		);
-
-		return response.data.max_support;
-	}
-
 	// Add a log to an existing custom matrix
 	async addLog(matrixName: string, file: File): Promise<{ message: string }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
@@ -143,10 +132,7 @@ export class SessionAuth {
 
 	// Get metrics for a specific graph input
 	async getPm4pyMetrics(
-		setFitness: any,
-		setSimplicity: any,
-		setPrecision: any,
-		setGeneralization: any
+		setFitness: any
 	) {
 		// do not calculate the metrics if it is already calculating
 		if (this.isCalculatingPm4pyMetrics) return false;
@@ -161,9 +147,6 @@ export class SessionAuth {
 		const data = JSON.parse(response.data.metrics);
 
 		setFitness(data.fitness);
-		setGeneralization(data.generalization);
-		setSimplicity(data.simplicity);
-		setPrecision(data.precision);
 		this.isCalculatingPm4pyMetrics = false;
 		return true;
 	}

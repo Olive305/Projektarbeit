@@ -11,7 +11,6 @@ class GraphController {
 	public probabilityMin: number;
 	public showPreview: boolean;
 	public supportMin: number;
-	public sub_trace_coverage: Map<string, number>;
 
 	public calls: number;
 
@@ -47,7 +46,6 @@ class GraphController {
 		this.isGettingPreviewNodes = false;
 		this.auto = true;
 		this.sequences = [[]];
-		this.sub_trace_coverage = new Map();
 		this.supportMin = 1;
 
 		if (!notAddStartingNode)
@@ -498,7 +496,6 @@ class GraphController {
 					!this.nodes.get(edge[1])?.isSelected
 			),
 
-			sub_trace_coverage: this.sub_trace_coverage,
 			deletedKeys: this.deletedKeys,
 			probability: this.probabilityMin,
 			support: this.supportMin,
@@ -569,7 +566,6 @@ class GraphController {
 			this.probabilityMin = graphData.probability;
 			this.supportMin = graphData.support;
 			this.auto = graphData.auto;
-			this.sub_trace_coverage = graphData.sub_trace_coverage;
 		} catch (error) {
 			console.error("Failed to deserialize graph:", error);
 			throw new Error("Deserialization error: Graph data is malformed.");
@@ -591,15 +587,6 @@ class GraphController {
 				throw new Error("Failed to parse JSON data: " + error.message);
 			} else {
 				throw new Error("Failed to parse JSON data: Unknown error");
-			}
-		}
-
-		// Extract sub_trace_coverage from parsed data
-		const subTraceCoverage = parsedData.sub_trace_coverage;
-		if (subTraceCoverage) {
-			// Iterate over the keys of sub_trace_coverage and update the map
-			for (const [key, value] of Object.entries(subTraceCoverage)) {
-				this.sub_trace_coverage.set(key, value as number);
 			}
 		}
 

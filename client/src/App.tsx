@@ -25,7 +25,6 @@ const App: React.FC = () => {
 		autoPosition,
 		getPm4pyMetrics,
 		uploadLog,
-		getSupportMax,
 	} = useAuth();
 	const multiController = useRef(new MultiController(gridSize));
 
@@ -33,7 +32,6 @@ const App: React.FC = () => {
 	const [activeTabIndex, setActiveTabIndex] = useState(0);
 	const [rainbowPredictions, setRainbowPredictions] = useState(true);
 	const [showGrid, setShowGrid] = useState(true);
-	const [supportMax, setSupportMax] = useState(1);
 
 	const [activeName, setActiveName] = useState("");
 
@@ -43,18 +41,19 @@ const App: React.FC = () => {
 
 	const [matrices, setMatrices] = useState<string[]>([]); // Matrices fetched from API
 	const [customMatrices, setCustomMatrices] = useState<string[]>([]); // Custom matrices uploaded by user
+	const [matrixMaxSupport, setMatrixMaxSupport] = useState<{ [key: string]: number }>({});
+	const [supportMax, setSupportMax] = useState(1);
 	const [customLogs, setCustomLogs] = useState<string[]>([]); // Custom logs uploaded by user
 
 	const [fitness, setFitness] = useState(0);
-	const [generalization, setGeneralization] = useState(0);
-	const [simplicity, setSimplicity] = useState(0);
-	const [precision, setPrecision] = useState(0);
 	const [variantCoverage, setVariantCoverage] = useState(0);
 	const [logCoverage, setLogCoverage] = useState(0);
 	const [variants, setVariants] = useState<any[][]>([]);
 
 	const [gettingPm4pyMetrics, setGettingPm4pyMetrics] = useState(false);
 	const [recalculateMetrics, setRecalculateMetrics] = useState(false);
+
+	const [showLineThickness, setShowLineThickness] = useState(true);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -72,8 +71,13 @@ const App: React.FC = () => {
 
 	useEffect(() => {
 		activeGraphController?.notifyListeners();
-		updateMaxSupport();
 	}, [activeTabIndex, activeName]);
+
+	useEffect(() => {
+		if (activeGraphController) {
+			setSupportMax(matrixMaxSupport[activeGraphController.activeMatrix] || 1);
+		}
+	}, [activeGraphController, matrixMaxSupport]);
 
 	// Set initial graph controller on initial render
 	useEffect(() => {
@@ -95,7 +99,6 @@ const App: React.FC = () => {
 		setTabs([...multiController.current.graphs]);
 
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
-		updateMaxSupport();
 	}, [predictOutcome]);
 
 	// Update preview nodes whenever session starts
@@ -103,12 +106,10 @@ const App: React.FC = () => {
 		if (sessionStarted && activeGraphController) {
 			activeGraphController.get_preview_nodes();
 		}
-		updateMaxSupport();
 	}, [sessionStarted, activeGraphController]);
 
 	useEffect(() => {
 		getMatrices();
-		updateMaxSupport();
 	}, [sessionStarted]);
 
 	useEffect(() => {
@@ -118,10 +119,6 @@ const App: React.FC = () => {
 		}
 	}, [gettingPm4pyMetrics, recalculateMetrics]);
 
-	const updateMaxSupport = async () => {
-		const maxSupport = await getSupportMax();
-		setSupportMax(maxSupport);
-	}
 
 	const getMatrices = async () => {
 		if (sessionStarted) {
@@ -130,6 +127,7 @@ const App: React.FC = () => {
 			setMatrices(matricesData.default_matrices);
 			setCustomMatrices(matricesData.custom_matrices);
 			setCustomLogs(matricesData.custom_logs);
+			setMatrixMaxSupport(matricesData.matrix_max_support);
 			console.log("Matrices:", matrices);
 		}
 	};
@@ -203,10 +201,7 @@ const App: React.FC = () => {
 		setGettingPm4pyMetrics(true);
 		console.log("Getting PM4Py metrics");
 		await getPm4pyMetrics(
-			setFitness,
-			setSimplicity,
-			setPrecision,
-			setGeneralization
+			setFitness
 		);
 		console.log("Got PM4Py metrics");
 		setGettingPm4pyMetrics(false);
@@ -272,16 +267,6 @@ const App: React.FC = () => {
 			const newTabIndex = index > 0 ? index - 1 : 0;
 			handleTabClick(newTabIndex);
 		}
-		setTabs([...multiController.current.graphs]);
-		setActiveName(multiController.current.graphs[activeTabIndex][1]);
-
-		await activeGraphController?.get_preview_nodes();
-
-		setVariants(await getVariantsFromDict());
-
-		// Update metrics after closing a tab and setting a new active tab
-		handleGetMetrics(
-		);
 	};
 
 	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
@@ -318,6 +303,8 @@ const App: React.FC = () => {
 				uploadLog={handleUploadLog}
 				showGrid={showGrid}
 				rainbowPredictions={rainbowPredictions}
+				toggleShowLineThickness={() => setShowLineThickness(!showLineThickness)}
+				showLineThickness={showLineThickness}
 			/>
 			<section className="workspace">
 				<div className="left-bar-div">
@@ -327,10 +314,7 @@ const App: React.FC = () => {
 							multi={multiController.current}
 							activeName={activeName}
 							setActiveName={handleNameChange}
-							precision={precision}
-							simplicity={simplicity}
 							fitness={fitness}
-							generalization={generalization}
 							variantCoverage={variantCoverage}
 							logCoverage={logCoverage}
 							variants={variants}
@@ -338,7 +322,7 @@ const App: React.FC = () => {
 						/>
 					)}
 				</div>
-				<section className="workspace-section">
+				<section className="workspace-div">
 					<div className="tabs-div">
 						{tabs.map(([_, name], index) => (
 							<a
@@ -370,6 +354,7 @@ const App: React.FC = () => {
 								controller={activeGraphController}
 								rainbowPredictions={rainbowPredictions}
 								showGrid={showGrid}
+								showLineThickness={showLineThickness}
 							/>
 						)}
 					</div>

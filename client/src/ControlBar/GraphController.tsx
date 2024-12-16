@@ -67,25 +67,19 @@ class GraphController {
 
 	public calculateColor = (id: string) => {
 		const colorList = [
-			"red",
-			"green",
-			"blue",
-			"yellow",
-			"orange",
-			"purple",
-			"pink",
-			"brown",
-			"cyan",
-			"magenta",
-			"lime",
-			"olive",
-			"teal",
-			"navy",
-			"indigo",
-			"violet",
-			"gold",
-			"beige",
-			"chocolate",
+			"#FF0000", // Red
+			"#00FF00", // Green
+			"#0000FF", // Blue
+			"#FFA500", // Orange
+			"#800080", // Purple
+			"#FFC0CB", // Pink
+			"#008080", // Teal
+			"#000080", // Navy
+			"#4B0082", // Indigo
+			"#EE82EE", // Violet
+			"#FFD700", // Gold
+			"#D2691E", // Chocolate
+			"#FF4500", // OrangeRed
 		];
 
 		let excludeColors = [];

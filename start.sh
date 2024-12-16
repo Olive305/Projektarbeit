@@ -12,11 +12,11 @@ cd ../server || { echo "Failed to navigate to server directory"; exit 1; }
 
 # Install backend Python dependencies using pip and requirements.txt
 echo "Installing backend dependencies..."
-pip install -r requirements.txt || { echo "Failed to install backend dependencies"; exit 1; }
+python3 -m pip install -r requirements.txt || { echo "Failed to install backend dependencies"; exit 1; }
 
 # Install waitress if not already installed
-pip install waitress || { echo "Failed to install waitress"; exit 1; }
+python3 -m pip install waitress || { echo "Failed to install waitress"; exit 1; }
 
 # Start backend using waitress
 echo "Starting the backend with waitress..."
-waitress-serve --port=8000 main:app || { echo "Failed to start the backend with waitress"; exit 1; }
+python3 -m waitress-serve --port=8000 main:app || { echo "Failed to start the backend with waitress"; exit 1; }

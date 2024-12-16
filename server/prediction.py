@@ -7,6 +7,7 @@ from pm4py.objects.conversion.dfg.variants.to_petri_net_activity_defines_place i
     apply as dfg_to_petri_net,
 )
 import graphviz
+import os
 
 from collections import deque
 
@@ -150,6 +151,9 @@ class Prediction:
 
         gap_size_dict = {}
         visited_nodes = set()
+        
+        # get all initial nodes (node with no incoming edges)
+        initial_nodes = (set(self.nodes.keys()) - set([edge for edgeEndList in self.edges.values() for edge in edgeEndList])) - set(self.preview_nodes) - set(["starting_with_key:0"])
 
         # recursive function to calculate all gap sizes
         def gap_size(node):
@@ -175,16 +179,31 @@ class Prediction:
             )
             return gap_size_dict[node]
 
-        gap_size("starting_with_key:0")
+        lastGapSize = 0
+        lastGapSize += gap_size("starting_with_key:0")
 
         # store only position of the starting node
         x = self.nodes["starting_with_key:0"].x
         y = self.nodes["starting_with_key:0"].y
 
         self.posMatrix = {(x, y): "starting_with_key:0"}
+        
+        for node in initial_nodes:
+            gap = gap_size(node)
+            
+            # store position of remaining starting nodes
+            x = self.nodes["starting_with_key:0"].x
+            y = self.nodes["starting_with_key:0"].y + lastGapSize + gap // 2
+            
+            self.nodes[node].x = x
+            self.nodes[node].y = y
+            
+            self.posMatrix[(x, y)] = node
+            
+            lastGapSize += gap
 
         # Use a queue for BFS
-        queue = deque(["starting_with_key:0"])
+        queue = deque(["starting_with_key:0"] + list(initial_nodes))
         positioned_nodes = set()
 
         while queue:
@@ -206,8 +225,6 @@ class Prediction:
                     continue
 
                 positioned_nodes.add(edgeEnd)
-
-                print(f"Node: {node}, EdgeEnd: {edgeEnd}")
 
                 # Get the gap size of the successor node
                 gap_size_succ = gap_size_dict[edgeEnd]
@@ -380,6 +397,55 @@ class Prediction:
                 # if no position was found, we increase the x position of the batch
                 normal_pos = (normal_pos[0] + 1, normal_pos[1])
                 starting_pos = normal_pos
+                
+    def convert_to_petri_net_as_file(self):
+
+        # Define a DFG (Directly Follows Graph) from nodes and edges
+        dfg = {}
+        for edgeStart in self.edges:
+            for edgeEnd in self.edges[edgeStart]:
+                # Check if edgeEnd is a preview node
+                if edgeEnd in self.preview_nodes:
+                    continue
+
+                # If edgeStart or edgeEnd are starting_with_key:0 or [EOC], skip them
+                if edgeStart == "starting_with_key:0" or edgeEnd == "[EOC]":
+                    continue
+
+                # Flatten the nested dictionary structure
+                dfg[(edgeStart, edgeEnd)] = dfg.get((edgeStart, edgeEnd), 0) + 1
+
+        # Define start and end activities
+        start_activities = {edge for edge in self.edges["starting_with_key:0"]}
+        end_activities = {
+            edge for edge in self.edges if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+        }
+
+        # Convert DFG to Petri net with parameters
+        parameters = {
+            "start_activities": start_activities,
+            "end_activities": end_activities,
+        }
+
+        try:
+            net, initial_marking, final_marking = dfg_to_petri_net(dfg, parameters=parameters)
+        except Exception as e:
+            raise ValueError(f"Error converting DFG to Petri Net: {e}")
+        
+        # Ensure the static directory exists
+        static_dir = os.path.join(os.path.dirname(__file__), "static")
+        os.makedirs(static_dir, exist_ok=True)
+        
+        file_path = os.path.join(static_dir, "petri_net.pnml")
+
+        try:
+            # Write the Petri net to a .pnml file
+            pm4py.write_pnml(net, initial_marking, final_marking, file_path)
+
+            # Return the absolute path to the PNML file
+            return os.path.abspath(file_path)
+        except Exception as e:
+            raise ValueError(f"Error writing Petri Net to PNML file: {e}")
 
     def convert_to_petri_net(self):
         # Define a DFG (Directly Follows Graph) from nodes and edges
@@ -478,7 +544,7 @@ class Prediction:
         # Render the graph to a file
         import os
 
-        output_path = os.path.join(os.path.dirname(__file__), "static", "petri_net")
+        output_path = os.path.join("static", "petri_net")
         dot.render(output_path, format="jpg", cleanup=True)
 
         # Return the path to the rendered image relative to the static folder

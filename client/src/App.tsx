@@ -17,6 +17,7 @@ const App: React.FC = () => {
 		sessionId,
 		predictOutcome,
 		generatePetriNet,
+		generatePetriNetFile,
 		getAvailableMatrices,
 		changeMatrix,
 		getMetrics,
@@ -53,7 +54,7 @@ const App: React.FC = () => {
 	const [gettingPm4pyMetrics, setGettingPm4pyMetrics] = useState(false);
 	const [recalculateMetrics, setRecalculateMetrics] = useState(false);
 
-	const [showLineThickness, setShowLineThickness] = useState(true);
+	const [showLineThickness, _] = useState(false);
 
 	// Initialize session on initial render only once
 	useEffect(() => {
@@ -82,18 +83,7 @@ const App: React.FC = () => {
 	// Set initial graph controller on initial render
 	useEffect(() => {
 		if (multiController.current.graphs.length === 0) {
-			multiController.current.createNewGraph(
-				"New",
-				async (graphInput: any, matrix: string) => {
-					const prediction = await predictOutcome(graphInput, matrix);
-
-					setVariants(await getVariantsFromDict());
-
-					handleGetMetrics(
-					);
-					return prediction;
-				}
-			);
+			multiController.current.createNewGraph("New", handlePredictOutcome);
 		}
 		setActiveGraphController(multiController.current.graphs[0][0]);
 		setTabs([...multiController.current.graphs]);
@@ -123,14 +113,22 @@ const App: React.FC = () => {
 	const getMatrices = async () => {
 		if (sessionStarted) {
 			const matricesData = await getAvailableMatrices();
-			console.log("Matrices data:", matricesData);
 			setMatrices(matricesData.default_matrices);
 			setCustomMatrices(matricesData.custom_matrices);
 			setCustomLogs(matricesData.custom_logs);
 			setMatrixMaxSupport(matricesData.matrix_max_support);
-			console.log("Matrices:", matrices);
 		}
 	};
+
+	const handlePredictOutcome = async (graphInput: any, matrix: string) => {
+		const prediction = await predictOutcome(graphInput, matrix);
+
+		setVariants(await getVariantsFromDict());
+
+		handleGetMetrics(
+		);
+		return prediction;
+	}
 
 	const getVariantsFromDict = async () => {
 		try {
@@ -199,11 +197,9 @@ const App: React.FC = () => {
 			return;
 		}
 		setGettingPm4pyMetrics(true);
-		console.log("Getting PM4Py metrics");
 		await getPm4pyMetrics(
 			setFitness
 		);
-		console.log("Got PM4Py metrics");
 		setGettingPm4pyMetrics(false);
 	}
 
@@ -221,8 +217,12 @@ const App: React.FC = () => {
 		generatePetriNet();
 	};
 
+	const handleConvertToPetriNetFile = async (_: number) => {
+		generatePetriNetFile();
+	}
+
 	const handleCreateNewGraph = async (name: string) => {
-		multiController.current.createNewGraph(name, predictOutcome);
+		multiController.current.createNewGraph(name, handlePredictOutcome);
 		handleTabClick(multiController.current.graphs.length - 1);
 		setTabs([...multiController.current.graphs]);
 		setActiveName(name);
@@ -238,7 +238,6 @@ const App: React.FC = () => {
 		await multiController.current.readGraphFromFile(file, predictOutcome);
 		handleTabClick(multiController.current.graphs.length - 1);
 		setTabs([...multiController.current.graphs]);
-		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	};
 
 	const handleDeleteMatrix = async (matrixName: string) => {
@@ -261,12 +260,13 @@ const App: React.FC = () => {
 	const handleTabClose = async (index: number) => {
 		multiController.current.graphs.splice(index, 1);
 		if (multiController.current.graphs.length === 0) {
-			multiController.current.createNewGraph("New", predictOutcome);
+			multiController.current.createNewGraph("New", handlePredictOutcome);
 			handleTabClick(0);
 		} else {
 			const newTabIndex = index > 0 ? index - 1 : 0;
 			handleTabClick(newTabIndex);
 		}
+		setTabs([...multiController.current.graphs]);
 	};
 
 	const handleSetActiveMatrix = async (matrixName: string, file?: File) => {
@@ -294,6 +294,7 @@ const App: React.FC = () => {
 					setRainbowPredictions(!rainbowPredictions)
 				}
 				handleToPetriNet={() => handleConvertToPetriNet(activeTabIndex)}
+				handleToPetriNetFile={() => handleConvertToPetriNetFile(activeTabIndex)}
 				defaultMatrices={matrices}
 				customMatrices={customMatrices}
 				customLogs={customLogs}
@@ -303,8 +304,6 @@ const App: React.FC = () => {
 				uploadLog={handleUploadLog}
 				showGrid={showGrid}
 				rainbowPredictions={rainbowPredictions}
-				toggleShowLineThickness={() => setShowLineThickness(!showLineThickness)}
-				showLineThickness={showLineThickness}
 			/>
 			<section className="workspace">
 				<div className="left-bar-div">

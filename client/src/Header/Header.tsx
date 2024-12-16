@@ -7,6 +7,7 @@ import ImageIcon from "../assets/image_24dp_000000_FILL0_wght400_GRAD0_opsz24.sv
 import FolderIcon from "../assets/folder_open_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import AddIcon from "../assets/add_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import GraphIcon from "../assets/graph_1_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
+import DownloadIcon from "../assets/download_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ interface HeaderProps {
 	setActiveMatrix: (matrix: string, file?: File) => void;
 	toggleRainbowPredictions: () => void;
 	handleToPetriNet: () => void;
+	handleToPetriNetFile: () => void;
 	defaultMatrices: any;
 	customMatrices: any;
 	customLogs: any;
@@ -27,8 +29,6 @@ interface HeaderProps {
 	toggleShowGrid: () => void;
 	handleAutoPosition: () => Promise<any>;
 	uploadLog: (matrixName: string, file: File) => void;
-	toggleShowLineThickness: () => void;
-	showLineThickness: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -39,6 +39,7 @@ const Header: React.FC<HeaderProps> = ({
 	setActiveMatrix,
 	toggleRainbowPredictions,
 	handleToPetriNet,
+	handleToPetriNetFile,
 	defaultMatrices,
 	customMatrices,
 	customLogs,
@@ -48,8 +49,6 @@ const Header: React.FC<HeaderProps> = ({
 	rainbowPredictions,
 	handleAutoPosition,
 	uploadLog,
-	toggleShowLineThickness,
-	showLineThickness,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -58,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({
 	}, []); // Empty dependency array ensures this runs on component mount
 
 	const handleCreateNew = () => {
-		const newName = prompt("Enter the name for the new graph:");
+		const newName = "New";
 		if (newName) {
 			createNewGraph(newName);
 		}
@@ -67,7 +66,6 @@ const Header: React.FC<HeaderProps> = ({
 	const handleOpenFromFile = async (
 		event: React.ChangeEvent<HTMLInputElement>
 	) => {
-		console.log("Reading file");
 		const file = event.target.files?.[0];
 		if (file) {
 			await readGraphFromFile(file);
@@ -147,9 +145,22 @@ const Header: React.FC<HeaderProps> = ({
 									}}>
 									<img
 										src={ImageIcon}
-										alt="PetriNet"
+										alt="PetriNetImg"
 									/>
 									Petri net picture
+								</a>
+							</MenuItem>
+							<MenuItem>
+								<a
+									href="#"
+									onClick={() => {
+										handleToPetriNetFile();
+									}}>
+									<img
+										src={DownloadIcon}
+										alt="PetriNetFile"
+									/>
+									Petri net pnml file
 								</a>
 							</MenuItem>
 						</div>
@@ -217,7 +228,6 @@ const Header: React.FC<HeaderProps> = ({
 													input.onchange = async (event: Event) => {
 														const file = (event.target as HTMLInputElement)
 															.files?.[0];
-														console.log("reading from file");
 														if (file) {
 															uploadLog(
 																matrix ? matrix : "Matrix",
@@ -251,7 +261,6 @@ const Header: React.FC<HeaderProps> = ({
 										input.onchange = async (event: Event) => {
 											const file = (event.target as HTMLInputElement)
 												.files?.[0];
-											console.log("reading from file");
 											if (file) {
 												const matrixName = prompt(
 													"Enter the name for the new matrix:"
@@ -303,19 +312,6 @@ const Header: React.FC<HeaderProps> = ({
 										onChange={toggleRainbowPredictions}
 									/>
 									<label>Color Predictions</label>
-								</a>
-							</MenuItem>
-							<MenuItem>
-								<a
-									href="#"
-									onClick={toggleShowLineThickness}>
-									<input
-										className="header-checkbox"
-										type="checkbox"
-										checked={showLineThickness}
-										onChange={toggleShowLineThickness}
-									/>
-									<label>Show Line Thickness</label>
 								</a>
 							</MenuItem>
 							<MenuItem>

@@ -17,8 +17,8 @@ app.secret_key = "your_secret_key"  # Required for session management
 CORS(app)
 
 app.config.update(
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=False,  # Set to True in production with https
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True,  # Set to True in production with https
 )
 
 # Paths to predefined matrices
@@ -313,6 +313,34 @@ def generate_petri_net():
         return send_file(petri_net_path, mimetype="image/jpeg")
     else:
         return jsonify({"error": "Petri net image not found"}), 404
+    
+@app.route("/api/generatePetriNetFile", methods=["POST"])
+def generate_petri_net_file():
+    """
+    Generate a Petri net from the current prediction session.
+    This function expects a graph input to convert.
+    """
+
+    if "prediction" not in session:
+        return jsonify(
+            {"error": "No active session found. Please start a session first."}
+        ), 400
+
+    # Initialize Prediction with last used matrix
+    prediction = Prediction.from_json(
+        session["prediction"],
+        matrices.get(session["lastUsedMatrix"])
+        or MyCsv.from_dict(
+            session.get("custom_matrices", {}).get(session["lastUsedMatrix"])
+        ),
+    )
+    petri_net_path = prediction.convert_to_petri_net_as_file()
+
+    # Check if the file exists before sending it
+    if os.path.exists(petri_net_path):
+        return send_file(petri_net_path)
+    else:
+        return jsonify({"error": "Petri net file not found"}), 404
 
 
 @app.route("/api/getVariants", methods=["POST"])
@@ -453,4 +481,4 @@ def cleanup(exception=None):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8081, host="localhost")
+    app.run()

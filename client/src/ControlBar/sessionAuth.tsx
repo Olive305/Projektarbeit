@@ -15,7 +15,7 @@ type MetricsResponse = {
 
 export class SessionAuth {
 	public sessionId: string | null = null;
-	private apiUrl: string = "http://localhost:8081/api";
+	private apiUrl: string = `${window.location.origin}/api`;
 	private isCalculatingPm4pyMetrics: boolean = false;
 	setSessionStarted: any;
 
@@ -92,7 +92,6 @@ export class SessionAuth {
 		);
 
 		const data = JSON.parse(JSON.stringify(response.data)); // Ensures response data is in JSON format
-		console.log(data)
 		return data;
 	}
 
@@ -108,6 +107,23 @@ export class SessionAuth {
 		const link = document.createElement("a");
 		link.href = url;
 		link.setAttribute("download", "petri_net.jpg");
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+	}
+
+	// Generate a Petri net from the provided graph input and download the image
+	async generatePetriNetFile(): Promise<void> {
+		if (!this.sessionId) throw new Error("Session has not been started.");
+
+		const response = await axios.post(`${this.apiUrl}/generatePetriNetFile`, null, {
+			responseType: "blob",
+		});
+
+		const url = window.URL.createObjectURL(new Blob([response.data]));
+		const link = document.createElement("a");
+		link.href = url;
+		link.setAttribute("download", "petri_net.pnml");
 		document.body.appendChild(link);
 		link.click();
 		link.remove();

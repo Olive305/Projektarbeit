@@ -573,7 +573,6 @@ class GraphController {
 	}
 
 	public deserializePredictNodes(data: string) {
-		console.log("getting predictions", data);
 		if (!data || typeof data !== "string")
 			throw new Error(
 				"Parsed data does not exist or is not a valid JSON string"

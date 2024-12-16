@@ -17,8 +17,11 @@ cd ..\server || exit /b
 echo Installing backend dependencies...
 pip install -r requirements.txt || exit /b
 
-:: Start backend in a new command window
-echo Starting the backend...
-start cmd /k "python main.py" || exit /b
+:: Install waitress if not already installed
+pip install waitress || exit /b
+
+:: Start backend using waitress
+echo Starting the backend with waitress...
+waitress-serve --port=8000 main:app || exit /b
 
 endlocal

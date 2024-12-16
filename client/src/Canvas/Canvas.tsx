@@ -777,66 +777,74 @@ const Canvas: React.FC<CanvasProps> = ({
 								setNodes(controller.nodes);
 							}}
 							onMouseEnter={(e) => {
+								if (selecting) return; // Check if selection rectangle is active
 								const container = e.target.getStage()?.container();
 								if (container) {
 									container.style.cursor = "pointer";
 								}
+								
+								node.isHovered = true;
+								setNodes(new Map(nodes));
 							}}
 							onMouseLeave={(e) => {
+								if (selecting) return; // Check if selection rectangle is active
 								const container = e.target.getStage()?.container();
 								if (container) {
 									container.style.cursor = "default";
 								}
+								
+								node.isHovered = false;
+								setNodes(new Map(nodes));
 							}}
-						>
-							{!node.isCircle ? (
-								<Rect
-									ref={(n) => {
-										node.rect = n;
-									}}
-									width={node.w}
-									height={node.h}
-									fill={
-										node.isPreview
-											? rainbowPredictions
-												? node.color
-												: "orange"
-											: node.isSelected
-											? "lightblue"
-											: "lightgray"
-									}
-									cornerRadius={5}
-									stroke={"black"}
-									strokeWidth={1.5}
-									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
-								/>
-							) : (
+							>
+								{!node.isCircle ? (
+									<Rect
+										ref={(n) => {
+											node.rect = n;
+										}}
+										width={node.w}
+										height={node.h}
+										fill={
+											node.isPreview
+												? rainbowPredictions
+													? node.color
+													: "orange"
+												: node.isSelected
+												? "lightblue"
+												: "lightgray"
+										}
+										cornerRadius={5}
+										stroke={node.isHovered && !node.isPreview && rainbowPredictions ? node.color : "black"}
+										strokeWidth={1.5}
+										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
+									/>
+								) : (
+									<Circle
+										ref={(n) => {
+											node.rect = n;
+										}}
+										// fix here
+										x={(gridSize * MyNode.w_val) / 2}
+										y={(gridSize * MyNode.h_val) / 2}
+										width={node.w}
+										height={node.w}
+										fill={
+											node.isPreview
+												? rainbowPredictions
+													? node.color
+													: "orange"
+												: node.isSelected
+												? "lightblue"
+												: "lightgray"
+										}
+										cornerRadius={5}
+										stroke={node.isHovered && !node.isPreview && rainbowPredictions ? node.color : "black"}
+										strokeWidth={1.5}
+										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
+									/>
+								)}
 								<Circle
 									ref={(n) => {
-										node.rect = n;
-									}}
-									// fix here
-									x={(gridSize * MyNode.w_val) / 2}
-									y={(gridSize * MyNode.h_val) / 2}
-									width={node.w}
-									height={node.w}
-									fill={
-										node.isPreview
-											? rainbowPredictions
-												? node.color
-												: "orange"
-											: node.isSelected
-											? "lightblue"
-											: "lightgray"
-									}
-									cornerRadius={5}
-									stroke={"black"}
-									strokeWidth={1.5}
-									opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
-								/>
-							)}
-							<Circle
-								ref={(n) => {
 									node.circleLeft = n;
 								}}
 								x={0}
@@ -883,6 +891,7 @@ const Canvas: React.FC<CanvasProps> = ({
 										fill="black"
 										x={5}
 										y={5}
+										fontSize={8}
 										listening={false}
 										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 									/>
@@ -894,6 +903,7 @@ const Canvas: React.FC<CanvasProps> = ({
 										fill="black"
 										x={5}
 										y={node.h - 15}
+										fontSize={8}
 										listening={false}
 										opacity={node.isPreview ? 0.7 : MyNode.nodeOpacity}
 									/>

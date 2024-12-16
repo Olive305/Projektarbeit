@@ -14,6 +14,7 @@ interface AuthContextProps {
 	changeMatrix: (matrixName: string, file?: File) => Promise<any>;
 	getAvailableMatrices: () => Promise<any>;
 	generatePetriNet: () => Promise<any>;
+	generatePetriNetFile: () => Promise<any>;
 	getMetrics: (
 		setVariantCoverage: (val: number) => void,
 		setEventLogCoverage: (val: number) => void
@@ -71,6 +72,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		return await sessionResponse.generatePetriNet();
 	};
 
+	const generatePetriNetFile = async () => {
+		return await sessionResponse.generatePetriNetFile();
+	};
+
 	const autoPosition = async () => {
 		return await sessionResponse.autoPosition();
 	};
@@ -117,6 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				changeMatrix,
 				getAvailableMatrices,
 				generatePetriNet,
+				generatePetriNetFile,
 				getMetrics,
 				predictOutcome,
 				testConnection,

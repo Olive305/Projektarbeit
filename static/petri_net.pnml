@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<pnml>
+  <net id="" type="http://www.pnml.org/version-2009/grammar/pnmlcoremodel">
+    <name>
+      <text></text>
+    </name>
+    <page id="n0">
+      <place id="source">
+        <name>
+          <text>source</text>
+        </name>
+        <initialMarking>
+          <text>1</text>
+        </initialMarking>
+      </place>
+      <place id="B">
+        <name>
+          <text>B</text>
+        </name>
+      </place>
+      <place id="sink">
+        <name>
+          <text>sink</text>
+        </name>
+      </place>
+      <place id="A">
+        <name>
+          <text>A</text>
+        </name>
+      </place>
+      <place id="C">
+        <name>
+          <text>C</text>
+        </name>
+      </place>
+      <transition id="A_1">
+        <name>
+          <text>A</text>
+        </name>
+      </transition>
+      <transition id="B_2">
+        <name>
+          <text>B</text>
+        </name>
+      </transition>
+      <transition id="C_3">
+        <name>
+          <text>C</text>
+        </name>
+      </transition>
+      <arc id="1525914194464" source="source" target="A_1"/>
+      <arc id="1525914193984" source="A" target="B_2"/>
+      <arc id="1525914195040" source="B_2" target="B"/>
+      <arc id="1525914194080" source="A_1" target="A"/>
+      <arc id="1525914195232" source="C_3" target="C"/>
+      <arc id="1525914195088" source="B" target="C_3"/>
+    </page>
+    <finalmarkings>
+      <marking>
+        <place idref="sink">
+          <text>1</text>
+        </place>
+      </marking>
+    </finalmarkings>
+  </net>
+</pnml>

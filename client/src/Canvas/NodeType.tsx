@@ -22,6 +22,7 @@ class MyNode {
 	color: string;
 	comment: string;
 	support: number;
+	isHovered: boolean;
 	private real_x: number;
 	private real_y: number;
 
@@ -62,6 +63,7 @@ class MyNode {
 		this.color = "";
 		this.comment = "";
 		this.support = support ? support : 0;
+		this.isHovered = false;
 
 		this.calculateRealPos();
 	}

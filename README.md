@@ -18,15 +18,7 @@
 # Start the Site
 
 - Run `start.sh` for Windows or `start.bat` for Linux and Mac to start the site (opens frontend and backend)
-- This starts the site in `localhost:8081`
-
-## Broken Features
-
-## Partially Broken Features
-
-- From a node with no edge going to it, the node is recognized as a node with an edge from the starting node, and therefore predictions are shown incorrectly.
-
-## Not Tested
+- This starts the site in `localhost:8000`
 
 ## Short Explanation of Key Features
 

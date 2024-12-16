@@ -39,7 +39,7 @@ matrix_paths = [
 # Paths to predefined logs
 logs_paths = {
     "PDC_2020_1211111_TrainTest": os.path.join(
-        project_folder, "logs", "pdc_2020_1211111.xes"
+        project_folder, "eventlogs", "pdc_2020_1211111.xes"
     )
 }
 

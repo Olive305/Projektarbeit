@@ -1,26 +1,18 @@
-# Installation
+# Installation and starting
 
-1. **Install Python**
-    - Download from the [official site](https://www.python.org/downloads/)
-    - Ensure Python is added to the PATH
+- Pull the GitHub repo (or just download the `my-app.tar` file).
+- Run the following commands in the location of the pulled/downloaded files to load the Docker image:
+    ```sh
+    docker load -i my-app.tar
+    ```
+- Run the following command in the same location to start the site (on `localhost:8000`):
+    ```sh
+    docker run -p 8000:8000 my-app
+    ```
 
-2. **Install Node.js**
-    - Download from the [official site](https://nodejs.org/en/download/package-manager)
-    - If npm is not working on Windows PowerShell, adjust the PowerShell Execution Policy:
-      ```powershell
-      Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-      ```
 
-3. **Install Graphviz**
-    - Download from the [official site](https://graphviz.org/download/)
-    - Ensure Graphviz is added to the PATH
 
-# Start the Site
-
-- Run `start.sh` for Windows or `start.bat` for Linux and Mac to start the site (opens frontend and backend)
-- This starts the site in `localhost:8000`
-
-## Short Explanation of Key Features
+# Short Explanation of Key Features
 
 (Maybe not up to date.)
 

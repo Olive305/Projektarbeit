@@ -7,7 +7,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Build the backend
-FROM python:3.9 AS backend
+FROM python:3.9-slim AS backend
 WORKDIR /app/server
 
 # Copy built frontend from Stage 1

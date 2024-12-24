@@ -52,11 +52,19 @@
 
 (Maybe not up to date.)
 
-- The canvas displays the graph as edges and nodes (directly follows the graph). The server sends predictions for nodes that should be attached, shown as green nodes with blue, dashed edges or in rainbow colors, based on which node the prediction is coming from. Clicking on such a prediction will select it.
-- Each prediction has a probability at which it should be shown as a preview. The **Probability Slider** (only shown when the auto probability checkbox is disabled) allows you to adjust the threshold for which predictions should be displayed. The higher the probability, the fewer predictions will be shown. There is also an option to automatically calculate the number of predictions to display. This function is enabled by default and can be toggled using the checkbox.
-- Clicking on existing nodes selects them. Once selected, you can delete, copy, and move them simultaneously. You can also select nodes using a **Lasso** (blue rectangle).
-- Right-clicking on nodes or edges opens a menu that allows you to delete them. More functions will be added later.
-- Above the canvas, where the graphs are displayed, there are buttons. The page always opens with a "New" button. These buttons act as tabs (the design will be further refined) and allow you to open multiple graphs simultaneously. In the **File** tab (top left), you can open new tabs, open existing files, or save the graph as a file.
-- The **"To Petri net"** button now downloads a Petri net representation as an image instead of opening a new tab with the Petri net.
-- At the top of the header is a **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions. It also shows an **Add Matrix** button, which allows you to add a custom CSV file for custom predictions. This matrix will only be used during the current session. It is possible to add multiple custom matrices during a session. It is also possible to remove added matrices.
+- The canvas displays the process as edges and nodes (directly follows graph). The server sends predictions for actions (nodes) which are displayed on the canvas in different colors with support and probability.
+
+- In the **Probability** section of the side bar, the **Probability Slider** allows you to adjust the threshold for which predictions should be displayed. The **Support Slider** does the same, but just for support. The higher the probability or support, the fewer predictions will be shown. There is also an option to automatically calculate the number of predictions to display, which disables the probablity and support slider. This function is enabled by default and can be toggled using the checkbox.
+
+
+- Clicking on existing nodes selects them. Once selected, you can delete and move all the selected nodes simultaneously. You can also select nodes using a **Lasso**.
+
+- Right-clicking on nodes or edges opens a menu that allows you to delete them and show more functions for them.
+
+- In the **header** there is the **File** button, opening a pop-up menu showing functions to create a new process tab, download the current process or save a generated petri net of the process as a picture or as a pnml file.
+
+- In the **header** there is the **Select Matrix** button. Clicking this button will display all available matrices, allowing you to switch between them. Switching the matrix will result in different node suggestions. It also shows an **Add Matrix** button, which allows you to add a custom CSV file for custom predictions.
+
+- In the **header** there is the **View** button, with functionality to change certain appearances of the page and also the function to auto position the graph for better visibility.
+
 - On the left control bar, there is an input to change the name of the current graph. Below that, there are three collapsible menus for the performance metrics, the probability, and the variants. In the variants menu, the variants of the process log are displayed. It is possible to search for keys inside the variants (multiple keys can be entered by separating them with a comma or a space). Furthermore, it is possible to sort them in different ways.

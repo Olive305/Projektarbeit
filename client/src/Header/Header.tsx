@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./header.css";
 import CloseIcon from "../assets/close_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
-import UploadFileIcon from "../assets/upload_file_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import SaveIcon from "../assets/save_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import ImageIcon from "../assets/image_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
 import FolderIcon from "../assets/folder_open_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg";
@@ -42,13 +41,11 @@ const Header: React.FC<HeaderProps> = ({
 	handleToPetriNetFile,
 	defaultMatrices,
 	customMatrices,
-	customLogs,
 	deleteMatrix,
 	toggleShowGrid,
 	showGrid,
 	rainbowPredictions,
 	handleAutoPosition,
-	uploadLog,
 }) => {
 	const [loading, setLoading] = useState(true); // Loading state to indicate API call
 
@@ -218,31 +215,7 @@ const Header: React.FC<HeaderProps> = ({
 												alt="Close"
 											/>
 										</button>
-										{!customLogs[matrix] && (
-											<button
-												className="uploadLogButton"
-												style={{ display: "inline-block", marginLeft: "10px" }}
-												onClick={(_) => {
-													const input = document.createElement("input");
-													input.type = "file";
-													input.onchange = async (event: Event) => {
-														const file = (event.target as HTMLInputElement)
-															.files?.[0];
-														if (file) {
-															uploadLog(
-																matrix ? matrix : "Matrix",
-																file
-															);
-														}
-													};
-													input.click();
-												}}>
-												<img
-													src={UploadFileIcon}
-													alt="Upload"
-												/>
-											</button>
-										)}
+										
 									</div>
 								</MenuItem>
 							))

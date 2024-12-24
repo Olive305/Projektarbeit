@@ -196,3 +196,18 @@ header {
     width: 20px; /* Adjust the size of the icons as needed */
     height: 20px;
 }
+
+/* Ensure each matrix item is displayed as a flex container */
+.matrix-item,
+.header-custom-matrix-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Style the buttons to be inline and have some margin */
+.matrix-item button,
+.header-custom-matrix-item button {
+    display: inline-block;
+    margin-left: 10px;
+}

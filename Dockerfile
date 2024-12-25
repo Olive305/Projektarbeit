@@ -10,6 +10,12 @@ RUN npm run build
 FROM python:3.9-slim AS backend
 WORKDIR /app/server
 
+# Install Graphviz on top of the Python base image
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    graphviz \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy built frontend from Stage 1
 COPY --from=frontend-builder /app/client/dist /app/server/static
 

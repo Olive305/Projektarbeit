@@ -10,7 +10,7 @@ type MatrixChangeResponse = {
 };
 
 type MetricsResponse = {
-	metrics: any; // Adjust type based on actual metrics data structure
+	metrics: any;
 };
 
 export class SessionAuth {
@@ -19,7 +19,6 @@ export class SessionAuth {
 	private isCalculatingPm4pyMetrics: boolean = false;
 	setSessionStarted: any;
 
-	// Start a new session with either a predefined matrix or a custom file upload
 	async startSession(matrixName: string, file?: File) {
 		if (this.sessionId) return;
 		const formData = new FormData();
@@ -44,7 +43,6 @@ export class SessionAuth {
 		}
 	};
 
-	// Change the matrix mid-session by selecting a new predefined matrix or uploading a custom file
 	async changeMatrix(
 		matrixName: string,
 		file?: File
@@ -66,7 +64,6 @@ export class SessionAuth {
 		return response.data;
 	}
 
-	// Add a log to an existing custom matrix
 	async addLog(matrixName: string, file: File): Promise<{ message: string }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -83,7 +80,6 @@ export class SessionAuth {
 		return response.data;
 	}
 
-	// Retrieve available predefined matrices
 	async getAvailableMatrices(): Promise<any> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -91,11 +87,10 @@ export class SessionAuth {
 			`${this.apiUrl}/getAvailableMatrices`
 		);
 
-		const data = JSON.parse(JSON.stringify(response.data)); // Ensures response data is in JSON format
+		const data = JSON.parse(JSON.stringify(response.data));
 		return data;
 	}
 
-	// Generate a Petri net from the provided graph input and download the image
 	async generatePetriNet(): Promise<void> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -112,7 +107,6 @@ export class SessionAuth {
 		link.remove();
 	}
 
-	// Generate a Petri net from the provided graph input and download the image
 	async generatePetriNetFile(): Promise<void> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -129,7 +123,6 @@ export class SessionAuth {
 		link.remove();
 	}
 
-	// Get metrics for a specific graph input
 	async getMetrics(
 		setVariantCoverage: any,
 		setEventLogCoverage: any
@@ -146,11 +139,9 @@ export class SessionAuth {
 		setEventLogCoverage(data.event_log_coverage);
 	}
 
-	// Get metrics for a specific graph input
 	async getPm4pyMetrics(
 		setFitness: any
 	) {
-		// do not calculate the metrics if it is already calculating
 		if (this.isCalculatingPm4pyMetrics) return false;
 		this.isCalculatingPm4pyMetrics = true
 
@@ -167,7 +158,6 @@ export class SessionAuth {
 		return true;
 	}
 
-	// Generate predictions based on the graph input
 	async predictOutcome(graphInput: any, matrix: string) {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -183,7 +173,6 @@ export class SessionAuth {
 		}
 	}
 
-	// Test server connection
 	async testConnection(): Promise<{ status: string }> {
 		const response: AxiosResponse<{ status: string }> = await axios.get(
 			`${this.apiUrl}/testConnection`
@@ -191,8 +180,6 @@ export class SessionAuth {
 
 		return response.data;
 	}
-
-	// Remove a custom matrix from the session
 	async removeMatrix(matrixName: string): Promise<{ message: string }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -204,7 +191,6 @@ export class SessionAuth {
 		return response.data;
 	}
 
-	// Automatically position the nodes of the current graph
 	async autoPosition(): Promise<{ positions: any }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
@@ -219,7 +205,6 @@ export class SessionAuth {
 		}
 	}
 
-	// Get variants based on the last used matrix
 	async getVariants(): Promise<{ variants: any }> {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 

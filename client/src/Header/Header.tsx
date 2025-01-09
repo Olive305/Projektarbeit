@@ -47,11 +47,11 @@ const Header: React.FC<HeaderProps> = ({
 	rainbowPredictions,
 	handleAutoPosition,
 }) => {
-	const [loading, setLoading] = useState(true); // Loading state to indicate API call
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		setLoading(false);
-	}, []); // Empty dependency array ensures this runs on component mount
+	}, []);
 
 	const handleCreateNew = () => {
 		const newName = "New";
@@ -78,7 +78,6 @@ const Header: React.FC<HeaderProps> = ({
 	return (
 		<header className="">
 			<nav className="">
-				{/* File Menu */}
 				<Menu
 					as="div"
 					className="">
@@ -100,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
 									</a>
 								)}
 							</MenuItem>
-							<hr className="header-my-2" /> {/* Horizontal line to separate items */}
+							<hr className="header-hr" />
 							<MenuItem>
 								{() => (
 									<a
@@ -133,7 +132,7 @@ const Header: React.FC<HeaderProps> = ({
 									Save
 								</a>
 							</MenuItem>
-							<hr className="header-my-2" /> {/* Horizontal line to separate items */}
+							<hr className="header-hr" />
 							<MenuItem>
 								<a
 									href="#"
@@ -193,7 +192,7 @@ const Header: React.FC<HeaderProps> = ({
 								</label>
 							)}
 						</div>
-						<hr className="header-my-2" /> {/* Horizontal line to separate items */}
+						<hr className="header-hr" />
 						{customMatrices.length > 0 ? (
 							customMatrices.map((matrix: any) => (
 								<MenuItem key={matrix}>
@@ -241,7 +240,7 @@ const Header: React.FC<HeaderProps> = ({
 												setActiveMatrix(
 													matrixName ? matrixName : "Matrix",
 													file
-												); // Use this to read and set the matrix
+												);
 											}
 										};
 										input.click();
@@ -288,7 +287,7 @@ const Header: React.FC<HeaderProps> = ({
 								</a>
 							</MenuItem>
 							<MenuItem>
-							<hr className="header-my-2" />
+							<hr className="header-hr" />
 							</MenuItem>
 							<MenuItem>
 								<a

@@ -153,7 +153,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				/>
 			</div>
 
-			<hr className="sidebar-my-2" />
+			<hr className="sidebar-hr" />
 
 			<div className="sidebar-collapsibleSection">
 				<button
@@ -200,7 +200,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				)}
 			</div>
 
-			<hr className="sidebar-my-2" />
+			<hr className="sidebar-hr" />
 
 			<div className="sidebar-collapsibleSection">
 				<button
@@ -303,7 +303,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 				)}
 			</div>
 
-			<hr className="sidebar-my-2" />
+			<hr className="sidebar-hr" />
 
 			<div className="sidebar-collapsibleSection">
 				<button

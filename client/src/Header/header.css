@@ -165,7 +165,7 @@ header {
 	transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.header-my-2 {
+.header-hr {
 	border: 1px solid #333;
 	margin: 0;
 	padding: 0;

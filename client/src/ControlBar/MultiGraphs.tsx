@@ -30,32 +30,26 @@ class MultiController {
 			const graphName = this.graphs[index][1];
 			const serializedData = graph.serializeGraph();
 
-			// Ensure there is data to download
 			if (!serializedData) {
 				console.error("No data to download.");
 				return;
 			}
 
-			// Create a Blob from the serialized graph data
 			const blob = new Blob([serializedData], { type: "application/json" });
 			const url = URL.createObjectURL(blob);
 
-			// Create an anchor element and set it up for download
 			const a = document.createElement("a");
 			a.href = url;
 			a.download = `${graphName}.json`;
 
-			// Append to the DOM to ensure it is clickable
 			document.body.appendChild(a);
 
-			// Trigger the download by programmatically clicking the link
 			a.click();
 
-			// Clean up by removing the anchor and revoking the Blob URL
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
 		} catch (error) {
-			console.error("Error during file download:", error);
+			console.error("Error when downloading file:", error);
 		}
 	}
 
@@ -74,15 +68,13 @@ class MultiController {
 		);
 	}
 
-	// Function to copy selected nodes from a specific graph
 	public copySelectedNodes(index: number) {
 		const graph = this.graphs[index][0];
 		const selectedNodesData = graph.serializeGraph();
-		localStorage.setItem("copiedNodes", selectedNodesData); // Store in localStorage
-		navigator.clipboard.writeText(selectedNodesData); // Optionally copy to clipboard
+		localStorage.setItem("copiedNodes", selectedNodesData);
+		navigator.clipboard.writeText(selectedNodesData);
 	}
 
-	// Function to paste nodes into a specific graph
 	public pasteNodesIntoGraph(index: number) {
 		const graph = this.graphs[index][0];
 		const copiedNodesData = localStorage.getItem("copiedNodes");

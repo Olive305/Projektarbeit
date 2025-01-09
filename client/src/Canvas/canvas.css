@@ -2,7 +2,7 @@
 	margin: 0;
 	padding: 0;
 	width: 100%;
-	height: 100%; /* Set height to 100% to fill the parent container */
+	height: 100%;
 	overflow: hidden;
 	border: 1px solid grey;
 }
@@ -10,17 +10,18 @@
 .canvas-popover {
 	position: absolute;
 	padding: 0.5rem;
-	z-index: 1000;
-	width: 14rem; /* Set a fixed width similar to the dropdown menu */
-	border-radius: 0.5rem; /* rounded-md */
-	background-color: rgba(255, 255, 255, 0.3); /* Semi-transparent background */
-	backdrop-filter: blur(5px); /* Blur effect */
+	z-index: 999;
+	width: 14rem;
+	border-radius: 0.5rem;
+	background-color: rgba(255, 255, 255, 0.33);
+	backdrop-filter: blur(5px);
 	border: 1px solid gray;
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	transition: transform 0.1s ease-out, opacity 0.1s ease-out;
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+	
 }
 
 .canvas-popover p {
@@ -63,7 +64,6 @@
 	overflow: hidden;
 }
 
-/* Styling for the canvas */
 .canvas {
 	width: 100%;
 	height: 100%;

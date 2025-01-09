@@ -69,10 +69,10 @@ class Prediction:
         self.supportDict: dict = {}  # {nodeId: support} not serialized and deserialized
 
     def to_dict(self):
-        # Serialize each node in nodes and preview_nodes using their to_dict method, if nodes are not empty
+        # Serialize all nodes
         nodes_dict = {node.id: node.to_dict() for node in self.nodes.values()}
 
-        # Convert tuple keys in posMatrix to strings for JSON compatibility
+        # Convert tuple keys in posMatrix to strings that it works for JSON
         posMatrix_serialized = {
             f"{key[0]},{key[1]}": value for key, value in self.posMatrix.items()
         }
@@ -94,7 +94,6 @@ class Prediction:
             "generalization": self.generalization,
             "supportMin": self.supportMin,
         }
-        
 
     @classmethod
     def from_dict(cls, data, matrix):
@@ -117,7 +116,7 @@ class Prediction:
             for key, value in data["posMatrix"].items()
         }
 
-        # Continue with the remaining attributes
+        # Do the remaining attributes
         prediction.preview_nodes = data["preview_nodes"]
         prediction.edges = data["edges"]
         prediction.actualKeySet = data["actualKeySet"]
@@ -142,7 +141,7 @@ class Prediction:
 
     @staticmethod
     def from_json(json_data, matrix):
-        # Deserialize JSON to a Prediction object
+        # Deserialize JSON to a prediction object
         data = json.loads(json_data)
         return Prediction.from_dict(data, matrix)
 
@@ -151,11 +150,24 @@ class Prediction:
 
         gap_size_dict = {}
         visited_nodes = set()
-        
-        # get all initial nodes (node with no incoming edges)
-        initial_nodes = (set(self.nodes.keys()) - set([edge for edgeEndList in self.edges.values() for edge in edgeEndList])) - set(self.preview_nodes) - set(["starting_with_key:0"])
 
-        # recursive function to calculate all gap sizes
+        # Get all initial nodes (node with no incoming edges)
+        initial_nodes = (
+            (
+                set(self.nodes.keys())
+                - set(
+                    [
+                        edge
+                        for edgeEndList in self.edges.values()
+                        for edge in edgeEndList
+                    ]
+                )
+            )
+            - set(self.preview_nodes)
+            - set(["starting_with_key:0"])
+        )
+
+        # Gecursive function to calculate all gap sizes
         def gap_size(node):
             visited_nodes.add(node)
             if (
@@ -182,24 +194,24 @@ class Prediction:
         lastGapSize = 0
         lastGapSize += gap_size("starting_with_key:0")
 
-        # store only position of the starting node
+        # store only the position of the starting node
         x = self.nodes["starting_with_key:0"].x
         y = self.nodes["starting_with_key:0"].y
 
         self.posMatrix = {(x, y): "starting_with_key:0"}
-        
+
         for node in initial_nodes:
             gap = gap_size(node)
-            
-            # store position of remaining starting nodes
+
+            # Store position of remaining starting nodes
             x = self.nodes["starting_with_key:0"].x
             y = self.nodes["starting_with_key:0"].y + lastGapSize + gap // 2
-            
+
             self.nodes[node].x = x
             self.nodes[node].y = y
-            
+
             self.posMatrix[(x, y)] = node
-            
+
             lastGapSize += gap
 
         # Use a queue for BFS
@@ -248,21 +260,27 @@ class Prediction:
                 queue.append(edgeEnd)
 
         self.positionNodes()
-        
+
     def getPm4pyMetrics(self, log):
-        import concurrent.futures
 
         # Initialize metrics to default values
         metrics = {
-            "fitness": -1.,
-            "simplicity": -1.,
-            "precision": -1.,
-            "generalization": -1.,
+            "fitness": -1.0,
+            "simplicity": -1.0,
+            "precision": -1.0,
+            "generalization": -1.0,
         }
 
         # Check if the Petri net is empty
         if len(self.edges) < 1:
-            metrics.update({"fitness": 0., "simplicity": 0., "precision": 0., "generalization": 0.})
+            metrics.update(
+                {
+                    "fitness": 0.0,
+                    "simplicity": 0.0,
+                    "precision": 0.0,
+                    "generalization": 0.0,
+                }
+            )
             return json.dumps(metrics)
 
         if log is not None and len(self.edges) > 0:
@@ -284,34 +302,45 @@ class Prediction:
             # Define start and end activities
             start_activities = {edge for edge in self.edges["starting_with_key:0"]}
             end_activities = {
-                edge for edge in self.edges if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+                edge
+                for edge in self.edges
+                if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
             }
 
-            # Convert DFG to Petri net with parameters
-            parameters = {"start_activities": start_activities, "end_activities": end_activities}
+            # Convert DFG to Petri netusing the parameters
+            
+            parameters = {
+                "start_activities": start_activities,
+                "end_activities": end_activities,
+            }
 
             try:
-                net, initial_marking, final_marking = dfg_to_petri_net(dfg, parameters=parameters)
+                net, initial_marking, final_marking = dfg_to_petri_net(
+                    dfg, parameters=parameters
+                )
             except Exception as e:
-                raise ValueError(f"Error converting DFG to Petri Net: {e}")
+                raise ValueError(f"Error converting the DFG to Petri Net: {e}")
 
             try:
                 # Calculate the fitness metric
                 fitness_result = pm4py.algo.evaluation.replay_fitness.algorithm.apply(
-                    log, net, initial_marking, final_marking, None,
-                    pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED
+                    log,
+                    net,
+                    initial_marking,
+                    final_marking,
+                    None,
+                    pm4py.algo.evaluation.replay_fitness.algorithm.Variants.TOKEN_BASED,
                 )
                 metrics["fitness"] = fitness_result["log_fitness"]
                 metrics["simplicity"] = 0
                 metrics["precision"] = 0
                 metrics["generalization"] = 0
             except Exception as e:
-                raise ValueError(f"Error calculating metrics: {e}")
+                raise ValueError(f"Error calculating the metrics: {e}")
 
         return json.dumps(metrics)
 
     def getMetrics(self):
-
         serializedMetrics = {}
         event_log_coverage = self.matrix.get_event_log_coverage(self.edges)
 
@@ -337,7 +366,7 @@ class Prediction:
             return True
 
         def position_batch(starting_pos, nodes):
-            # sort the nodes by the probability of the node
+            # Sort the nodes by the probability of the node
             nodes.sort(key=lambda node: self.nodeProbDict[node], reverse=True)
 
             for node in nodes_to_position:
@@ -357,8 +386,8 @@ class Prediction:
             # get the number of nodes to position in this batch
             numNodes = len(nodes_to_position)
 
-            # get the starting position of the batch
-            # first we try the default position with the batch centered on the right to the node
+            # Get the starting position of the batch
+            # First we try the default position with the batch centered on the right to the node
             starting_pos = (
                 self.nodes[edge_start].x + 1,
                 round(self.nodes[edge_start].y - numNodes / 2)
@@ -397,9 +426,8 @@ class Prediction:
                 # if no position was found, we increase the x position of the batch
                 normal_pos = (normal_pos[0] + 1, normal_pos[1])
                 starting_pos = normal_pos
-                
-    def convert_to_petri_net_as_file(self):
 
+    def convert_to_petri_net_as_file(self):
         # Define a DFG (Directly Follows Graph) from nodes and edges
         dfg = {}
         for edgeStart in self.edges:
@@ -418,31 +446,35 @@ class Prediction:
         # Define start and end activities
         start_activities = {edge for edge in self.edges["starting_with_key:0"]}
         end_activities = {
-            edge for edge in self.edges if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
+            edge
+            for edge in self.edges
+            if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
         }
 
-        # Convert DFG to Petri net with parameters
+        # Convert DFG to Petri net
         parameters = {
             "start_activities": start_activities,
             "end_activities": end_activities,
         }
 
         try:
-            net, initial_marking, final_marking = dfg_to_petri_net(dfg, parameters=parameters)
+            net, initial_marking, final_marking = dfg_to_petri_net(
+                dfg, parameters=parameters
+            )
         except Exception as e:
             raise ValueError(f"Error converting DFG to Petri Net: {e}")
-        
+
         # Ensure the static directory exists
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         os.makedirs(static_dir, exist_ok=True)
-        
+
         file_path = os.path.join(static_dir, "petri_net.pnml")
 
         try:
             # Write the Petri net to a .pnml file
             pm4py.write_pnml(net, initial_marking, final_marking, file_path)
 
-            # Return the absolute path to the PNML file
+            # Return the path to the PNML file
             return os.path.abspath(file_path)
         except Exception as e:
             raise ValueError(f"Error writing Petri Net to PNML file: {e}")
@@ -471,7 +503,7 @@ class Prediction:
             if len(self.edges[edge]) == 0 or "[EOC]" in self.edges[edge]
         }
 
-        # Convert DFG to Petri net with parameters
+        # Convert DFG to Petri net
         parameters = {
             "start_activities": start_activities,
             "end_activities": end_activities,
@@ -562,7 +594,9 @@ class Prediction:
         numNodesToAdd = round(2 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
         predictions = self.matrix.predict_using_edges(
-            self.edges, self.probMin if not self.auto else self.AUTO_PROB_MIN, self.supportMin if not self.auto else 1
+            self.edges,
+            self.probMin if not self.auto else self.AUTO_PROB_MIN,
+            self.supportMin if not self.auto else 1,
         )
 
         for prediction in predictions:
@@ -671,7 +705,7 @@ class Prediction:
             self.getAvailableKey() if isPreview else givenKey, 0, 0, givenKey, isPreview
         )
 
-        # Add the new node to nodes and establish the edge
+        # Add the new node to nodes and add the edge
         self.nodes[newNode.id] = newNode
         self.nodeProbDict[newNode.id] = probability
         self.addEdge(edge_start, newNode.id)
@@ -732,7 +766,7 @@ class Prediction:
         return sequences
 
     def getAvailableKey(self):
-        # get the smallest key from the deleted keys list if possible
+        # Get the smallest key from the deleted keys list if possible
         if self.deletedKeys:  # check if list is empty
             return self.deletedKeys.pop()
 
@@ -746,7 +780,7 @@ class Prediction:
     def deserializeGraph(self, graph_json_str):
         graph = json.loads(graph_json_str)  # Convert JSON string to Python dict
 
-        # delete existing info
+        # Delete existing info
         self.nodes = {}
         self.edges = {}
         self.deletedKeys = []
@@ -770,11 +804,11 @@ class Prediction:
             actualKey = node.get("actualKey")
             isPreview = node.get(
                 "isPreview", False
-            )  # Set default value to False if not provided
+            )  
 
             n = Node(
                 node_id, x, y, actualKey, isPreview
-            )  # Now passing isPreview as well
+            )  
             self.nodes[node_id] = n
             self.posMatrix[(x, y)] = node_id
             self.edges[node_id] = []
@@ -803,7 +837,7 @@ class Prediction:
                     returnNodes[edgeEnd] = {
                         "nodeId": edgeEnd,
                         "edgeStart": edgeStart,
-                        "node": self.nodes[edgeEnd].to_dict(),  # Convert Node to dict
+                        "node": self.nodes[edgeEnd].to_dict(),
                         "probability": self.nodeProbDict[edgeEnd],
                         "support": self.supportDict[edgeEnd],
                     }

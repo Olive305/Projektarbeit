@@ -32,7 +32,7 @@ const App: React.FC = () => {
 	const [sessionStarted, setSessionStarted] = useState(false);
 	const [activeTabIndex, setActiveTabIndex] = useState(0);
 	const [rainbowPredictions, setRainbowPredictions] = useState(true);
-	const [showGrid, setShowGrid] = useState(true);
+	const [showGrid, setShowGrid] = useState(true);	
 
 	const [activeName, setActiveName] = useState("");
 
@@ -40,11 +40,11 @@ const App: React.FC = () => {
 		useState<GraphController | null>(null);
 	const [tabs, setTabs] = useState(multiController.current.graphs);
 
-	const [matrices, setMatrices] = useState<string[]>([]); // Matrices fetched from API
-	const [customMatrices, setCustomMatrices] = useState<string[]>([]); // Custom matrices uploaded by user
+	const [matrices, setMatrices] = useState<string[]>([]);
+	const [customMatrices, setCustomMatrices] = useState<string[]>([]);
 	const [matrixMaxSupport, setMatrixMaxSupport] = useState<{ [key: string]: number }>({});
 	const [supportMax, setSupportMax] = useState(1);
-	const [customLogs, setCustomLogs] = useState<string[]>([]); // Custom logs uploaded by user
+	const [customLogs, setCustomLogs] = useState<string[]>([]);
 
 	const [fitness, setFitness] = useState(0);
 	const [variantCoverage, setVariantCoverage] = useState(0);
@@ -56,7 +56,7 @@ const App: React.FC = () => {
 
 	const [showLineThickness, _] = useState(false);
 
-	// Initialize session on initial render only once
+	// Initialize session when site starts (on first render)
 	useEffect(() => {
 		if (!sessionStarted && sessionId === null) {
 			startSession("Simple IOR Choice")
@@ -80,7 +80,6 @@ const App: React.FC = () => {
 		}
 	}, [activeGraphController, matrixMaxSupport]);
 
-	// Set initial graph controller on initial render
 	useEffect(() => {
 		if (multiController.current.graphs.length === 0) {
 			multiController.current.createNewGraph("New", handlePredictOutcome);
@@ -91,7 +90,6 @@ const App: React.FC = () => {
 		setActiveName(multiController.current.graphs[activeTabIndex][1]);
 	}, [predictOutcome]);
 
-	// Update preview nodes whenever session starts
 	useEffect(() => {
 		if (sessionStarted && activeGraphController) {
 			activeGraphController.get_preview_nodes();
@@ -162,7 +160,7 @@ const App: React.FC = () => {
 		) {
 			multiController.current.graphs[activeTabIndex][1] = name;
 		}
-		setTabs([...multiController.current.graphs]); // Update tabs state
+		setTabs([...multiController.current.graphs]);
 	};
 
 	const handleUploadLog = async (matrixName: string, file: File) => {
@@ -183,11 +181,11 @@ const App: React.FC = () => {
 
 			setVariants(await getVariantsFromDict());
 
-			// Update metrics for the new active tab
+			// Update metrics for the clicked tab
 			handleGetMetrics(
 			);
 		} else {
-			console.error("Controller is undefined or null");
+			console.error("Controller is not defined");
 		}
 	};
 
@@ -229,7 +227,7 @@ const App: React.FC = () => {
 
 		setVariants(await getVariantsFromDict());
 
-		// Update metrics for the new active tab
+		// Update metrics for the clicked tab
 		handleGetMetrics(
 		);
 	};
@@ -368,7 +366,7 @@ if (container) {
 	const root = createRoot(container);
 	root.render(<App />);
 } else {
-	console.error("Could not find root container element.");
+	console.error("Couldnt find root container element.");
 }
 
 export default App;

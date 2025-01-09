@@ -7,7 +7,7 @@ class GraphController {
 	public edges: [string, string][];
 	public selectedNodes: string[];
 	public listeners: (() => void)[];
-	public deletedKeys: string[]; // List to store keys of deleted nodes
+	public deletedKeys: string[];
 	public probabilityMin: number;
 	public showPreview: boolean;
 	public supportMin: number;
@@ -17,7 +17,7 @@ class GraphController {
 	public activeMatrix: string;
 	public getPredictions: any;
 
-	static readonly node_distance: number = 3; // distance between two nodes
+	static readonly node_distance: number = 3;
 
 	public isGettingPreviewNodes: boolean;
 	public auto: boolean;
@@ -25,7 +25,6 @@ class GraphController {
 	public sequences: any[][]; // List of tuples with arbitrary length
 
 
-	// constructor for the GraphController
 	public constructor(
 		gridSize: number,
 		showPreview?: boolean,
@@ -38,7 +37,7 @@ class GraphController {
 		this.edges = [];
 		this.selectedNodes = [];
 		this.listeners = [];
-		this.deletedKeys = []; // Initialize the deleted keys list
+		this.deletedKeys = [];
 		this.calls = 0;
 		this.probabilityMin = 0.3;
 		this.showPreview =
@@ -79,7 +78,7 @@ class GraphController {
 			"#EE82EE", // Violet
 			"#FFD700", // Gold
 			"#D2691E", // Chocolate
-			"#FF4500", // OrangeRed
+			"#FF4500", // Orangered
 		];
 
 		let excludeColors = [];
@@ -92,7 +91,7 @@ class GraphController {
 			}
 		}
 
-		// Linear congruential generator (LCG) formula: (multiplier * x + increment) % modulus
+		// linear congruential generator (LCG)
 		let i = (7 * this.nodes.size + 3) % colorList.length;
 
 		// increase the color until it is not in the excluded list
@@ -229,7 +228,6 @@ class GraphController {
 
 			n.isPreview = false;
 
-			// If node exists in the collection, update edges that reference the old key
 			if (!this.nodes.has(n.id)) {
 				this.nodes.set(n.id, n);
 				this.calculateColor(n.id);
@@ -237,7 +235,7 @@ class GraphController {
 
 			const edge = this.edges.find((e) => e[1] === oldKey || e[0] === oldKey);
 			if (edge) {
-				// Update edge's source or target depending on what matches oldKey
+				// Update edges start or end
 				if (edge[0] === oldKey) {
 					edge[0] = n.id;
 				}
@@ -249,7 +247,7 @@ class GraphController {
 				if (edgeEnd) edgeEnd.support += n.support;
 			}
 
-			// Finally, remove the old node from the collection
+			// remove the old node from the collection
 			this.nodes.delete(oldKey);
 
 			this.get_preview_nodes();
@@ -263,14 +261,13 @@ class GraphController {
 			this.selectedNodes.push(n.id);
 			n.isSelected = true;
 		}
-		// If node is already selected, unselect and update
+		// If node is already selected, remove from selected list
 		else {
 			// Remove node from selectedNodes
 			this.selectedNodes = this.selectedNodes.filter((id) => id !== n.id);
 			n.isSelected = false;
 		}
 
-		// Notify listeners about the update
 		this.notifyListeners();
 	}
 
@@ -313,7 +310,7 @@ class GraphController {
 		width: number;
 		height: number;
 	}) {
-		this.unselectAllNodes(); // First, unselect all nodes
+		this.unselectAllNodes();
 
 		this.nodes.forEach((node) => {
 			if (this.preview_nodes.includes(node.id)) {
@@ -417,50 +414,46 @@ class GraphController {
 	}
 
 	public async get_preview_nodes() {
-		// Prevent multiple calls from running concurrently
 		if (this.isGettingPreviewNodes || !this.showPreview) return;
 		this.isGettingPreviewNodes = true;
 
 		try {
-			// Remove old preview nodes and associated edges
+			// Delete old preview nodes and their edges
 			this.preview_nodes = this.preview_nodes.filter((nodeKey) => {
 				const currentNode = this.nodes.get(nodeKey);
 				if (currentNode?.isPreview) {
-					// Remove the preview node and track it
 					this.nodes.delete(nodeKey);
 					this.deletedKeys.push(nodeKey);
-					return false; // Indicate that the node has been deleted
+					return false;
 				}
-				return true; // Keep the node in preview_nodes if it wasn't deleted
+				return true;
 			});
 
-			// Filter out edges associated with deleted nodes
 			this.edges = this.edges.filter(
 				(edge) =>
 					!this.deletedKeys.includes(edge[0]) &&
 					!this.deletedKeys.includes(edge[1])
 			);
 
-			// Fetch new preview nodes from the backend
+			// fetch preview nodes from backend
 			const response = await this.getPredictions(
 				this.serializeGraph(),
 				this.activeMatrix
 			);
 
-			// Check if the response is valid and contains predictions
+			// Check if the response has rigth format
 			if (response && response.predictions) {
-				// Deserialize and add new preview nodes
+				// Deserialize
 				this.deserializePredictNodes(response.predictions);
 			} else {
-				console.error("Invalid response format:", response);
+				console.error("Invalid response:", response);
 			}
 
-			// Notify listeners of the update
 			this.notifyListeners();
 		} catch (error) {
 			console.error("Error in get_preview_nodes:", error);
 		} finally {
-			// Reset the flag to allow future calls
+			// allow calling this again
 			this.isGettingPreviewNodes = false;
 		}
 	}
@@ -506,7 +499,7 @@ class GraphController {
 			const graphData = JSON.parse(data);
 			const new_ids: [string, string][] = [];
 
-			// Clear existing nodes and edges
+			// Remove existing nodes and edges
 			this.nodes.clear();
 			this.edges = [];
 			this.deletedKeys = [];
@@ -532,14 +525,12 @@ class GraphController {
 				node.color = nodeData.color;
 				node.comment = nodeData.comment;
 
-				// Map old ID to new ID
+				// Map old Id to new id
 				new_ids.push([nodeData.id, node.id]);
 
-				// Add node to the graph
 				this.addMyRect(node);
 			});
 
-			// Deserialize edges, mapping old IDs to new IDs
 			graphData.edges.forEach((edge: [string, string]) => {
 				const sourceId = new_ids.find((x) => x[0] === edge[0])?.[1];
 				const targetId = new_ids.find((x) => x[0] === edge[1])?.[1];
@@ -549,27 +540,25 @@ class GraphController {
 					this.edges.push([sourceId, targetId]);
 				} else {
 					console.warn(
-						`Skipping edge due to missing source or target: ${edge[0]} -> ${edge[1]}`
+						`Skipped edge because of missing start or end: ${edge[0]} -> ${edge[1]}`
 					);
 				}
 			});
 
-			// Set remaining properties from deserialized data
 			this.deletedKeys = graphData.deletedKeys;
 			this.activeMatrix = graphData.matrix;
 			this.probabilityMin = graphData.probability;
 			this.supportMin = graphData.support;
 			this.auto = graphData.auto;
 		} catch (error) {
-			console.error("Failed to deserialize graph:", error);
-			throw new Error("Deserialization error: Graph data is malformed.");
+			console.error("Cant deserialize graph:", error);
 		}
 	}
 
 	public deserializePredictNodes(data: string) {
 		if (!data || typeof data !== "string")
 			throw new Error(
-				"Parsed data does not exist or is not a valid JSON string"
+				"Parsed data has wrong form"
 			);
 
 		let parsedData;
@@ -586,26 +575,23 @@ class GraphController {
 		const prevNodes = parsedData.returnNodes;
 		this.deletedKeys = [];
 
-		// Iterate over deletedKeys and check if they exist in parsedData
+		// Loop over deleted keys and check if they exist in parsedData
 		for (const delKey of parsedData.deletedKeys) {
 			if (parsedData.hasOwnProperty(delKey)) {
 				this.deletedKeys.push(delKey);
 			}
 		}
 
-		// Iterate over the keys of the object
 		for (const id in prevNodes) {
 			if (prevNodes.hasOwnProperty(id)) {
-				const nodeData = prevNodes[id]; // Get the node data for each edgeEnd
-				const previous = nodeData.edgeStart; // Extract the edgeStart
-				const node = nodeData.node; // Extract the node details
+				const nodeData = prevNodes[id];
+				const previous = nodeData.edgeStart;
+				const node = nodeData.node;
 				const probability = nodeData.probability;
-				const support = nodeData.support; // Extract the support value
+				const support = nodeData.support;
 
-				// Add to preview nodes
 				this.preview_nodes.push(id);
 
-				// Add node to the grid (assuming addMyRect takes parameters: MyNode instance and a boolean flag)
 				this.addMyRect(
 					new MyNode(
 						id,
@@ -618,7 +604,7 @@ class GraphController {
 						node.actualKey,
 						false,
 						probability,
-						support // Pass the support value
+						support
 					)
 				);
 
@@ -626,7 +612,6 @@ class GraphController {
 				const prevNode = this.nodes.get(previous);
 				if (newNode && prevNode) newNode.color = prevNode.color;
 
-				// Add the edge information
 				this.edges.push([previous, id]);
 			}
 		}
@@ -637,11 +622,10 @@ class GraphController {
 	public deserializeNodePositions(data: any) {
 		let nodeData = JSON.parse(data.positions);
 
-		// Iterate over the keys of the object
 		for (const id in nodeData) {
 			if (nodeData.hasOwnProperty(id)) {
-				const nodePos = nodeData[id]; // Get the node data for each edgeEnd
-				const node = this.nodes.get(id); // Extract the node details
+				const nodePos = nodeData[id];
+				const node = this.nodes.get(id);
 
 				if (node) {
 					node.set_x(nodePos[0]);
@@ -654,66 +638,57 @@ class GraphController {
 	}
 
 	public deserializePetriNet(petriNet: any) {
-		// First, ensure this.petriNet and this.petriNet.net are defined
 		if (!petriNet || !petriNet.net) {
-			throw new Error("petriNet data is missing or malformed.");
+			throw new Error("petriNet data hs wrong form");
 		}
 
-		const netData = JSON.parse(petriNet.net); // Access the `net` object
-		const new_ids: [string, string][] = []; // Store old-to-new ID mappings
+		const netData = JSON.parse(petriNet.net);
+		const new_ids: [string, string][] = [];
 
-		// Now, check for the existence of `places`, `transitions`, and `arcs`
 		if (!netData.places || !netData.transitions || !netData.arcs) {
 			throw new Error(
-				"netData is missing one or more properties: 'places', 'transitions', or 'arcs'."
+				"net data is malformed. (Either places, arcs or tranistions missing)"
 			);
 		}
 
 		// Deserialize places
 		netData.places.forEach((place: any) => {
 			const placeNode: MyNode = new MyNode(
-				place.id, // Place ID
-				place.x + MyNode.w_val, // Adjusted X-coordinate
-				place.y + MyNode.h_val, // Adjusted Y-coordinate
-				this.gridSize, // Grid size
-				"", // Label (using place ID as label for places)
+				place.id,
+				place.x + MyNode.w_val,
+				place.y + MyNode.h_val,
+				this.gridSize,
+				"",
 				this.nodeOnClick.bind(this),
 				false,
 				place.id,
 				true
 			);
 
-			// Map old ID to new ID
 			new_ids.push([place.id, placeNode.id]);
 
-			// Add the place node to the graph
 			this.addMyRect(placeNode);
 		});
 
-		// Deserialize transitions
 		netData.transitions.forEach((transition: any) => {
 			const transitionNode: MyNode = new MyNode(
-				transition.id, // Transition ID
-				transition.x + MyNode.w_val, // Adjusted X-coordinate
-				transition.y + MyNode.h_val, // Adjusted Y-coordinate
-				this.gridSize, // Grid size
-				transition.label, // Label (using transition label)
-				this.nodeOnClick.bind(this), // Click handler
-				false, // Transition is not a place
-				undefined, // Custom options (if any)
-				false // Mark as a transition
+				transition.id, 
+				transition.x + MyNode.w_val,
+				transition.y + MyNode.h_val,
+				this.gridSize,
+				transition.label,
+				this.nodeOnClick.bind(this), 
+				false, 
+				undefined, 
+				false
 			);
 
-			// Map old ID to new ID
 			new_ids.push([transition.id, transitionNode.id]);
 
-			// Add the transition node to the graph
 			this.addMyRect(transitionNode);
 		});
 
-		// Deserialize arcs (edges between places and transitions)
 		netData.arcs.forEach((arc: any) => {
-			// Find the corresponding new IDs for the arc
 			const sourceId = new_ids.find((x) => x[0] === arc.source)?.[1];
 			const targetId = new_ids.find((x) => x[0] === arc.target)?.[1];
 
@@ -721,10 +696,9 @@ class GraphController {
 				console.warn(
 					`Missing source or target for arc: ${arc.source} -> ${arc.target}`
 				);
-				return; // Skip this arc if mapping is not found
+				return;
 			}
 
-			// Add the arc (edge) to the graph
 			this.addEdge(sourceId, targetId);
 		});
 	}

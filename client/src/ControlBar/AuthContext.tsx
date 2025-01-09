@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { SessionAuth } from "./sessionAuth";
 
-// Define AuthContext structure with types for TypeScript
 interface AuthContextProps {
 	sessionId: string | null;
 	startSession: (matrixName: string, file?: File) => Promise<void>;
@@ -30,7 +29,6 @@ interface AuthContextProps {
 	) => Promise<void>;
 }
 
-// Add children prop in AuthProviderProps
 interface AuthProviderProps {
 	children: ReactNode;
 }
@@ -43,7 +41,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const [sessionResponse] = useState(new SessionAuth());
 	const [sessionId, setSessionId] = useState<string | null>(null);
 
-	// Define functions that will be available through context
 	const startSession = async (matrixName: string, file?: File) => {
 		await sessionResponse.startSession(matrixName, file);
 		setSessionId(sessionResponse.sessionId);
@@ -51,11 +48,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 	const changeMatrix = async (matrixName: string, file?: File) => {
 		const response = await sessionResponse.changeMatrix(matrixName, file);
-		return response; // Keep the type consistent with MatrixChangeResponse
+		return response;
 	};
 
 	const removeMatrix = async (matrixName: string) => {
-		if (!sessionId) throw new Error("Session has not been started.");
+		if (!sessionId) throw new Error("Session did not start.");
 		const response = await sessionResponse.removeMatrix(matrixName);
 		return response;
 	};
@@ -137,11 +134,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	);
 };
 
-// Hook to use AuthContext in other components
 export const useAuth = () => {
 	const context = useContext(AuthContext);
 	if (context === undefined) {
-		throw new Error("useAuth must be used within an AuthProvider");
+		throw new Error("useAuth must be used in a AuthProvider");
 	}
 	return context;
 };

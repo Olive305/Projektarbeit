@@ -1,6 +1,4 @@
 import pandas as pd
-import math
-import time
 
 
 class MyCsv:
@@ -27,11 +25,19 @@ class MyCsv:
     @classmethod
     def from_dict(cls, data):
         matrix = cls()
-
+        
+        # Convert dictionary back to DataFrame
         matrix.df = pd.DataFrame.from_dict(
             data["df"]
-        )  # Convert dictionary back to DataFrame
-        matrix.df = matrix.df.map(lambda x: tuple(x) if isinstance(x, list) else x)
+        )  
+        
+        # function to use in the map
+        def convert_to_tuple(x):
+            if isinstance(x, list):
+                return tuple(x)
+            return x
+        
+        matrix.df = matrix.df.map(convert_to_tuple)
         matrix.cached_prefixes = data["cached_prefixes"]
         matrix.probability_columns = data["probability_columns"]
         matrix.outgoing_edges_cache = data["outgoing_edges_cache"]
@@ -40,40 +46,32 @@ class MyCsv:
         return matrix
 
     def getPrefixes(self):
-        """
-        Returns the cached unique prefixes if already computed.
-        If not, it computes and caches the unique prefixes.
-        """
+        # returns the chached prefixes  
         if self.cached_prefixes is None and self.df is not None:
             self.cached_prefixes = list(self.df["prefixes"].unique())  # type: ignore
         return self.cached_prefixes
 
     def openCsv(self, name: str):
-        """
-        Loads the CSV file into a DataFrame and optimizes by caching necessary information.
-        Ensures each prefix is unique by removing duplicate prefixes.
-        Converts the 'prefixes' column from string representations to tuples.
-        Also precomputes the columns used for predictions.
-        """
+        
         self.df = pd.read_csv(name, delimiter=";")
 
-        # Trim column names to remove any leading/trailing spaces
+        # Strip columns to remove any spaces
         self.df.columns = self.df.columns.str.strip()
 
-        # Convert 'prefixes' column from strings to tuples for efficient comparison
+        # Convert 'prefixes' column from strings to tuples for faster comparison
         self.df["prefixes"] = self.df["prefixes"].apply(lambda x: tuple(eval(x)))
 
-        # Precompute and cache the probability columns for use in the predict method
+        # Precompute and cache the probability columns to use them faster later
         fixed_columns = {"prefixes", "targets", "Support"}
         self.probability_columns = [
             col for col in self.df.columns if col not in fixed_columns
         ]
 
-        # Create a dictionary to cache outgoing edges and support for each node
+        # Create a dict to cache outgoing edges and support for each node
         self.outgoing_edges_cache = {}
         self.support_cache = {}
         if self.df is not None:
-            # Use vectorized operations to improve performance
+            # Use vectorized operations to enhance performance
             grouped = (
                 self.df.groupby("prefixes")
                 .agg({"targets": "first", "Support": "sum"})
@@ -101,22 +99,13 @@ class MyCsv:
             self.supportMax = max(self.support_cache.values())
 
     def predict_using_edges(self, edges: dict, probMin: float = 0, supportMin: int = 1):
-        """
-        Predicts the possible predictions by iterating over all the prefixes and checking if the path is possible in the edges
-
-        Args:
-            edges (dict): edges of the discovered process graph
-            probMin (float, optional): Minimum probability threshold. Defaults to None.
-
-        Returns:
-            valid_predictions (dict): Dictionary of valid predictions with their support and probability
-        """
+        
 
         prefixes = self.getPrefixes()
 
         predictions = {}
 
-        # Cache for prefix coverage status
+        # Cache for prefix coverage
         prefix_coverage_cache = {}
 
         for prefix in prefixes or []:
@@ -167,15 +156,6 @@ class MyCsv:
         return valid_predictions
 
     def get_variant_coverage(self, edges: dict):
-        """
-        Calculate the variant coverage of the model based on the edges. For each variant, checks if a path through the model exists.
-
-        Args:
-            edges (dict): The edges in the traces.
-
-        Returns:
-            float: Variant coverage score between 0 and 1.
-        """
 
         # Extract unique variants from the event log
         unique_variants = self.get_variants()
@@ -229,15 +209,6 @@ class MyCsv:
         return (variant_list, variant_coverage)
 
     def get_event_log_coverage(self, edges: dict):
-        """
-        Calculate the event log coverage of the model based on the edges. For each variant, checks if a path through the model exists.
-
-        Args:
-            edges (dict): The edges in the traces.
-
-        Returns:
-            float: Event log coverage score between 0 and 1.
-        """
         prefixes = self.getPrefixes()
 
         coverage_count = 0
@@ -260,12 +231,8 @@ class MyCsv:
         return event_log_coverage
 
     def get_variants(self):
-        """
-        Returns the unique variants in the event log where the target is [EOC] and their support.
-        In this context, a variant is a prefix that ends with an end-of-case marker. (end-of-case marker is in targets)
-        """
         if self.df is None:
-            raise ValueError("DataFrame is not loaded. Please load the CSV first.")
+            raise ValueError("Df is not defined.")
 
         # Filter rows where the target is '[EOC]'
         eoc_rows = self.df[self.df["targets"].str.strip() == "[EOC]"]

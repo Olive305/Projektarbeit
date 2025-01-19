@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 my-app.tar
+env
+venv

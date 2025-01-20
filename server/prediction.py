@@ -593,6 +593,7 @@ class Prediction:
         # Calculate the maximal Number of nodes that should be added (for auto mode)
         numNodesToAdd = round(2 * (np.log(numNodes) * np.log(numNodes)) + 3)
 
+        # Get the predictions from the matrix
         predictions = self.matrix.predict_using_edges(
             self.edges,
             self.probMin if not self.auto else self.AUTO_PROB_MIN,
@@ -608,7 +609,6 @@ class Prediction:
             if lastNodeId in self.edges and node in self.edges[lastNodeId]:
                 continue
 
-            # Check if a preview node with the actual key already exists
             existsKey = False
 
             # Check if this node already exists with edge from lastNode

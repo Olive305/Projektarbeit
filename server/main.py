@@ -18,7 +18,7 @@ CORS(app)
 
 app.config.update(
     SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=False,
 )
 
 # Paths to predefined matrices

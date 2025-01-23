@@ -27,14 +27,19 @@ export class SessionAuth {
 			formData.append("file", file);
 		}
 
-		const response: AxiosResponse<StartSessionResponse> = await axios.post(
-			`${this.apiUrl}/startSession`,
-			formData,
-			{ headers: { "Content-Type": "multipart/form-data" } }
-		);
+		try {
+			const response: AxiosResponse<StartSessionResponse> = await axios.post(
+				`${this.apiUrl}/startSession`,
+				formData,
+				{ headers: { "Content-Type": "multipart/form-data" }, withCredentials: true }
+			);
 
-		this.sessionId = response.data.session_id;
-		this.setSessionStarted(true);
+			this.sessionId = response.data.session_id;
+			this.setSessionStarted(true);
+		} catch (error) {
+			console.error("Error starting session:", error);
+			throw new Error("Failed to start session. Please try again.");
+		}
 	}
 
 	waitForSessionStart = async (interval = 100) => {
@@ -148,7 +153,9 @@ export class SessionAuth {
 		if (!this.sessionId) throw new Error("Session has not been started.");
 
 		const response: AxiosResponse<MetricsResponse> = await axios.post(
-			`${this.apiUrl}/getPm4pyMetrics`
+			`${this.apiUrl}/getPm4pyMetrics`,
+			{},
+			{ withCredentials: true }
 		);
 
 		const data = JSON.parse(response.data.metrics);
@@ -165,7 +172,7 @@ export class SessionAuth {
 			const response: any = await axios.post(`${this.apiUrl}/predictOutcome`, {
 				graph_input: graphInput,
 				matrix,
-			});
+			}, { withCredentials: true });
 			return response.data;
 		} catch (error) {
 			console.error("Error predicting outcome:", error);
@@ -175,7 +182,8 @@ export class SessionAuth {
 
 	async testConnection(): Promise<{ status: string }> {
 		const response: AxiosResponse<{ status: string }> = await axios.get(
-			`${this.apiUrl}/testConnection`
+			`${this.apiUrl}/testConnection`,
+			{ withCredentials: true }
 		);
 
 		return response.data;
@@ -185,7 +193,8 @@ export class SessionAuth {
 
 		const response: AxiosResponse<{ message: string }> = await axios.post(
 			`${this.apiUrl}/removeMatrix`,
-			{ matrix_name: matrixName }
+			{ matrix_name: matrixName },
+			{ withCredentials: true }
 		);
 
 		return response.data;

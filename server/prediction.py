@@ -528,29 +528,13 @@ class Prediction:
         # Places
         for place in places:
             if place == "source":
-                dot.node(
-                    place,
-                    shape="circle",
-                    width="1",
-                    height="1",
-                    style="filled",
-                    fillcolor="lightblue",
-                    pos="0,0!",
-                )
+                pass
             elif place == "sink":
-                dot.node(
-                    place,
-                    shape="circle",
-                    width="1",
-                    height="1",
-                    style="filled",
-                    fillcolor="lightgreen",
-                    pos="10,0!",
-                )
+                pass
             else:
                 dot.node(
                     place,
-                    shape="circle",
+                    shape="rect",
                     width="1",
                     height="1",
                     style="filled",
@@ -561,7 +545,7 @@ class Prediction:
         for transition in transitions:
             dot.node(
                 transition,
-                shape="rect",
+                shape="circle",
                 width="1",
                 height="1",
                 style="filled",

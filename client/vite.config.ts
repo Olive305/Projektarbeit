@@ -1,12 +1,18 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [react()],
 	server: {
-		port: 8081, // Change this to your desired port
+		port: 8000, // Change this to your desired port
 		hmr: false,
+		proxy: {
+			'/api': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+				secure: false,
+			},
+		},
 	},
 	build: {
 		outDir: "dist", // Output directory for Vite build

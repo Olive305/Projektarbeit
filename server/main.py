@@ -17,7 +17,7 @@ app.secret_key = "0000"  # Required for session management
 CORS(app)
 
 app.config.update(
-    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=False,
 )
 

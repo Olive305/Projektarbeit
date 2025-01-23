@@ -905,7 +905,7 @@ const Canvas: React.FC<CanvasProps> = ({
 				<div
 					className="canvas-popover"
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
-					<button onClick={handleDeleteNode}>Delete Node</button>
+					<button onClick={handleDeleteNode}>Delete Activity</button>
 					<input
 						type="text"
 						placeholder="Add a comment"
@@ -936,7 +936,7 @@ const Canvas: React.FC<CanvasProps> = ({
 				<div
 					className="canvas-popover"
 					style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
-					<button onClick={handleDeleteEdge}>Delete Edge</button>
+					<button onClick={handleDeleteEdge}>Delete Arc</button>
 				</div>
 			)}
 		</div>

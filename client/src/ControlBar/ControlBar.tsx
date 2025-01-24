@@ -228,7 +228,7 @@ const ControlBar: React.FC<ControlsProps> = ({
 								checked={isChecked}
 								onChange={handleCheckboxChange}
 							/>
-							<label>Auto Probability</label>
+							<label>Auto Support</label>
 						</div>
 						<div className="sidebar-sliderContainer">
 							<div style={{ width: "10px" }}></div>
